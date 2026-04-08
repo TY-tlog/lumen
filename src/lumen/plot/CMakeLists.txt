@@ -10,6 +10,7 @@ target_sources(lumen_plot PRIVATE
     PlotStyle.h
     Axis.cpp Axis.h
     PlotScene.cpp PlotScene.h
+    PlotRenderer.cpp PlotRenderer.h
 )
 
 target_include_directories(lumen_plot
