@@ -7,6 +7,10 @@ add_executable(lumen_unit_tests
     test_document_registry.cpp
     test_file_loader.cpp
     test_dataframe_table_model.cpp
+    test_nice_numbers.cpp
+    test_coordinate_mapper.cpp
+    test_view_transform.cpp
+    test_line_series.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.h
 )
@@ -27,6 +31,7 @@ target_link_libraries(lumen_unit_tests
         lumen_core
         lumen::compile_options
         lumen_style
+        lumen_plot
 )
 
 catch_discover_tests(lumen_unit_tests)
