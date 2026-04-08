@@ -1,5 +1,7 @@
 #include "Application.h"
 
+#include "../core/DocumentRegistry.h"
+#include "../core/EventBus.h"
 #include "../style/StyleManager.h"
 #include "../ui/MainWindow.h"
 
@@ -20,7 +22,11 @@ Application::Application(int argc, char* argv[])
     : qapp_(argc, argv) {
     configureApplication();
     loadStyleSheet();
-    mainWindow_ = std::make_unique<MainWindow>();
+
+    eventBus_ = std::make_unique<core::EventBus>();
+    documentRegistry_ =
+        std::make_unique<core::DocumentRegistry>(eventBus_.get());
+    mainWindow_ = std::make_unique<MainWindow>(documentRegistry_.get());
 }
 
 Application::~Application() = default;

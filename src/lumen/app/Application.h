@@ -4,14 +4,20 @@
 
 #include <memory>
 
+namespace lumen::core {
+class EventBus;
+class DocumentRegistry;
+}  // namespace lumen::core
+
 namespace lumen {
 
 class MainWindow;
 
 /// Top-level application object.
 ///
-/// Owns the QApplication and the main window. Responsible for global
-/// setup (style sheet, fonts, settings) and the event-loop entry point.
+/// Owns the QApplication, the main window, and global core services
+/// (EventBus, DocumentRegistry). Responsible for global setup (style
+/// sheet, fonts, settings) and the event-loop entry point.
 class Application {
 public:
     Application(int argc, char* argv[]);
@@ -30,6 +36,8 @@ private:
     void loadStyleSheet();
 
     QApplication qapp_;
+    std::unique_ptr<core::EventBus> eventBus_;
+    std::unique_ptr<core::DocumentRegistry> documentRegistry_;
     std::unique_ptr<MainWindow> mainWindow_;
 };
 
