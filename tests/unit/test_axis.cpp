@@ -98,3 +98,53 @@ TEST_CASE("Axis ticks for fractional range", "[axis]") {
         REQUIRE(m.label.contains('.'));
     }
 }
+
+// Phase 2.5 additional tests
+
+TEST_CASE("Axis autoRange adds 5% padding", "[axis][p2.5]") {
+    std::vector<double> x = {0.0, 100.0};
+    std::vector<double> y = {0.0, 100.0};
+    lumen::data::Column xCol("x", x);
+    lumen::data::Column yCol("y", y);
+    lumen::plot::LineSeries series(&xCol, &yCol, lumen::plot::PlotStyle::fromPalette(0));
+
+    lumen::plot::Axis axis(lumen::plot::AxisOrientation::Horizontal);
+    axis.autoRange({series});
+    CHECK(axis.min() < 0.0);
+    CHECK(axis.max() > 100.0);
+    // 5% of 100 = 5
+    CHECK(axis.min() >= -10.0);
+    CHECK(axis.max() <= 110.0);
+}
+
+TEST_CASE("Axis manual setRange overrides autoRange", "[axis][p2.5]") {
+    std::vector<double> x = {0.0, 100.0};
+    std::vector<double> y = {0.0, 100.0};
+    lumen::data::Column xCol("x", x);
+    lumen::data::Column yCol("y", y);
+    lumen::plot::LineSeries series(&xCol, &yCol, lumen::plot::PlotStyle::fromPalette(0));
+
+    lumen::plot::Axis axis(lumen::plot::AxisOrientation::Horizontal);
+    axis.autoRange({series});
+    axis.setRange(10.0, 20.0);
+    CHECK(axis.min() == 10.0);
+    CHECK(axis.max() == 20.0);
+}
+
+TEST_CASE("Axis ticks from two series union", "[axis][p2.5]") {
+    std::vector<double> x1 = {0.0, 50.0};
+    std::vector<double> y1 = {0.0, 50.0};
+    std::vector<double> x2 = {60.0, 200.0};
+    std::vector<double> y2 = {60.0, 200.0};
+    lumen::data::Column xCol1("x1", x1), yCol1("y1", y1);
+    lumen::data::Column xCol2("x2", x2), yCol2("y2", y2);
+    lumen::plot::LineSeries s1(&xCol1, &yCol1, lumen::plot::PlotStyle::fromPalette(0));
+    lumen::plot::LineSeries s2(&xCol2, &yCol2, lumen::plot::PlotStyle::fromPalette(1));
+
+    lumen::plot::Axis axis(lumen::plot::AxisOrientation::Horizontal);
+    axis.autoRange({s1, s2});
+    CHECK(axis.min() < 0.0);
+    CHECK(axis.max() > 200.0);
+    auto ticks = axis.ticks();
+    CHECK(!ticks.empty());
+}

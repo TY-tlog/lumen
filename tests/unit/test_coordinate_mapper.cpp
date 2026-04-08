@@ -107,3 +107,36 @@ TEST_CASE("CoordinateMapper: setPixelRect updates mapping",
     CHECK_THAT(p.x(), WithinAbs(100.0, 1e-10));
     CHECK_THAT(p.y(), WithinAbs(100.0, 1e-10));
 }
+
+// Phase 2.5 additional tests
+
+TEST_CASE("CoordinateMapper roundtrip precision", "[coordmapper][p2.5]") {
+    lumen::plot::CoordinateMapper mapper(0.0, 700.0, -80.0, 40.0, QRectF(60, 15, 680, 535));
+    double x = 350.0, y = -20.0;
+    auto px = mapper.dataToPixel(x, y);
+    auto [rx, ry] = mapper.pixelToData(px);
+    CHECK(std::abs(rx - x) < 1e-10);
+    CHECK(std::abs(ry - y) < 1e-10);
+}
+
+TEST_CASE("CoordinateMapper Y inversion", "[coordmapper][p2.5]") {
+    lumen::plot::CoordinateMapper mapper(0.0, 100.0, 0.0, 100.0, QRectF(0, 0, 100, 100));
+    auto pxHigh = mapper.dataToPixel(50.0, 100.0);
+    auto pxLow = mapper.dataToPixel(50.0, 0.0);
+    CHECK(pxHigh.y() < pxLow.y());
+}
+
+TEST_CASE("CoordinateMapper non-origin pixel rect", "[coordmapper][p2.5]") {
+    lumen::plot::CoordinateMapper mapper(0.0, 10.0, 0.0, 10.0, QRectF(100, 50, 300, 200));
+    auto px = mapper.dataToPixel(0.0, 10.0);
+    CHECK(px.x() >= 99.0);
+    CHECK(px.y() <= 51.0);
+}
+
+TEST_CASE("CoordinateMapper degenerate zero-width range no crash", "[coordmapper][p2.5]") {
+    lumen::plot::CoordinateMapper mapper(5.0, 5.0, 5.0, 5.0, QRectF(0, 0, 100, 100));
+    auto px = mapper.dataToPixel(5.0, 5.0);
+    // Just verify no crash; result may be inf/nan
+    (void)px;
+    SUCCEED();
+}

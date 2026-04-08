@@ -124,3 +124,42 @@ TEST_CASE("NiceNumbers: large range", "[plot][nice_numbers]")
     CHECK(result.values.front() <= 0.0);
     CHECK(result.values.back() >= 1e7);
 }
+
+// Phase 2.5 additional tests
+
+TEST_CASE("NiceNumbers [0, 1] range", "[nicenumbers][p2.5]") {
+    auto result = lumen::plot::NiceNumbers::compute(0.0, 1.0);
+    REQUIRE(!result.values.empty());
+    CHECK(result.values.front() <= 0.0);
+    CHECK(result.values.back() >= 1.0);
+    CHECK(result.spacing > 0.0);
+    CHECK(result.spacing <= 0.5);
+}
+
+TEST_CASE("NiceNumbers very small range [0, 1e-6]", "[nicenumbers][p2.5]") {
+    auto result = lumen::plot::NiceNumbers::compute(0.0, 1e-6);
+    REQUIRE(!result.values.empty());
+    CHECK(result.spacing > 0.0);
+}
+
+TEST_CASE("NiceNumbers very large range [0, 1e9]", "[nicenumbers][p2.5]") {
+    auto result = lumen::plot::NiceNumbers::compute(0.0, 1e9);
+    REQUIRE(!result.values.empty());
+    CHECK(result.values.size() >= 3);
+    CHECK(result.values.size() <= 15);
+}
+
+TEST_CASE("NiceNumbers negative crossing zero [-50, 50]", "[nicenumbers][p2.5]") {
+    auto result = lumen::plot::NiceNumbers::compute(-50.0, 50.0);
+    REQUIRE(!result.values.empty());
+    bool hasZero = false;
+    for (double v : result.values) {
+        if (std::abs(v) < 1e-10) hasZero = true;
+    }
+    CHECK(hasZero);
+}
+
+TEST_CASE("NiceNumbers degenerate min==max", "[nicenumbers][p2.5]") {
+    auto result = lumen::plot::NiceNumbers::compute(5.0, 5.0);
+    REQUIRE(!result.values.empty());
+}

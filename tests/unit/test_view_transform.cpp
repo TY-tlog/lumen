@@ -1,3 +1,4 @@
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -114,4 +115,35 @@ TEST_CASE("ViewTransform: setBaseRange resets view",
     CHECK_THAT(vt.xMax(), WithinAbs(50.0, 1e-10));
     CHECK_THAT(vt.yMin(), WithinAbs(-25.0, 1e-10));
     CHECK_THAT(vt.yMax(), WithinAbs(25.0, 1e-10));
+}
+
+// Phase 2.5 additional tests
+
+TEST_CASE("ViewTransform pan shifts range exactly", "[viewtransform][p2.5]") {
+    lumen::plot::ViewTransform vt(0.0, 100.0, 0.0, 100.0);
+    vt.pan(10.0, 20.0);
+    CHECK(vt.xMin() == Catch::Approx(10.0));
+    CHECK(vt.xMax() == Catch::Approx(110.0));
+    CHECK(vt.yMin() == Catch::Approx(20.0));
+    CHECK(vt.yMax() == Catch::Approx(120.0));
+}
+
+TEST_CASE("ViewTransform zoom at center preserves center", "[viewtransform][p2.5]") {
+    lumen::plot::ViewTransform vt(0.0, 100.0, 0.0, 100.0);
+    double cx = 50.0, cy = 50.0;
+    vt.zoom(2.0, cx, cy);
+    double midX = (vt.xMin() + vt.xMax()) / 2.0;
+    double midY = (vt.yMin() + vt.yMax()) / 2.0;
+    CHECK(midX == Catch::Approx(cx).epsilon(0.01));
+    CHECK(midY == Catch::Approx(cy).epsilon(0.01));
+}
+
+TEST_CASE("ViewTransform zoomX does not change Y", "[viewtransform][p2.5]") {
+    lumen::plot::ViewTransform vt(0.0, 100.0, 0.0, 100.0);
+    double yMinBefore = vt.yMin();
+    double yMaxBefore = vt.yMax();
+    vt.zoomX(2.0, 50.0);
+    CHECK(vt.yMin() == yMinBefore);
+    CHECK(vt.yMax() == yMaxBefore);
+    CHECK(vt.xMax() - vt.xMin() < 100.0);
 }
