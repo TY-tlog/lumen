@@ -35,14 +35,14 @@ TEST_CASE("Parse simple 3x4 CSV", "[csv]") {
     REQUIRE(df.column(1).name() == QStringLiteral("b"));
     REQUIRE(df.column(2).name() == QStringLiteral("c"));
 
-    // Types: all integer
-    REQUIRE(df.column(0).type() == ColumnType::Int64);
-    REQUIRE(df.column(1).type() == ColumnType::Int64);
+    // Types: all double (fixture uses 1.0, 2.0, …)
+    REQUIRE(df.column(0).type() == ColumnType::Double);
+    REQUIRE(df.column(1).type() == ColumnType::Double);
 
     // Values
-    REQUIRE(df.column(0).int64Data()[0] == 1);
-    REQUIRE(df.column(0).int64Data()[3] == 10);
-    REQUIRE(df.column(2).int64Data()[2] == 9);
+    REQUIRE(df.column(0).doubleData()[0] == 1.0);
+    REQUIRE(df.column(0).doubleData()[3] == 10.0);
+    REQUIRE(df.column(2).doubleData()[2] == 9.0);
 }
 
 TEST_CASE("Parse empty CSV returns empty DataFrame", "[csv]") {
@@ -59,7 +59,7 @@ TEST_CASE("Parse single column CSV", "[csv]") {
 
     REQUIRE(df.columnCount() == 1);
     REQUIRE(df.rowCount() == 3);
-    REQUIRE(df.column(0).name() == QStringLiteral("value"));
+    REQUIRE(df.column(0).name() == QStringLiteral("values"));
     REQUIRE(df.column(0).type() == ColumnType::Double);
     REQUIRE(df.column(0).doubleData()[0] == 1.5);
 }
@@ -71,29 +71,32 @@ TEST_CASE("Parse CSV with NaN values", "[csv]") {
     auto df = reader.readFile(fixturePath("with_nan.csv"));
 
     REQUIRE(df.columnCount() == 3);
-    REQUIRE(df.rowCount() == 5);
+    REQUIRE(df.rowCount() == 4);
 
     // All columns should be Double (because of NaN mixing)
     REQUIRE(df.column(0).type() == ColumnType::Double);
     REQUIRE(df.column(1).type() == ColumnType::Double);
     REQUIRE(df.column(2).type() == ColumnType::Double);
 
-    // Row 0: 1.0, 2.0, 3.0
+    // Row 0: 1.0, NaN, 3.0
     REQUIRE(df.column(0).doubleData()[0] == 1.0);
+    REQUIRE(std::isnan(df.column(1).doubleData()[0]));
+    REQUIRE(df.column(2).doubleData()[0] == 3.0);
 
-    // Row 1: NaN, 4.0, 5.0
-    REQUIRE(std::isnan(df.column(0).doubleData()[1]));
+    // Row 1: 2.0, 4.0, (empty)
+    REQUIRE(df.column(0).doubleData()[1] == 2.0);
     REQUIRE(df.column(1).doubleData()[1] == 4.0);
+    REQUIRE(std::isnan(df.column(2).doubleData()[1]));
 
-    // Row 2: 6.0, nan, 7.0
-    REQUIRE(std::isnan(df.column(1).doubleData()[2]));
+    // Row 2: NaN, 6.0, 7.0
+    REQUIRE(std::isnan(df.column(0).doubleData()[2]));
+    REQUIRE(df.column(1).doubleData()[2] == 6.0);
+    REQUIRE(df.column(2).doubleData()[2] == 7.0);
 
-    // Row 3: 8.0, 9.0, NAN
+    // Row 3: 4.0, (empty), NaN
+    REQUIRE(df.column(0).doubleData()[3] == 4.0);
+    REQUIRE(std::isnan(df.column(1).doubleData()[3]));
     REQUIRE(std::isnan(df.column(2).doubleData()[3]));
-
-    // Row 4: 10.0, NA, (empty)
-    REQUIRE(std::isnan(df.column(1).doubleData()[4]));
-    REQUIRE(std::isnan(df.column(2).doubleData()[4]));
 }
 
 TEST_CASE("NaN string variants all become quiet_NaN", "[csv]") {
@@ -128,23 +131,22 @@ TEST_CASE("RFC 4180 quoted fields", "[csv]") {
     auto df = reader.readFile(fixturePath("rfc4180_quoted.csv"));
 
     REQUIRE(df.columnCount() == 3);
-    REQUIRE(df.rowCount() == 4);
+    REQUIRE(df.rowCount() == 3);
 
     // All columns should be String (mixed content)
     REQUIRE(df.column(0).type() == ColumnType::String);
 
-    // Row 0: simple, 1, no quotes
-    REQUIRE(df.column(0).stringData()[0] == QStringLiteral("simple"));
+    // Row 0: "Smith, John", He said "hello", 42
+    REQUIRE(df.column(0).stringData()[0] == QStringLiteral("Smith, John"));
+    REQUIRE(df.column(1).stringData()[0] == QStringLiteral("He said \"hello\""));
 
-    // Row 1: with "quotes", 2, has "escaped" quotes
-    REQUIRE(df.column(0).stringData()[1] == QStringLiteral("with \"quotes\""));
-    REQUIRE(df.column(2).stringData()[1] == QStringLiteral("has \"escaped\" quotes"));
+    // Row 1: plain, normal text, 100
+    REQUIRE(df.column(0).stringData()[1] == QStringLiteral("plain"));
+    REQUIRE(df.column(1).stringData()[1] == QStringLiteral("normal text"));
 
-    // Row 2: with,comma, 3, comma inside
-    REQUIRE(df.column(0).stringData()[2] == QStringLiteral("with,comma"));
-
-    // Row 3: with\nnewline, 4, newline inside
-    REQUIRE(df.column(0).stringData()[3].contains(QStringLiteral("\n")));
+    // Row 2: multi\nline, another "quoted" field, 0
+    REQUIRE(df.column(0).stringData()[2].contains(QStringLiteral("\n")));
+    REQUIRE(df.column(1).stringData()[2] == QStringLiteral("another \"quoted\" field"));
 }
 
 // ===== UTF-8 BOM =====
