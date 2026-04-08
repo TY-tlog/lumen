@@ -57,3 +57,6 @@ tests/fixtures/real/
 *.mat
 *.h5
 *.hdf5
+
+# Generated test fixtures (large, not committed)
+tests/fixtures/tiny/large_100k.csv
