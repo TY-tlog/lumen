@@ -1,0 +1,5 @@
+name,description,value
+"Smith, John","He said ""hello""",42
+"plain",normal text,100
+"multi
+line","another ""quoted"" field",0
