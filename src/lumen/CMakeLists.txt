@@ -37,6 +37,10 @@ qt_add_executable(lumen
     ui/DataTableDock.h
     ui/MainWindow.cpp
     ui/MainWindow.h
+    ui/PlotCanvas.cpp
+    ui/PlotCanvas.h
+    ui/PlotCanvasDock.cpp
+    ui/PlotCanvasDock.h
     "${CMAKE_SOURCE_DIR}/resources/styles/styles.qrc"
     ${LUMEN_FONT_QRC}
 )

@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 
 #include "DataTableDock.h"
+#include "PlotCanvasDock.h"
 
 #include <core/DocumentRegistry.h>
 #include <data/FileLoader.h>
@@ -46,6 +47,11 @@ MainWindow::MainWindow(core::DocumentRegistry* registry, QWidget* parent)
     addDockWidget(Qt::BottomDockWidgetArea, dataTableDock_);
     dataTableDock_->hide();
 
+    // Plot canvas dock — starts hidden, shown when data is loaded
+    plotCanvasDock_ = new ui::PlotCanvasDock(this);
+    addDockWidget(Qt::RightDockWidgetArea, plotCanvasDock_);
+    plotCanvasDock_->hide();
+
     // Status bar
     statusBar()->showMessage(tr("Ready"));
 
@@ -75,6 +81,7 @@ void MainWindow::buildMenus() {
 
     auto* viewMenu = menuBar()->addMenu(tr("&View"));
     viewMenu->addAction(dataTableDock_->toggleViewAction());
+    viewMenu->addAction(plotCanvasDock_->toggleViewAction());
 
     auto* helpMenu = menuBar()->addMenu(tr("&Help"));
     auto* aboutAction = helpMenu->addAction(tr("&About Lumen"));
@@ -101,6 +108,8 @@ void MainWindow::loadFile(const QString& filePath) {
     if (existing != nullptr) {
         dataTableDock_->showDataFrame(existing);
         dataTableDock_->show();
+        plotCanvasDock_->setDataFrame(existing);
+        plotCanvasDock_->show();
         QFileInfo fi(filePath);
         setWindowTitle(QStringLiteral("Lumen — %1").arg(fi.fileName()));
         statusBar()->showMessage(
@@ -126,6 +135,10 @@ void MainWindow::loadFile(const QString& filePath) {
 
                 dataTableDock_->showDataFrame(rawDf);
                 dataTableDock_->show();
+
+                // Auto-plot.
+                plotCanvasDock_->setDataFrame(rawDf);
+                plotCanvasDock_->show();
 
                 QFileInfo info(path);
                 setWindowTitle(
