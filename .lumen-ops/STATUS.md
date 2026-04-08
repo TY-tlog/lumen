@@ -13,3 +13,72 @@ Repository initialized. Phase 0 in progress.
 - Drafted ADRs 009 (threading), 010 (EventBus vs signals), 011 (Inter font).
 - Updated `docs/architecture.md` with Phase 1 data-loading flow and threading.
 - Awaiting human review and approval before commit.
+
+## 2026-04-09 — Phase 1 close
+
+### Delivered tasks (from phase-1-plan.md)
+
+| Task | Owner | Status | Commit |
+|------|-------|--------|--------|
+| T1 CsvReader | Backend | Done | 5e4f601 |
+| T2 DataFrame + Column | Backend | Done | 5e4f601 |
+| T3 EventBus + DocumentRegistry | Backend | Done | 0e5aa02 |
+| T4 FileLoader (async QThread) | Backend | Done | 0e5aa02 |
+| T5 File-open UI flow | Frontend | Done | 3033876 |
+| T6 Integration tests (end-to-end) | QA | Done | 7ced3a6 |
+| T7 Test fixtures (9 CSVs + generator) | QA | Done | fa8f6ce |
+| T8 Apple-mood QSS v1 + DesignTokens | Frontend | Done | 8dea97e |
+| T9 Inter font integration (4 weights, OFL) | Frontend | Done | 8dea97e |
+| T10 DataTableDock + DataFrameTableModel | Frontend | Done | 8a1f37e |
+| T11 Docs update (README, CLAUDE.md sync) | Docs | Deferred | — |
+
+**10 of 11 tasks completed. T11 deferred to Phase 2 start.**
+
+### Test results
+- 72/72 tests pass (67 unit + 5 integration)
+- ASan + UBSan clean in Debug mode
+- Zero compiler warnings under -Wall -Wextra -Wpedantic -Werror
+
+### Real-data verification
+- Owner (T.Y.) opened electrophysiology patch-clamp CSV
+  (wt0_cap100nM_d20251029_s002_before_1x_raw.csv: 3499 rows × 9 cols)
+- Data displayed correctly in DataTableDock
+- NaN values rendered in grey (text.tertiary)
+- Column sorting, status bar, recent files all functional
+- Confirmed: "Opened successfully"
+
+### Agents involved
+- **Architect**: Phase 1 spec, plan, ADRs 009–011, architecture update
+- **Backend**: T1, T2, T3, T4 (CsvReader → DataFrame → EventBus/Registry → FileLoader)
+- **Frontend**: T8, T9, T10, T5 (DesignTokens → Inter font → DataTableDock → file-open UI)
+- **QA**: T7, T6 (fixtures → integration tests)
+- **Integration**: merge conflict resolution handled by coordinator
+- **Docs**: not activated (T11 deferred)
+
+### Execution model
+Three parallel rounds, each with 2–3 agents working simultaneously:
+- Round 1: Backend(T1+T2) + Frontend(T8+T9) + QA(T7)
+- Round 2: Backend(T3+T4) + Frontend(T10)
+- Round 3: Frontend(T5) + QA(T6)
+Merge conflicts resolved after each round before launching the next.
+
+### Lessons learned
+1. **Fixture file collisions**: Both Backend and QA created overlapping
+   fixture files (simple_3x4.csv, with_nan.csv, etc.). The merge
+   produced conflicts. Fix: assign fixture creation to QA exclusively
+   (per plan), and have Backend use inline test data or wait for QA.
+2. **Agent sandbox limits**: Subagents could not run git commands or
+   network downloads (curl/wget). The coordinator had to commit and
+   download fonts on their behalf. Acceptable but adds overhead.
+3. **Qt 6.4 vs 6.6 gap**: Ubuntu apt provides Qt 6.4.2; the original
+   spec said 6.6+. Lowered the CMake requirement to 6.4 in Phase 0.
+   No API issues encountered in Phase 1. Monitor for Phase 2 (QPainter
+   features).
+4. **shared_ptr for cross-thread DataFrame**: Qt signals cannot transport
+   move-only types. Backend used std::shared_ptr<DataFrame> instead of
+   unique_ptr for the FileLoader→DocumentRegistry handoff. This is a
+   pragmatic deviation from the "unique_ptr everywhere" rule, documented
+   in the code.
+5. **Parallel rounds work**: The 3-round parallel model (Backend critical
+   path + Frontend parallel track + QA fixtures) completed Phase 1 in a
+   single session. The dependency graph in phase-1-plan.md was accurate.
