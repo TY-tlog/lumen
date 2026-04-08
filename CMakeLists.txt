@@ -48,6 +48,7 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS
     Core
     Gui
     Widgets
+    Test
 )
 
 qt_standard_project_setup()

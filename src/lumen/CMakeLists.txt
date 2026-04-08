@@ -3,6 +3,7 @@
 
 # ---------- Sub-modules ----------
 add_subdirectory(data)
+add_subdirectory(core)
 add_subdirectory(style)
 
 # ---------- Embedded resources: fonts (conditional) ----------
@@ -47,6 +48,7 @@ target_link_libraries(lumen
         Qt6::Gui
         Qt6::Widgets
         lumen_data
+        lumen_core
         lumen::compile_options
         lumen_style
 )
