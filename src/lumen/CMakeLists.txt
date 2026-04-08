@@ -5,6 +5,7 @@
 add_subdirectory(data)
 add_subdirectory(core)
 add_subdirectory(style)
+add_subdirectory(plot)
 
 # ---------- Embedded resources: fonts (conditional) ----------
 set(_font_dir "${CMAKE_SOURCE_DIR}/resources/fonts")
@@ -55,6 +56,7 @@ target_link_libraries(lumen
         lumen_core
         lumen::compile_options
         lumen_style
+        lumen_plot
 )
 
 set_target_properties(lumen PROPERTIES
