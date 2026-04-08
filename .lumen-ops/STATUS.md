@@ -90,3 +90,22 @@ Merge conflicts resolved after each round before launching the next.
 - Applied Phase 1 lessons: QA-exclusive fixtures, early CMake module,
   shared_ptr convention documented.
 - Awaiting human review and approval.
+
+## 2026-04-09 — Phase 2 implementation complete
+- Backend (3 rounds): T9 CMake, T1 NiceNumbers+CoordMapper,
+  T2 ViewTransform, T3 LineSeries, T4 Axis+PlotScene.
+- Frontend (3 rounds): T5 PlotRenderer, T6 PlotCanvas+Interaction,
+  T7 PlotCanvasDock+column picker+auto-plot.
+- Human verified 7 interaction checks with real electrophysiology CSV.
+- 121 tests passing (72 Phase 1 + 36 Phase 2 plot + 3 renderer + 5 integration + 5 misc).
+- Agent permission issues: T4, T5, T6+T7 implemented by coordinator
+  after subagents were blocked by sandbox restrictions.
+
+## 2026-04-09 — Phase 2.5 opening (Architect session 3)
+- Wrote `docs/specs/phase-2.5-spec.md`: consolidation round, 6 deliverables.
+- Wrote `docs/plans/phase-2.5-plan.md`: 6 tasks, 3 rounds + human re-verification.
+- Wrote ADRs 013-017 documenting Phase 2 decisions (margins, precision,
+  NiceNumbers, inline interaction, crosshair simplification).
+- Wrote `docs/reviews/phase-2-review.md` with human verification evidence.
+- Updated `docs/architecture.md` with Phase 2 rendering pipeline.
+- Remaining: T1 PlotRegistry (Backend), T2 plot/ tests (QA), T6 README (Docs).
