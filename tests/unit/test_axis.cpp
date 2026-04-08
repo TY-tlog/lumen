@@ -1,0 +1,100 @@
+#include <catch2/catch_test_macros.hpp>
+
+#include <data/Column.h>
+#include <plot/Axis.h>
+#include <plot/LineSeries.h>
+#include <plot/PlotStyle.h>
+
+#include <cmath>
+#include <vector>
+
+using namespace lumen::plot;
+using namespace lumen::data;
+
+TEST_CASE("Axis manual range produces ticks", "[axis]") {
+    Axis axis(AxisOrientation::Horizontal);
+    axis.setRange(0.0, 700.0);
+
+    auto marks = axis.ticks();
+    REQUIRE(!marks.empty());
+    // NiceNumbers may extend slightly beyond data range for "nice" values.
+    REQUIRE(marks.front().value >= -100.0);
+    REQUIRE(marks.back().value <= 800.0);
+}
+
+TEST_CASE("Axis label is stored", "[axis]") {
+    Axis axis(AxisOrientation::Vertical);
+    axis.setLabel("voltage_mV");
+    REQUIRE(axis.label() == "voltage_mV");
+}
+
+TEST_CASE("Axis orientation is stored", "[axis]") {
+    Axis hAxis(AxisOrientation::Horizontal);
+    Axis vAxis(AxisOrientation::Vertical);
+    REQUIRE(hAxis.orientation() == AxisOrientation::Horizontal);
+    REQUIRE(vAxis.orientation() == AxisOrientation::Vertical);
+}
+
+TEST_CASE("Axis autoRange from one series", "[axis]") {
+    std::vector<double> xData = {0.0, 1.0, 2.0, 3.0};
+    std::vector<double> yData = {10.0, 20.0, 15.0, 25.0};
+    Column xCol("x", xData);
+    Column yCol("y", yData);
+
+    LineSeries series(&xCol, &yCol, PlotStyle::fromPalette(0));
+
+    Axis xAxis(AxisOrientation::Horizontal);
+    xAxis.autoRange({series});
+
+    // Should cover [0, 3] with 5% padding.
+    REQUIRE(xAxis.min() < 0.0);
+    REQUIRE(xAxis.max() > 3.0);
+
+    Axis yAxis(AxisOrientation::Vertical);
+    yAxis.autoRange({series});
+    REQUIRE(yAxis.min() < 10.0);
+    REQUIRE(yAxis.max() > 25.0);
+}
+
+TEST_CASE("Axis autoRange from multiple series takes union", "[axis]") {
+    std::vector<double> x1 = {0.0, 1.0};
+    std::vector<double> y1 = {10.0, 20.0};
+    std::vector<double> x2 = {2.0, 3.0};
+    std::vector<double> y2 = {5.0, 30.0};
+    Column xCol1("x1", x1);
+    Column yCol1("y1", y1);
+    Column xCol2("x2", x2);
+    Column yCol2("y2", y2);
+
+    LineSeries s1(&xCol1, &yCol1, PlotStyle::fromPalette(0));
+    LineSeries s2(&xCol2, &yCol2, PlotStyle::fromPalette(1));
+
+    Axis xAxis(AxisOrientation::Horizontal);
+    xAxis.autoRange({s1, s2});
+    REQUIRE(xAxis.min() < 0.0);
+    REQUIRE(xAxis.max() > 3.0);
+
+    Axis yAxis(AxisOrientation::Vertical);
+    yAxis.autoRange({s1, s2});
+    REQUIRE(yAxis.min() < 5.0);
+    REQUIRE(yAxis.max() > 30.0);
+}
+
+TEST_CASE("Axis autoRange empty series list", "[axis]") {
+    Axis axis(AxisOrientation::Horizontal);
+    axis.autoRange({});
+    REQUIRE(axis.min() == 0.0);
+    REQUIRE(axis.max() == 1.0);
+}
+
+TEST_CASE("Axis ticks for fractional range", "[axis]") {
+    Axis axis(AxisOrientation::Vertical);
+    axis.setRange(-38.7, -37.9);
+
+    auto marks = axis.ticks();
+    REQUIRE(!marks.empty());
+    // All tick labels should have decimal places.
+    for (const auto& m : marks) {
+        REQUIRE(m.label.contains('.'));
+    }
+}

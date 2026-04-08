@@ -11,6 +11,8 @@ add_executable(lumen_unit_tests
     test_coordinate_mapper.cpp
     test_view_transform.cpp
     test_line_series.cpp
+    test_axis.cpp
+    test_plot_scene.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.h
 )
