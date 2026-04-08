@@ -109,3 +109,34 @@ Merge conflicts resolved after each round before launching the next.
 - Wrote `docs/reviews/phase-2-review.md` with human verification evidence.
 - Updated `docs/architecture.md` with Phase 2 rendering pipeline.
 - Remaining: T1 PlotRegistry (Backend), T2 plot/ tests (QA), T6 README (Docs).
+
+## 2026-04-09 — Phase 2.5 close
+
+### Delivered
+- T1 PlotRegistry + EventBus 4 plot events (Backend)
+- T2 18 plot module unit tests (QA)
+- T3 ADRs 013-017 (Architect)
+- T4 Phase 2 review (Architect)
+- T5 architecture.md Phase 2 section (Architect)
+
+### Test results
+- 146/146 tests pass (139 unit + 7 integration), ASan+UBSan clean
+
+### Human re-verification (7 interaction checks)
+All passed on 2026-04-09:
+1. Open CSV → auto line plot
+2. Pan via left-drag
+3. Wheel zoom (Shift=X, Ctrl=Y)
+4. Right-drag box zoom
+5. Double-click reset
+6. Crosshair tooltip
+7. Column picker updates plot
+
+### Exit checklist
+- [x] Build clean (0 warnings)
+- [x] ≥90 tests green (146)
+- [x] 5 ADRs committed (013-017)
+- [x] Phase 2 review committed
+- [x] architecture.md updated
+- [x] Human re-verification pass
+- [ ] README.md update (T6, deferred to Phase 3 start)
