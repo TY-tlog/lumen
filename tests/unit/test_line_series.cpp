@@ -163,3 +163,38 @@ TEST_CASE("PlotStyle: fromPalette wraps around", "[plot][plot_style]")
     // Index 8 should wrap to index 0.
     CHECK(s0.color == s8.color);
 }
+
+// Phase 2.5 additional tests
+
+TEST_CASE("LineSeries single data point", "[lineseries][p2.5]") {
+    std::vector<double> x = {1.0};
+    std::vector<double> y = {2.0};
+    lumen::data::Column xCol("x", x);
+    lumen::data::Column yCol("y", y);
+    lumen::plot::LineSeries series(&xCol, &yCol, lumen::plot::PlotStyle::fromPalette(0));
+    auto polys = series.buildPolylines();
+    REQUIRE(polys.size() == 1);
+    CHECK(polys[0].size() == 1);
+}
+
+TEST_CASE("LineSeries multiple NaN gaps", "[lineseries][p2.5]") {
+    std::vector<double> x = {1, 2, 3, 4, 5};
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    std::vector<double> y = {1, nan, 3, nan, 5};
+    lumen::data::Column xCol("x", x);
+    lumen::data::Column yCol("y", y);
+    lumen::plot::LineSeries series(&xCol, &yCol, lumen::plot::PlotStyle::fromPalette(0));
+    auto polys = series.buildPolylines();
+    CHECK(polys.size() == 3);
+}
+
+TEST_CASE("LineSeries all NaN no crash", "[lineseries][p2.5]") {
+    double nan = std::numeric_limits<double>::quiet_NaN();
+    std::vector<double> x = {nan, nan, nan};
+    std::vector<double> y = {nan, nan, nan};
+    lumen::data::Column xCol("x", x);
+    lumen::data::Column yCol("y", y);
+    lumen::plot::LineSeries series(&xCol, &yCol, lumen::plot::PlotStyle::fromPalette(0));
+    auto polys = series.buildPolylines();
+    CHECK(polys.empty());
+}
