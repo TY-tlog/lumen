@@ -7,6 +7,7 @@ class QMenu;
 
 namespace lumen::core {
 class DocumentRegistry;
+class PlotRegistry;
 }  // namespace lumen::core
 
 namespace lumen::ui {
@@ -28,6 +29,7 @@ public:
     /// Construct the main window.
     /// @p registry must outlive the window; owned by Application.
     explicit MainWindow(core::DocumentRegistry* registry,
+                        core::PlotRegistry* plotRegistry = nullptr,
                         QWidget* parent = nullptr);
     ~MainWindow() override;
 

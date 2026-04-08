@@ -7,6 +7,7 @@
 namespace lumen::core {
 class EventBus;
 class DocumentRegistry;
+class PlotRegistry;
 }  // namespace lumen::core
 
 namespace lumen {
@@ -38,6 +39,7 @@ private:
     QApplication qapp_;
     std::unique_ptr<core::EventBus> eventBus_;
     std::unique_ptr<core::DocumentRegistry> documentRegistry_;
+    std::unique_ptr<core::PlotRegistry> plotRegistry_;
     std::unique_ptr<MainWindow> mainWindow_;
 };
 

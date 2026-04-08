@@ -2,6 +2,7 @@
 
 #include "PlotCanvas.h"
 
+#include <core/PlotRegistry.h>
 #include <data/Column.h>
 #include <data/ColumnType.h>
 #include <data/DataFrame.h>
@@ -76,7 +77,12 @@ void PlotCanvasDock::buildToolBar() {
     });
 }
 
-void PlotCanvasDock::setDataFrame(const data::DataFrame* df) {
+void PlotCanvasDock::setPlotRegistry(core::PlotRegistry* registry) {
+    registry_ = registry;
+}
+
+void PlotCanvasDock::setDataFrame(const data::DataFrame* df, const QString& documentPath) {
+    documentPath_ = documentPath;
     dataFrame_ = df;
 
     // Find numeric columns.
@@ -116,6 +122,11 @@ void PlotCanvasDock::setDataFrame(const data::DataFrame* df) {
     }
 
     rebuildPlot();
+
+    // Register canvas in PlotRegistry if available.
+    if (registry_ != nullptr && !documentPath_.isEmpty()) {
+        registry_->registerPlot(documentPath_, canvas_);
+    }
 }
 
 void PlotCanvasDock::addYSeries() {

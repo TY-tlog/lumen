@@ -2,6 +2,7 @@
 
 #include "../core/DocumentRegistry.h"
 #include "../core/EventBus.h"
+#include "../core/PlotRegistry.h"
 #include "../style/StyleManager.h"
 #include "../ui/MainWindow.h"
 
@@ -26,7 +27,10 @@ Application::Application(int argc, char* argv[])
     eventBus_ = std::make_unique<core::EventBus>();
     documentRegistry_ =
         std::make_unique<core::DocumentRegistry>(eventBus_.get());
-    mainWindow_ = std::make_unique<MainWindow>(documentRegistry_.get());
+    plotRegistry_ =
+        std::make_unique<core::PlotRegistry>(eventBus_.get());
+    mainWindow_ = std::make_unique<MainWindow>(
+        documentRegistry_.get(), plotRegistry_.get());
 }
 
 Application::~Application() = default;
