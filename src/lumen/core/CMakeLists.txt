@@ -5,6 +5,8 @@ add_library(lumen_core STATIC
     DocumentRegistry.h
     EventBus.cpp
     EventBus.h
+    PlotRegistry.cpp
+    PlotRegistry.h
 )
 
 target_include_directories(lumen_core

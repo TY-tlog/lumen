@@ -30,7 +30,9 @@ constexpr auto kStateKey = "MainWindow/state";
 constexpr auto kRecentFilesKey = "recentFiles";
 }  // namespace
 
-MainWindow::MainWindow(core::DocumentRegistry* registry, QWidget* parent)
+MainWindow::MainWindow(core::DocumentRegistry* registry,
+                       core::PlotRegistry* plotRegistry,
+                       QWidget* parent)
     : QMainWindow(parent)
     , registry_(registry) {
     setWindowTitle("Lumen");
@@ -49,6 +51,7 @@ MainWindow::MainWindow(core::DocumentRegistry* registry, QWidget* parent)
 
     // Plot canvas dock — starts hidden, shown when data is loaded
     plotCanvasDock_ = new ui::PlotCanvasDock(this);
+    plotCanvasDock_->setPlotRegistry(plotRegistry);
     addDockWidget(Qt::RightDockWidgetArea, plotCanvasDock_);
     plotCanvasDock_->hide();
 
@@ -108,7 +111,7 @@ void MainWindow::loadFile(const QString& filePath) {
     if (existing != nullptr) {
         dataTableDock_->showDataFrame(existing);
         dataTableDock_->show();
-        plotCanvasDock_->setDataFrame(existing);
+        plotCanvasDock_->setDataFrame(existing, filePath);
         plotCanvasDock_->show();
         QFileInfo fi(filePath);
         setWindowTitle(QStringLiteral("Lumen — %1").arg(fi.fileName()));
@@ -137,7 +140,7 @@ void MainWindow::loadFile(const QString& filePath) {
                 dataTableDock_->show();
 
                 // Auto-plot.
-                plotCanvasDock_->setDataFrame(rawDf);
+                plotCanvasDock_->setDataFrame(rawDf, path);
                 plotCanvasDock_->show();
 
                 QFileInfo info(path);

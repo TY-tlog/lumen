@@ -16,6 +16,12 @@ enum class Event {
     DocumentClosed,
     SelectionChanged,
     ThemeChanged,
+
+    // Phase 2 plot events (added in Phase 2.5)
+    PlotCreated,          // payload: QString documentPath
+    PlotViewportChanged,  // payload: QString documentPath (future: QRectF viewport)
+    PlotCrosshairMoved,   // payload: QString documentPath (future: QPointF dataPos)
+    PlotColumnsChanged,   // payload: QString documentPath
 };
 
 /// Central event bus for decoupled cross-module communication.

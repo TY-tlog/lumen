@@ -10,6 +10,10 @@ class QToolBar;
 class QPushButton;
 class QHBoxLayout;
 
+namespace lumen::core {
+class PlotRegistry;
+}
+
 namespace lumen::data {
 class DataFrame;
 }
@@ -34,9 +38,13 @@ public:
     explicit PlotCanvasDock(QWidget* parent = nullptr);
     ~PlotCanvasDock() override;
 
+    /// Set the PlotRegistry for document-to-canvas tracking.
+    void setPlotRegistry(core::PlotRegistry* registry);
+
     /// Set the DataFrame to plot. Populates column pickers and creates
     /// default plot (first numeric col as X, second as Y).
-    void setDataFrame(const data::DataFrame* df);
+    /// @p documentPath is used to register the canvas in PlotRegistry.
+    void setDataFrame(const data::DataFrame* df, const QString& documentPath = {});
 
     /// Access the canvas widget.
     [[nodiscard]] PlotCanvas* canvas() const { return canvas_; }
@@ -60,7 +68,9 @@ private:
     QWidget* yContainer_ = nullptr;
     QHBoxLayout* yLayout_ = nullptr;
 
+    core::PlotRegistry* registry_ = nullptr;
     const data::DataFrame* dataFrame_ = nullptr;
+    QString documentPath_;
     std::unique_ptr<plot::PlotScene> scene_;
     QStringList numericColumns_;
 };
