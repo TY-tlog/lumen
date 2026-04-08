@@ -6,6 +6,9 @@ add_executable(lumen_unit_tests
     test_event_bus.cpp
     test_document_registry.cpp
     test_file_loader.cpp
+    test_dataframe_table_model.cpp
+    ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.h
 )
 
 target_compile_definitions(lumen_unit_tests

@@ -1,5 +1,7 @@
 #include "MainWindow.h"
 
+#include "DataTableDock.h"
+
 #include <QAction>
 #include <QApplication>
 #include <QByteArray>
@@ -31,6 +33,11 @@ MainWindow::MainWindow(QWidget* parent)
     placeholder->setAlignment(Qt::AlignCenter);
     setCentralWidget(placeholder);
 
+    // Data table dock — starts hidden, shown when data is loaded
+    dataTableDock_ = new ui::DataTableDock(this);
+    addDockWidget(Qt::BottomDockWidgetArea, dataTableDock_);
+    dataTableDock_->hide();
+
     buildMenus();
     restoreGeometry();
 }
@@ -44,7 +51,7 @@ void MainWindow::buildMenus() {
     connect(quitAction, &QAction::triggered, this, &MainWindow::close);
 
     auto* viewMenu = menuBar()->addMenu(tr("&View"));
-    Q_UNUSED(viewMenu);
+    viewMenu->addAction(dataTableDock_->toggleViewAction());
 
     auto* helpMenu = menuBar()->addMenu(tr("&Help"));
     auto* aboutAction = helpMenu->addAction(tr("&About Lumen"));
