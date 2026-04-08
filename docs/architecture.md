@@ -68,3 +68,72 @@ User input → Widget → Command construction → CommandBus.execute
 5. Util is leaf; nothing depends on it that depends back.
 
 Enforced by code review and (later) custom CMake checks.
+
+## Phase 1 additions
+
+### Data-loading flow
+
+```
+User clicks File → Open CSV
+        │
+        ▼
+  QFileDialog (main thread)
+        │
+        ▼
+  FileLoader::load(path)
+        │  creates QThread, moves worker to it
+        ▼
+  ┌─────────────────────────────┐
+  │  Worker thread              │
+  │  CsvReader::parse(path)     │
+  │    → tokenize rows          │
+  │    → infer column types     │
+  │    → build DataFrame        │
+  │  signal: progress(percent)  │
+  │  signal: finished(DataFrame)│
+  └─────────────────────────────┘
+        │  queued connection
+        ▼
+  DocumentRegistry::addDocument(path, DataFrame)
+        │
+        ▼
+  EventBus::emit(DocumentOpened, path)
+        │
+        ▼
+  DataTableDock receives event → sets DataFrameTableModel
+```
+
+### Threading model (ADR-009)
+
+- **Main thread**: Qt event loop, all widget operations, EventBus
+  dispatch, DocumentRegistry access.
+- **File-loading thread**: one `QThread` per load. Runs CsvReader
+  synchronously. Delivers result via queued signal. Thread is
+  destroyed after completion.
+- **Cancellation**: `std::atomic<bool>` flag, checked every ~1000
+  rows during parsing.
+- **Thread safety**: `DataFrame` is move-only. Moved from worker
+  thread to main thread in the `finished` signal. No shared
+  mutable state.
+
+### EventBus (ADR-010)
+
+Two-tier communication:
+1. **Direct Qt signals**: local, within a module (widget → widget).
+2. **EventBus**: cross-module, decoupled (document opened, selection
+   changed, theme changed).
+3. **CommandBus** (Phase 3+): state-changing operations with undo.
+
+### Data model
+
+```
+DataFrame
+  ├── Column "time_ms"        (Double)
+  ├── Column "voltage_mV"     (Double)
+  ├── Column "I_ion_nA"       (Double, contains NaN)
+  └── ...
+```
+
+- `ColumnType` enum: `Int64`, `Double`, `String`
+- NaN stored as `std::numeric_limits<double>::quiet_NaN()`
+- Move-only, no copy
