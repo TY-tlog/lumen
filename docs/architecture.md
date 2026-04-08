@@ -137,3 +137,74 @@ DataFrame
 - `ColumnType` enum: `Int64`, `Double`, `String`
 - NaN stored as `std::numeric_limits<double>::quiet_NaN()`
 - Move-only, no copy
+
+## Phase 2 additions — Plot engine
+
+### Rendering pipeline (as implemented)
+
+```
+DataFrame (data/)
+    │
+    ▼
+LineSeries (plot/)
+    │  holds const Column* xCol, yCol
+    │  buildPolylines() → vector<QPolygonF> (breaks at NaN)
+    │  dataRange() → {xMin, xMax, yMin, yMax}
+    ▼
+PlotScene (plot/)
+    │  owns: Axis xAxis, Axis yAxis, vector<LineSeries>, ViewTransform
+    │  autoRange() → sets axes + ViewTransform base range
+    │  computePlotArea(widgetSize) → QRectF (hardcoded margins, ADR-013)
+    ▼
+PlotRenderer (plot/)
+    │  render(QPainter&, PlotScene&, QSizeF)
+    │  draws: background, grid, axes, tick marks/labels, axis labels,
+    │         clipped line series, title, legend
+    │  all colors from DesignTokens (no literals)
+    ▼
+PlotCanvas (ui/)
+    │  QWidget, owns PlotScene*
+    │  paintEvent() → PlotRenderer::render()
+    │  mouse events → interaction (inline, ADR-016)
+    ▼
+PlotCanvasDock (ui/)
+       QDockWidget wrapping PlotCanvas + column picker toolbar
+       setDataFrame() → populates combo boxes, rebuilds PlotScene
+       auto-shown on CSV open
+```
+
+### Coordinate system
+
+- `CoordinateMapper` — bidirectional linear mapping, data ↔ pixel,
+  Y inverted. Double precision, 1e-10 round-trip (ADR-014).
+- `ViewTransform` — base range + current view range. Pan, zoom
+  (uniform, X-only, Y-only), reset to base.
+- `NiceNumbers` — 1-2-5 Heckbert algorithm for tick generation
+  (ADR-015). Handles arbitrary ranges including fractional,
+  negative, and very large/small.
+
+### Interaction model (ADR-016)
+
+All interaction lives inline in PlotCanvas mouse event handlers:
+
+| Input | Action |
+|-------|--------|
+| Left drag | Pan (ViewTransform::pan) |
+| Scroll wheel | Zoom centered on cursor (ViewTransform::zoom) |
+| Shift + scroll | X-only zoom (ViewTransform::zoomX) |
+| Ctrl + scroll | Y-only zoom (ViewTransform::zoomY) |
+| Right drag | Zoom box (set ViewTransform range to box) |
+| Double-click | Reset to auto-range (PlotScene::autoRange) |
+| Mouse hover | Crosshair + data coordinate tooltip (ADR-017) |
+
+### Known tech debt (Phase 2)
+
+1. **Hardcoded margins** in PlotScene::computePlotArea() — 60/50/30/15
+   pixels (ADR-013). Refactor to QFontMetrics in Phase 4.
+2. **Inline interaction** in PlotCanvas — ~150 lines, manageable now
+   but extract to InteractionController when adding new modes
+   (ADR-016).
+3. **Crosshair shows cursor position**, not nearest data point
+   (ADR-017). Upgrade to nearest-point snap with HitTester in Phase 4.
+4. **No PlotRegistry** (Phase 2.5 adds it). Tracks which PlotCanvas
+   belongs to which document for cross-module event propagation.
