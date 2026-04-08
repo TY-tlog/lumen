@@ -82,3 +82,11 @@ Merge conflicts resolved after each round before launching the next.
 5. **Parallel rounds work**: The 3-round parallel model (Backend critical
    path + Frontend parallel track + QA fixtures) completed Phase 1 in a
    single session. The dependency graph in phase-1-plan.md was accurate.
+
+## 2026-04-09 — Architect session 2 (Phase 2 planning)
+- Wrote `docs/specs/phase-2-spec.md`: plot engine (line plot), 7 deliverables.
+- Wrote `docs/plans/phase-2-plan.md`: 10 tasks, critical path
+  (T1+T2+T3 parallel → T4 → T5 → T6 → T7), 4-week schedule.
+- Applied Phase 1 lessons: QA-exclusive fixtures, early CMake module,
+  shared_ptr convention documented.
+- Awaiting human review and approval.
