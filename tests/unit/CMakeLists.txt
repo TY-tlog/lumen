@@ -3,6 +3,9 @@ add_executable(lumen_unit_tests
     test_dataframe.cpp
     test_csv_reader.cpp
     test_design_tokens.cpp
+    test_event_bus.cpp
+    test_document_registry.cpp
+    test_file_loader.cpp
 )
 
 target_compile_definitions(lumen_unit_tests
@@ -16,7 +19,9 @@ target_link_libraries(lumen_unit_tests
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
+        Qt6::Test
         lumen_data
+        lumen_core
         lumen::compile_options
         lumen_style
 )

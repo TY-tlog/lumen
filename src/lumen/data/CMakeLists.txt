@@ -9,6 +9,8 @@ add_library(lumen_data STATIC
     CsvReader.h
     DataFrame.cpp
     DataFrame.h
+    FileLoader.cpp
+    FileLoader.h
 )
 
 target_include_directories(lumen_data
