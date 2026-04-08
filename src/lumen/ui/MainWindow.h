@@ -11,6 +11,7 @@ class DocumentRegistry;
 
 namespace lumen::ui {
 class DataTableDock;
+class PlotCanvasDock;
 }  // namespace lumen::ui
 
 namespace lumen {
@@ -32,6 +33,7 @@ public:
 
     /// Access the data table dock (for integration with file loading).
     [[nodiscard]] ui::DataTableDock* dataTableDock() const { return dataTableDock_; }
+    [[nodiscard]] ui::PlotCanvasDock* plotCanvasDock() const { return plotCanvasDock_; }
 
 protected:
     void closeEvent(QCloseEvent* event) override;
@@ -56,6 +58,7 @@ private:
 
     core::DocumentRegistry* registry_ = nullptr;
     ui::DataTableDock* dataTableDock_ = nullptr;
+    ui::PlotCanvasDock* plotCanvasDock_ = nullptr;
     QMenu* recentFilesMenu_ = nullptr;
 
     static constexpr int kMaxRecentFiles = 10;
