@@ -1,5 +1,6 @@
 #include "Application.h"
 
+#include "../style/StyleManager.h"
 #include "../ui/MainWindow.h"
 
 #include <QFile>
@@ -33,8 +34,8 @@ void Application::configureApplication() {
 }
 
 void Application::loadStyleSheet() {
-    // Phase 0 placeholder: no stylesheet yet. Phase 1 introduces the
-    // Apple-mood design system.
+    StyleManager styleManager;
+    styleManager.apply();
 }
 
 int Application::run() {
