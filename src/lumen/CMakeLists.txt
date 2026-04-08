@@ -29,6 +29,10 @@ qt_add_executable(lumen
     main.cpp
     app/Application.cpp
     app/Application.h
+    ui/DataFrameTableModel.cpp
+    ui/DataFrameTableModel.h
+    ui/DataTableDock.cpp
+    ui/DataTableDock.h
     ui/MainWindow.cpp
     ui/MainWindow.h
     "${CMAKE_SOURCE_DIR}/resources/styles/styles.qrc"

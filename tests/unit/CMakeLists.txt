@@ -3,6 +3,9 @@ add_executable(lumen_unit_tests
     test_dataframe.cpp
     test_csv_reader.cpp
     test_design_tokens.cpp
+    test_dataframe_table_model.cpp
+    ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.h
 )
 
 target_compile_definitions(lumen_unit_tests
