@@ -1,6 +1,9 @@
 # Lumen executable target.
 # Phase 0: minimal main window. Modules added in later phases.
 
+# --- Module libraries ---
+add_subdirectory(data)
+
 qt_add_executable(lumen
     main.cpp
     app/Application.cpp
@@ -20,6 +23,7 @@ target_link_libraries(lumen
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
+        lumen_data
         lumen::compile_options
 )
 

@@ -1,0 +1,6 @@
+name,value,description
+"simple",1,"no quotes"
+"with ""quotes""",2,"has ""escaped"" quotes"
+"with,comma",3,"comma inside"
+"with
+newline",4,"newline inside"
