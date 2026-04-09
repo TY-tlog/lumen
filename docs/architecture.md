@@ -208,3 +208,115 @@ All interaction lives inline in PlotCanvas mouse event handlers:
    (ADR-017). Upgrade to nearest-point snap with HitTester in Phase 4.
 4. **No PlotRegistry** (Phase 2.5 adds it). Tracks which PlotCanvas
    belongs to which document for cross-module event propagation.
+
+## Phase 3a additions — Line property editing
+
+### CommandBus (ADR-018)
+
+```
+User double-clicks line series
+        │
+        ▼
+InteractionController::handleDoubleClick()
+        │  calls HitTester::hitTest()
+        ▼
+HitTester returns seriesIndex
+        │
+        ▼
+InteractionController emits seriesDoubleClicked(index)
+        │
+        ▼
+PlotCanvasDock opens LinePropertyDialog
+        │  pre-filled with current PlotStyle + name + visibility
+        ▼
+User edits properties → OK
+        │
+        ▼
+PlotCanvasDock creates ChangeLineStyleCommand
+        │  captures: old style, new style, PlotScene*, index
+        ▼
+CommandBus::execute(command)
+        │  calls command->execute() → LineSeries::setStyle()
+        │  pushes to undo stack
+        ▼
+PlotCanvas repaints with new style
+```
+
+Undo: `CommandBus::undo()` pops command, calls `command->undo()`
+which restores old PlotStyle via LineSeries setters.
+
+CommandBus lives in `src/lumen/core/`, owned by Application.
+Command is an abstract base with `execute()`, `undo()`,
+`description()`. Concrete commands in `src/lumen/core/commands/`.
+
+### HitTester (ADR-019)
+
+Lives in `src/lumen/plot/` (UI-independent). Static method:
+`HitTester::hitTest(PlotScene, CoordinateMapper, pixelPos, tolerance)`
+→ `optional<HitResult{seriesIndex, pixelDistance}>`.
+
+Algorithm: brute-force point-to-segment distance for each visible
+series's polylines mapped to pixel space. O(n) per series. <1ms
+for reference data (7,000 segments).
+
+Resolves ADR-017 foundation. Phase 4 extends with `hitTestPoint()`
+for nearest-point crosshair (binary search on sorted X column).
+
+### InteractionController (ADR-020)
+
+Lives in `src/lumen/ui/`. Extracted from PlotCanvas (resolves
+ADR-016). Owns all interaction state and mouse event logic.
+
+PlotCanvas becomes a thin rendering host (~50 lines):
+- `paintEvent()` → PlotRenderer + overlays from controller state
+- Mouse events → forward to `controller_->handleXxx()`
+- Connects controller signals for double-click outcomes
+
+InteractionController modes: Idle, Panning, ZoomBoxing.
+Double-click: HitTester query → `seriesDoubleClicked(index)` or
+`emptyAreaDoubleClicked()`.
+
+### LineSeries mutability
+
+LineSeries gains setters: `setStyle()`, `setName()`, `setVisible()`.
+PlotScene gains mutable access: `seriesAt(index) → LineSeries&`.
+PlotRenderer skips invisible series. `dataRange()` still includes
+invisible series (so auto-range doesn't shift when hiding a series).
+
+### Style persistence
+
+PlotCanvasDock maintains `QHash<QString, PlotStyle> customStyles_`
+and `QHash<QString, bool> customVisibility_` mapping column names
+to user-customized properties. When `rebuildPlot()` recreates
+LineSeries after column picker changes, it applies stored custom
+styles. Styles persist within a session but not across file
+close/reopen (session persistence deferred to Phase 4).
+
+### Updated layering rules
+
+1. UI may import from core, plot, style, data.
+2. Plot may import from core, style, data.
+3. Core (including CommandBus) imports nothing from above layers.
+   Commands reference PlotScene and LineSeries from plot/ — this
+   is acceptable because commands are created by UI code and
+   passed to CommandBus as `unique_ptr<Command>`. CommandBus itself
+   only calls the `Command` interface methods.
+4. Data imports from core only.
+5. Util is leaf.
+
+### Resolved tech debt
+
+| Phase 2 debt | Resolution | ADR |
+|-------------|------------|-----|
+| Inline interaction in PlotCanvas | Extracted to InteractionController | ADR-016 → ADR-020 |
+| No hit-testing (cursor crosshair only) | HitTester in plot/ | ADR-017 → ADR-019 |
+| No undo/redo | CommandBus + ChangeLineStyleCommand | ADR-006 → ADR-018 |
+
+### Remaining tech debt
+
+1. **Hardcoded margins** (ADR-013) — still deferred to Phase 4.
+2. **Crosshair cursor position** (ADR-017) — HitTester foundation
+   built, but crosshair still shows cursor position. Nearest-point
+   snap upgrade in Phase 4.
+3. **No command merging** — rapid edits create many undo entries.
+   Phase 5 can add merge logic for commands within a time window.
