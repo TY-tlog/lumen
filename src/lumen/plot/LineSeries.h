@@ -42,12 +42,18 @@ public:
 
     [[nodiscard]] const PlotStyle& style() const { return style_; }
     [[nodiscard]] const QString& name() const { return name_; }
+    [[nodiscard]] bool isVisible() const { return visible_; }
+
+    void setStyle(PlotStyle style);
+    void setName(QString name);
+    void setVisible(bool visible);
 
 private:
     const data::Column* xCol_;
     const data::Column* yCol_;
     PlotStyle style_;
     QString name_;
+    bool visible_ = true;
 };
 
 } // namespace lumen::plot
