@@ -1,16 +1,11 @@
 # ADR-017: Crosshair shows cursor position, not nearest data point
 
 ## Status
-Accepted (Phase 2); upgrade to nearest-point snap targeted for
-Phase 3b.
-
-**To be resolved in Phase 3b** (see Task T6.5 in
-docs/plans/phase-3b-plan.md). HitTester will gain a
-hitTestPoint() method using binary search on sorted X columns;
-PlotCanvas crosshair will call hitTestPoint() instead of
-CoordinateMapper::pixelToData. When no sample is within pixel
-tolerance, crosshair is hidden rather than showing interpolated
-values.
+**Resolved in Phase 3b** (commit 6e31ed9). HitTester::hitTestPoint()
+uses binary search on sorted X columns to find the nearest actual
+data sample. PlotCanvas crosshair snaps to real data points with a
+colored marker circle and shows exact values. Hidden when cursor is
+more than 20px from any sample (no interpolated values shown).
 
 Phase 3a built the HitTester foundation (ADR-019) for
 series-level hit detection. Phase 3b extends it to point-level

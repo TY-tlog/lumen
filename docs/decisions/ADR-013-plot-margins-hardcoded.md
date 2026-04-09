@@ -1,11 +1,9 @@
 # ADR-013: Plot area margins are hardcoded (known tech debt)
 
 ## Status
-Accepted (Phase 2); refactor targeted for Phase 4.
-**To be resolved in Phase 3b** (see ADR-022 and Task T6 in
-docs/plans/phase-3b-plan.md). PlotScene::computeMargins() will
-replace hardcoded 60/50/30/15 with content-driven computation
-using QFontMetrics and tokens::spacing.
+**Resolved in Phase 3b** (commit c7dc412). PlotScene::computeMargins()
+replaced hardcoded 60/50/30/15 with QFontMetrics + tokens::spacing
+dynamic computation. See ADR-022 for the design.
 
 ## Context
 PlotScene::computePlotArea() uses fixed pixel margins to reserve
