@@ -25,6 +25,7 @@ add_executable(lumen_unit_tests
     test_axis_commands.cpp
     test_title_command.cpp
     test_legend_commands.cpp
+    test_hit_test_point.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.h
 )

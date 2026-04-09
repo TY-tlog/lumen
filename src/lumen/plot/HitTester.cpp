@@ -1,5 +1,6 @@
 #include "plot/HitTester.h"
 
+#include "data/Column.h"
 #include "plot/CoordinateMapper.h"
 #include "plot/LineSeries.h"
 #include "plot/PlotScene.h"
@@ -9,6 +10,7 @@
 #include <QFontMetrics>
 #include <QRectF>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -53,6 +55,81 @@ std::optional<HitTester::HitResult> HitTester::hitTest(
 
     if (bestIndex >= 0 && bestDistance <= tolerancePx) {
         return HitResult{bestIndex, bestDistance};
+    }
+
+    return std::nullopt;
+}
+
+std::optional<PointHitResult> HitTester::hitTestPoint(
+    const PlotScene& scene,
+    const CoordinateMapper& mapper,
+    QPointF pixelPos,
+    double maxPixelDistance)
+{
+    int bestSeriesIndex = -1;
+    std::size_t bestSampleIndex = 0;
+    QPointF bestDataPoint;
+    double bestPixelDist = std::numeric_limits<double>::max();
+
+    auto [cursorDataX, cursorDataY] = mapper.pixelToData(pixelPos);
+
+    const auto& allSeries = scene.series();
+    for (std::size_t si = 0; si < allSeries.size(); ++si) {
+        const auto& series = allSeries[si];
+        if (!series.isVisible()) {
+            continue;
+        }
+
+        const auto* xCol = series.xColumn();
+        const auto* yCol = series.yColumn();
+        if (xCol == nullptr || yCol == nullptr) {
+            continue;
+        }
+
+        const auto& xData = xCol->doubleData();
+        const auto& yData = yCol->doubleData();
+        const auto count = xData.size();
+        if (count == 0) {
+            continue;
+        }
+
+        // Binary search for approximate position of cursorDataX.
+        auto it = std::lower_bound(xData.begin(), xData.end(), cursorDataX);
+        auto approxIdx = std::distance(xData.begin(), it);
+
+        // Check a window of +/-5 samples around the binary search position
+        // for robustness against non-perfectly-sorted data.
+        constexpr std::ptrdiff_t kWindow = 5;
+        std::ptrdiff_t lo = std::max(std::ptrdiff_t{0}, approxIdx - kWindow);
+        std::ptrdiff_t hi = std::min(static_cast<std::ptrdiff_t>(count),
+                                     approxIdx + kWindow + 1);
+
+        for (std::ptrdiff_t j = lo; j < hi; ++j) {
+            const double dx = xData[static_cast<std::size_t>(j)];
+            const double dy = yData[static_cast<std::size_t>(j)];
+
+            // Skip NaN samples.
+            if (std::isnan(dx) || std::isnan(dy)) {
+                continue;
+            }
+
+            QPointF samplePixel = mapper.dataToPixel(dx, dy);
+            double pdx = pixelPos.x() - samplePixel.x();
+            double pdy = pixelPos.y() - samplePixel.y();
+            double dist = std::sqrt(pdx * pdx + pdy * pdy);
+
+            if (dist < bestPixelDist) {
+                bestPixelDist = dist;
+                bestSeriesIndex = static_cast<int>(si);
+                bestSampleIndex = static_cast<std::size_t>(j);
+                bestDataPoint = QPointF(dx, dy);
+            }
+        }
+    }
+
+    if (bestSeriesIndex >= 0 && bestPixelDist <= maxPixelDistance) {
+        return PointHitResult{bestSeriesIndex, bestSampleIndex,
+                              bestDataPoint, bestPixelDist};
     }
 
     return std::nullopt;

@@ -4,6 +4,7 @@
 #include <QRectF>
 #include <QSizeF>
 
+#include <cstddef>
 #include <optional>
 
 namespace lumen::plot {
@@ -18,6 +19,14 @@ enum class HitKind { None, XAxis, YAxis, Title, Legend, PlotArea };
 /// Result of a non-series region hit test.
 struct RegionHitResult {
     HitKind kind = HitKind::None;
+};
+
+/// Result of a nearest-sample point hit test.
+struct PointHitResult {
+    int seriesIndex = -1;
+    std::size_t sampleIndex = 0;
+    QPointF dataPoint;       ///< Actual (x, y) from Column data.
+    double pixelDistance = 0.0;
 };
 
 /// Performs spatial hit-testing against line series in pixel space.
@@ -39,6 +48,14 @@ public:
         const CoordinateMapper& mapper,
         QPointF pixelPos,
         double tolerancePx = 5.0);
+
+    /// Find the nearest actual data sample to a pixel position.
+    /// Returns nullopt if no sample is within maxPixelDistance.
+    static std::optional<PointHitResult> hitTestPoint(
+        const PlotScene& scene,
+        const CoordinateMapper& mapper,
+        QPointF pixelPos,
+        double maxPixelDistance = 20.0);
 
     /// Determine which non-series element (axis, title, legend, plot area)
     /// contains the given pixel position. The widget size is needed to
