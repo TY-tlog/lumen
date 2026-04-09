@@ -155,28 +155,24 @@ All passed on 2026-04-09:
   style persistence, resolved/remaining tech debt.
 - Awaiting human review and approval before commit.
 
-## 2026-04-09 — Phase 3a close
+## 2026-04-09 — Phase 3a close addendum
+- Wrote `docs/reviews/phase-3a-review.md` (was missing from Phase 3a exit).
+- Documented three intentional deviations from spec: bundled commands,
+  separate signals, HitTester series-only scope.
+- ADR-016 marked resolved in Phase 3a (InteractionController extraction).
+- ADR-017 marked as to-be-resolved in Phase 3b (hitTestPoint + crosshair).
 
-### Delivered
-- T1+T3 CommandBus + ChangeLineStyleCommand + LineSeries mutability (Backend)
-- T2 HitTester + InteractionController extraction (Frontend)
-- T4+T5 LinePropertyDialog + double-click flow + style persistence (Frontend)
-- ADRs 018-020 (Architect)
-- Architecture.md Phase 3a section (Architect)
-
-### Test results
-- 161/161 tests pass, ASan+UBSan clean
-
-### Human verification (9 acceptance checks)
-All passed on 2026-04-09:
-1. Open CSV → auto line plot
-2. Double-click ON line → LinePropertyDialog opens
-3. Change color/width → OK → line updates
-4. Double-click EMPTY space → view resets
-5. Add second Y series, edit its style independently
-6. Uncheck Visible → series disappears
-7. Switch column → switch back → custom style preserved
-8. Pan, zoom, crosshair still work
-9. Undo works via CommandBus
-
-Human response: "Yes perfectly works."
+## 2026-04-09 — Phase 3b opening (Architect session 5)
+- Wrote `docs/plans/phase-3b-plan.md`: 15 tasks, 7 rounds.
+  - Resolves ADR-013 (dynamic margins, T6)
+  - Resolves ADR-017 (nearest-sample crosshair, T6.5)
+  - 3 bundled commands (ChangeAxisProperties, ChangeTitle, ChangeLegend)
+  - 3 new dialogs (AxisDialog, TitleDialog+inline editor, LegendDialog)
+  - Legend class extracted from PlotRenderer
+  - HitTester extended with hitNonSeriesElement() and hitTestPoint()
+  - Target ≥200 tests
+- Drafted ADRs 021-024: non-modal dialogs, dynamic margins (resolves
+  ADR-013), inline title editor, HitTester precedence ordering.
+- Updated `docs/architecture.md` with Phase 3b section.
+- Updated ADR-013, ADR-016, ADR-017 status notes.
+- Awaiting human review and approval.

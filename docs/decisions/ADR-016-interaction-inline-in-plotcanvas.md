@@ -2,6 +2,10 @@
 
 ## Status
 Accepted (Phase 2); extraction deferred to Phase 4.
+**Resolved in Phase 3a.** InteractionController extracted into
+src/lumen/ui/InteractionController.h/.cpp (ADR-020). PlotCanvas
+is now a thin rendering host (~50 lines) that forwards all mouse
+events to InteractionController.
 
 ## Context
 PlotCanvas handles five interaction modes: pan (left drag), zoom

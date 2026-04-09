@@ -2,6 +2,12 @@
 
 ## Status
 Accepted (Phase 3a); resolves ADR-017's deferred upgrade path.
+**Extended in Phase 3b.** hitNonSeriesElement() added for
+axis/title/legend region detection. hitTestPoint() added for
+nearest-sample crosshair. Foundation for ADR-017 resolution;
+ADR-017 itself fully resolved in Phase 3b via
+HitTester::hitTestPoint extension. Original hitTest() interface
+unchanged.
 
 ## Context
 ADR-017 documented that the Phase 2 crosshair shows cursor position
