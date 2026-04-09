@@ -312,11 +312,127 @@ close/reopen (session persistence deferred to Phase 4).
 | No hit-testing (cursor crosshair only) | HitTester in plot/ | ADR-017 → ADR-019 |
 | No undo/redo | CommandBus + ChangeLineStyleCommand | ADR-006 → ADR-018 |
 
-### Remaining tech debt
+### Remaining tech debt (after Phase 3a)
 
-1. **Hardcoded margins** (ADR-013) — still deferred to Phase 4.
-2. **Crosshair cursor position** (ADR-017) — HitTester foundation
-   built, but crosshair still shows cursor position. Nearest-point
-   snap upgrade in Phase 4.
+1. **Hardcoded margins** (ADR-013) — to be resolved in Phase 3b (T6).
+2. **Crosshair cursor position** (ADR-017) — to be resolved in Phase 3b (T6.5).
 3. **No command merging** — rapid edits create many undo entries.
    Phase 5 can add merge logic for commands within a time window.
+
+## Phase 3b additions — Axis, title, legend editing + dynamic margins
+
+### New command groups (bundled pattern from Phase 3a)
+
+Three new command classes in `src/lumen/core/commands/`, each
+following the ChangeLineStyleCommand bundled pattern (one command
+captures all properties of one element):
+
+- `ChangeAxisPropertiesCommand` — label, range mode, manual
+  min/max, tick count, tick format, grid visible
+- `ChangeTitleCommand` — title text, font size, font weight
+- `ChangeLegendCommand` — position, visible
+
+Commands hold non-owning pointers to Axis/PlotScene/Legend and
+capture old+new values. Execute applies new, undo restores old.
+
+### Axis setter additions
+
+Axis becomes a QObject (for changed() signal). New setters:
+setLabel, setRangeMode (Auto/Manual), setManualRange, setTickCount,
+setTickFormat (Auto/Scientific/Fixed), setGridVisible. Each setter
+compares old vs new before emitting changed().
+
+New enums: `RangeMode { Auto, Manual }`,
+`TickFormat { Auto, Scientific, Fixed }`.
+
+### PlotScene title state expansion
+
+PlotScene gains setTitleFontPx(int) and
+setTitleWeight(QFont::Weight). PlotRenderer reads these when
+drawing the title instead of hardcoding title-3 font.
+
+### Legend class extraction
+
+`Legend` class extracted from PlotRenderer's inline legend code.
+QObject with Position enum (TopLeft/TopRight/BottomLeft/
+BottomRight/OutsideRight), setPosition, setVisible, changed()
+signal. PlotScene owns a Legend instance. PlotRenderer reads Legend
+state for placement and visibility.
+
+### HitTester extension
+
+Two new methods added without modifying the existing hitTest()
+interface:
+
+- `hitNonSeriesElement(scene, mapper, pixelPos)` → `RegionHitResult`
+  with HitKind enum (None/XAxis/YAxis/Title/Legend/PlotArea).
+  Precedence per ADR-024: LineSeries > Title > Legend > Axis >
+  PlotArea.
+- `hitTestPoint(scene, mapper, pixelPos, maxDist)` →
+  `optional<PointHitResult{seriesIndex, sampleIndex, dataPoint,
+  pixelDistance}>`. Binary search on sorted X column for nearest
+  actual data sample. **Resolves ADR-017**: crosshair snaps to
+  real data points instead of showing interpolated cursor position.
+
+### InteractionController dispatch
+
+New signals following Phase 3a's separate-signal pattern:
+xAxisDoubleClicked, yAxisDoubleClicked, titleDoubleClicked,
+legendDoubleClicked. Phase 3a's seriesDoubleClicked and
+emptyAreaDoubleClicked unchanged.
+
+New mode: EditingTitleInline (suppresses mouse events while inline
+title editor is active).
+
+Double-click dispatch:
+1. hitTest() for series → seriesDoubleClicked (Phase 3a)
+2. hitNonSeriesElement() → dispatch by HitKind
+3. PlotArea fallback → emptyAreaDoubleClicked
+
+### PlotScene::computeMargins() — resolves ADR-013
+
+Replaces hardcoded 60/50/30/15 with content-driven computation
+(ADR-022):
+
+```
+left  = max(Y tick label widths) + spacing::md + Y label height + spacing::sm
+bottom = X tick label height + spacing::md + X label height + spacing::sm
+top   = title ? titleFm.height() + spacing::md : spacing::sm
+right = legend OutsideRight ? legend width + spacing::md : spacing::md
+```
+
+1-pixel debounce threshold prevents jiggle during live edits.
+
+### Inline title editor
+
+QLineEdit overlay positioned at the title rect within PlotCanvas.
+Double-click title area → editor appears. Enter confirms
+(ChangeTitleCommand), Esc cancels, focus-lost applies.
+InteractionController enters EditingTitleInline mode.
+
+### Three new dialogs (non-modal, ADR-021)
+
+- AxisDialog: label, range mode, manual min/max, tick count,
+  tick format, grid visible. Opens on double-click axis.
+- TitleDialog: font size, weight. Opens on right-click title.
+- LegendDialog: position, visible, series name table. Opens on
+  double-click legend.
+
+All follow LinePropertyDialog's API pattern from Phase 3a.
+
+### Resolved tech debt (cumulative)
+
+| Phase debt | Resolution | Phase | ADR |
+|-----------|------------|-------|-----|
+| Inline interaction | InteractionController extracted | 3a | ADR-016 → ADR-020 |
+| No hit-testing | HitTester in plot/ | 3a | ADR-017 → ADR-019 |
+| No undo/redo | CommandBus + commands | 3a | ADR-006 → ADR-018 |
+| Hardcoded margins | computeMargins() | 3b | ADR-013 → ADR-022 |
+| Cursor crosshair | hitTestPoint() nearest-sample | 3b | ADR-017 → T6.5 |
+
+### Remaining tech debt (after Phase 3b)
+
+1. **No command merging** — rapid edits create many undo entries.
+   Phase 5 can add merge logic.
+2. **No edit persistence** — custom styles/edits lost on file
+   close. Phase 4 adds session persistence.
