@@ -54,6 +54,7 @@ MainWindow::MainWindow(core::DocumentRegistry* registry,
     // Plot canvas dock — starts hidden, shown when data is loaded
     plotCanvasDock_ = new ui::PlotCanvasDock(this);
     plotCanvasDock_->setPlotRegistry(plotRegistry);
+    plotCanvasDock_->setCommandBus(commandBus);
     addDockWidget(Qt::RightDockWidgetArea, plotCanvasDock_);
     plotCanvasDock_->hide();
 

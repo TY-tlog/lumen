@@ -39,6 +39,8 @@ qt_add_executable(lumen
     ui/MainWindow.h
     ui/InteractionController.cpp
     ui/InteractionController.h
+    ui/LinePropertyDialog.cpp
+    ui/LinePropertyDialog.h
     ui/PlotCanvas.cpp
     ui/PlotCanvas.h
     ui/PlotCanvasDock.cpp

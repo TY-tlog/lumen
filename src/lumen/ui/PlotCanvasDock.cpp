@@ -1,8 +1,12 @@
 #include "PlotCanvasDock.h"
 
+#include "InteractionController.h"
+#include "LinePropertyDialog.h"
 #include "PlotCanvas.h"
 
+#include <core/CommandBus.h>
 #include <core/PlotRegistry.h>
+#include <core/commands/ChangeLineStyleCommand.h>
 #include <data/Column.h>
 #include <data/ColumnType.h>
 #include <data/DataFrame.h>
@@ -16,6 +20,8 @@
 #include <QPushButton>
 #include <QToolBar>
 #include <QVBoxLayout>
+
+#include <memory>
 
 namespace lumen::ui {
 
@@ -35,6 +41,12 @@ PlotCanvasDock::PlotCanvasDock(QWidget* parent)
     canvas_ = new PlotCanvas(container);
     canvas_->setPlotScene(scene_.get());
     layout->addWidget(canvas_, 1);
+
+    // Connect double-click signals from InteractionController.
+    connect(canvas_->controller(), &InteractionController::seriesDoubleClicked,
+            this, &PlotCanvasDock::onSeriesDoubleClicked);
+    connect(canvas_->controller(), &InteractionController::emptyAreaDoubleClicked,
+            this, &PlotCanvasDock::onEmptyAreaDoubleClicked);
 
     setWidget(container);
 }
@@ -79,6 +91,50 @@ void PlotCanvasDock::buildToolBar() {
 
 void PlotCanvasDock::setPlotRegistry(core::PlotRegistry* registry) {
     registry_ = registry;
+}
+
+void PlotCanvasDock::setCommandBus(core::CommandBus* bus) {
+    commandBus_ = bus;
+}
+
+void PlotCanvasDock::onSeriesDoubleClicked(int seriesIndex) {
+    if (!scene_ || seriesIndex < 0 ||
+        seriesIndex >= static_cast<int>(scene_->seriesCount())) {
+        return;
+    }
+
+    auto& series = scene_->seriesAt(static_cast<std::size_t>(seriesIndex));
+    LinePropertyDialog dialog(this);
+    dialog.setStyle(series.style(), series.name(), series.isVisible());
+
+    if (dialog.exec() == QDialog::Accepted) {
+        // Persist custom style for this column name (T5).
+        QString colName = series.name();
+        customStyles_[colName] = dialog.resultStyle();
+        customVisibility_[colName] = dialog.resultVisible();
+        customNames_[colName] = dialog.resultName();
+
+        if (commandBus_ != nullptr) {
+            auto cmd = std::make_unique<core::commands::ChangeLineStyleCommand>(
+                scene_.get(), static_cast<std::size_t>(seriesIndex),
+                dialog.resultStyle(), dialog.resultName(),
+                dialog.resultVisible());
+            commandBus_->execute(std::move(cmd));
+        } else {
+            // Fallback without undo.
+            series.setStyle(dialog.resultStyle());
+            series.setName(dialog.resultName());
+            series.setVisible(dialog.resultVisible());
+        }
+        canvas_->update();
+    }
+}
+
+void PlotCanvasDock::onEmptyAreaDoubleClicked() {
+    if (scene_ != nullptr && scene_->seriesCount() > 0) {
+        scene_->autoRange();
+        canvas_->update();
+    }
 }
 
 void PlotCanvasDock::setDataFrame(const data::DataFrame* df, const QString& documentPath) {
@@ -215,6 +271,19 @@ void PlotCanvasDock::rebuildPlot() {
 
         scene_->addSeries(plot::LineSeries(
             xCol, yCol, plot::PlotStyle::fromPalette(seriesIdx), yName));
+
+        // Apply persisted custom style if available (T5).
+        auto& addedSeries = scene_->seriesAt(scene_->seriesCount() - 1);
+        if (customStyles_.contains(yName)) {
+            addedSeries.setStyle(customStyles_[yName]);
+        }
+        if (customVisibility_.contains(yName)) {
+            addedSeries.setVisible(customVisibility_[yName]);
+        }
+        if (customNames_.contains(yName)) {
+            addedSeries.setName(customNames_[yName]);
+        }
+
         yNames.append(yName);
         ++seriesIdx;
     }
