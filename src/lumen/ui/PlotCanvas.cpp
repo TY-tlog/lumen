@@ -9,6 +9,9 @@
 #include <plot/ViewTransform.h>
 #include <style/DesignTokens.h>
 
+#include <QEvent>
+#include <QKeyEvent>
+#include <QLineEdit>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QWheelEvent>
@@ -152,6 +155,80 @@ void PlotCanvas::drawCrosshair(QPainter& painter) {
 
     painter.setPen(lumen::tokens::color::text::primary);
     painter.drawText(tipRect, Qt::AlignCenter, coords);
+}
+
+void PlotCanvas::startTitleEdit() {
+    if (scene_ == nullptr) {
+        return;
+    }
+
+    // If already editing, finish first.
+    if (titleEditor_ != nullptr) {
+        finishTitleEdit(false);
+    }
+
+    // Compute title region: centered at top of widget, using scene margins.
+    QFont titleFont;
+    titleFont.setPixelSize(scene_->titleFontPx());
+    titleFont.setWeight(scene_->titleWeight());
+    QFontMetrics fm(titleFont);
+
+    QRectF plotArea = scene_->computePlotArea(size());
+    int titleW = qMin(fm.horizontalAdvance(scene_->title()) + 40,
+                       static_cast<int>(plotArea.width()));
+    int titleH = fm.height() + 8;
+    int titleX = static_cast<int>(plotArea.left() + (plotArea.width() - titleW) / 2.0);
+    int titleY = 4;  // Small top margin.
+
+    titleEditor_ = new QLineEdit(this);
+    titleEditor_->setFont(titleFont);
+    titleEditor_->setText(scene_->title());
+    titleEditor_->setAlignment(Qt::AlignCenter);
+    titleEditor_->setGeometry(titleX, titleY, titleW, titleH);
+    titleEditor_->selectAll();
+    titleEditor_->setFocus();
+    titleEditor_->show();
+
+    // Install event filter for Escape key.
+    titleEditor_->installEventFilter(this);
+
+    // Connect Enter/Return to apply.
+    connect(titleEditor_, &QLineEdit::returnPressed, this, [this]() {
+        finishTitleEdit(true);
+    });
+
+    // Enter inline editing mode to suppress pan/zoom.
+    controller_->setMode(InteractionMode::EditingTitleInline);
+}
+
+void PlotCanvas::finishTitleEdit(bool apply) {
+    if (titleEditor_ == nullptr) {
+        return;
+    }
+
+    if (apply) {
+        emit titleEditFinished(titleEditor_->text());
+    }
+
+    titleEditor_->removeEventFilter(this);
+    titleEditor_->deleteLater();
+    titleEditor_ = nullptr;
+
+    // Restore idle mode.
+    controller_->setMode(InteractionMode::Idle);
+    setFocus();
+    update();
+}
+
+bool PlotCanvas::eventFilter(QObject* obj, QEvent* event) {
+    if (obj == titleEditor_ && event->type() == QEvent::KeyPress) {
+        auto* keyEvent = static_cast<QKeyEvent*>(event);
+        if (keyEvent->key() == Qt::Key_Escape) {
+            finishTitleEdit(false);
+            return true;
+        }
+    }
+    return QWidget::eventFilter(obj, event);
 }
 
 void PlotCanvas::mousePressEvent(QMouseEvent* event) {
