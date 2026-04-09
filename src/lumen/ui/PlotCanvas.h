@@ -2,6 +2,8 @@
 
 #include <QWidget>
 
+class QLineEdit;
+
 namespace lumen::plot {
 class PlotScene;
 }
@@ -28,7 +30,18 @@ public:
 
     [[nodiscard]] InteractionController* controller() const { return controller_; }
 
+    /// Start inline title editing (positions a QLineEdit over the title).
+    void startTitleEdit();
+
+    /// Finish inline title editing.
+    /// @param apply If true, commit the new title via signal; if false, discard.
+    void finishTitleEdit(bool apply);
+
     [[nodiscard]] QSize minimumSizeHint() const override;
+
+signals:
+    /// Emitted when the user finishes inline title editing with Enter.
+    void titleEditFinished(const QString& newTitle);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -40,9 +53,11 @@ protected:
 
 private:
     void drawCrosshair(QPainter& painter);
+    bool eventFilter(QObject* obj, QEvent* event) override;
 
     plot::PlotScene* scene_ = nullptr;
     InteractionController* controller_ = nullptr;
+    QLineEdit* titleEditor_ = nullptr;
 };
 
 }  // namespace lumen::ui

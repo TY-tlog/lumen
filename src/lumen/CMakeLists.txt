@@ -37,14 +37,20 @@ qt_add_executable(lumen
     ui/DataTableDock.h
     ui/MainWindow.cpp
     ui/MainWindow.h
+    ui/AxisDialog.cpp
+    ui/AxisDialog.h
     ui/InteractionController.cpp
     ui/InteractionController.h
+    ui/LegendDialog.cpp
+    ui/LegendDialog.h
     ui/LinePropertyDialog.cpp
     ui/LinePropertyDialog.h
     ui/PlotCanvas.cpp
     ui/PlotCanvas.h
     ui/PlotCanvasDock.cpp
     ui/PlotCanvasDock.h
+    ui/TitleDialog.cpp
+    ui/TitleDialog.h
     "${CMAKE_SOURCE_DIR}/resources/styles/styles.qrc"
     ${LUMEN_FONT_QRC}
 )

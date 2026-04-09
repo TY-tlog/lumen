@@ -27,6 +27,10 @@ InteractionController::InteractionController(PlotCanvas* canvas, QObject* parent
 
 void InteractionController::handleMousePress(QMouseEvent* event)
 {
+    if (mode_ == InteractionMode::EditingTitleInline) {
+        return;  // Suppress while inline editing.
+    }
+
     auto* scene = canvas_->plotScene();
     if (scene == nullptr) {
         return;
@@ -125,6 +129,10 @@ void InteractionController::handleMouseRelease(QMouseEvent* event)
 
 void InteractionController::handleWheel(QWheelEvent* event)
 {
+    if (mode_ == InteractionMode::EditingTitleInline) {
+        return;  // Suppress while inline editing.
+    }
+
     auto* scene = canvas_->plotScene();
     if (scene == nullptr) {
         return;
@@ -156,6 +164,10 @@ void InteractionController::handleWheel(QWheelEvent* event)
 
 void InteractionController::handleDoubleClick(QMouseEvent* event)
 {
+    if (mode_ == InteractionMode::EditingTitleInline) {
+        return;  // Suppress while inline editing.
+    }
+
     auto* scene = canvas_->plotScene();
     if (scene == nullptr) {
         return;
@@ -165,11 +177,32 @@ void InteractionController::handleDoubleClick(QMouseEvent* event)
     const auto& vt = scene->viewTransform();
     plot::CoordinateMapper mapper(vt.xMin(), vt.xMax(), vt.yMin(), vt.yMax(), plotArea);
 
+    // Check series hit first (existing Phase 3a flow).
     auto result = plot::HitTester::hitTest(*scene, mapper, event->position());
     if (result.has_value()) {
         emit seriesDoubleClicked(result->seriesIndex);
-    } else {
+        return;
+    }
+
+    // Check non-series regions (Phase 3b).
+    auto region = plot::HitTester::hitNonSeriesElement(
+        *scene, QSizeF(canvas_->size()), event->position());
+    switch (region.kind) {
+    case plot::HitKind::Title:
+        emit titleDoubleClicked();
+        break;
+    case plot::HitKind::Legend:
+        emit legendDoubleClicked();
+        break;
+    case plot::HitKind::XAxis:
+        emit xAxisDoubleClicked();
+        break;
+    case plot::HitKind::YAxis:
+        emit yAxisDoubleClicked();
+        break;
+    default:
         emit emptyAreaDoubleClicked();
+        break;
     }
 }
 

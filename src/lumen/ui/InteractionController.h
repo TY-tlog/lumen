@@ -12,7 +12,7 @@ namespace lumen::ui {
 
 class PlotCanvas;
 
-enum class InteractionMode { Idle, Panning, ZoomBoxing };
+enum class InteractionMode { Idle, Panning, ZoomBoxing, EditingTitleInline };
 
 /// Handles all mouse/wheel interactions for PlotCanvas.
 ///
@@ -38,10 +38,19 @@ public:
     [[nodiscard]] bool isZoomBoxActive() const { return mode_ == InteractionMode::ZoomBoxing; }
     [[nodiscard]] QRect zoomBoxRect() const;
 
+    /// Set the interaction mode externally (e.g. for inline title editing).
+    void setMode(InteractionMode m) { mode_ = m; }
+
 signals:
+    // Phase 3a signals.
     void seriesDoubleClicked(int seriesIndex);
     void emptyAreaDoubleClicked();
     void requestRepaint();
+    // Phase 3b signals.
+    void xAxisDoubleClicked();
+    void yAxisDoubleClicked();
+    void titleDoubleClicked();
+    void legendDoubleClicked();
 
 private:
     PlotCanvas* canvas_;

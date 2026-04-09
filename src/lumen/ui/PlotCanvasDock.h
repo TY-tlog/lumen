@@ -60,6 +60,11 @@ public:
 private slots:
     void onSeriesDoubleClicked(int seriesIndex);
     void onEmptyAreaDoubleClicked();
+    void onXAxisDoubleClicked();
+    void onYAxisDoubleClicked();
+    void onTitleDoubleClicked();
+    void onLegendDoubleClicked();
+    void onTitleEditFinished(const QString& newTitle);
 
 private:
     void buildToolBar();
