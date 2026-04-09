@@ -2,6 +2,10 @@
 
 ## Status
 Accepted (Phase 2); refactor targeted for Phase 4.
+**To be resolved in Phase 3b** (see ADR-022 and Task T6 in
+docs/plans/phase-3b-plan.md). PlotScene::computeMargins() will
+replace hardcoded 60/50/30/15 with content-driven computation
+using QFontMetrics and tokens::spacing.
 
 ## Context
 PlotScene::computePlotArea() uses fixed pixel margins to reserve
