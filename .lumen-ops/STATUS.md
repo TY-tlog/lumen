@@ -140,3 +140,17 @@ All passed on 2026-04-09:
 - [x] architecture.md updated
 - [x] Human re-verification pass
 - [ ] README.md update (T6, deferred to Phase 3 start)
+
+## 2026-04-09 — Phase 3a opening (Architect session 4)
+- Wrote `docs/specs/phase-3a-spec.md`: line property editing, 6 deliverables
+  (LinePropertyDialog, HitTester, double-click-to-edit, visibility toggle,
+  style persistence, tests).
+- Wrote `docs/plans/phase-3a-plan.md`: 7 tasks, critical path
+  T1+T2 parallel → T3 → T4 → T5. CommandBus (ADR-018), HitTester
+  (ADR-019), InteractionController (ADR-020) as architectural additions.
+- Drafted ADRs 018-020: CommandBus design, HitTester extraction
+  (resolves ADR-017), InteractionController FSM (resolves ADR-016).
+- Updated `docs/architecture.md` with Phase 3a section: CommandBus
+  data flow, HitTester, InteractionController, LineSeries mutability,
+  style persistence, resolved/remaining tech debt.
+- Awaiting human review and approval before commit.
