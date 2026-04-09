@@ -53,10 +53,11 @@ TEST_CASE("PlotScene computePlotArea margins", "[plotscene]") {
 
     auto area = scene.computePlotArea(size);
 
-    // Left margin should be ~60.
-    REQUIRE(area.x() > 40.0);
-    // Bottom margin: area.bottom() < 600 - 30.
-    REQUIRE(area.bottom() < 570.0);
+    // Dynamic margins: left margin is based on Y tick label widths + spacing.
+    // With the default 0-1 range this is smaller than the old hardcoded 60, but positive.
+    REQUIRE(area.x() > 0.0);
+    // Bottom margin leaves room below for X tick labels.
+    REQUIRE(area.bottom() < size.height());
     // Right margin: area.right() < 800.
     REQUIRE(area.right() < 800.0);
     // Positive size.

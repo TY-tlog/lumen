@@ -4,6 +4,7 @@
 #include "LineSeries.h"
 #include "ViewTransform.h"
 
+#include <QFontMetrics>
 #include <QRectF>
 #include <QSizeF>
 #include <QString>
@@ -11,6 +12,14 @@
 #include <vector>
 
 namespace lumen::plot {
+
+/// Margin values for the four sides of the plot area.
+struct PlotMargins {
+    double left = 0.0;
+    double top = 0.0;
+    double right = 0.0;
+    double bottom = 0.0;
+};
 
 /// Top-level plot container — owns axes, series, title.
 ///
@@ -49,6 +58,12 @@ public:
     /// top (title), right (padding).
     [[nodiscard]] QRectF computePlotArea(QSizeF widgetSize) const;
 
+    /// Compute dynamic margins based on tick labels, axis labels, and title.
+    /// Uses the actual font metrics to determine precise sizes.
+    [[nodiscard]] PlotMargins computeMargins(const QFontMetrics& tickFm,
+                                             const QFontMetrics& labelFm,
+                                             const QFontMetrics& titleFm) const;
+
     /// Auto-range both axes from all series data and sync ViewTransform.
     void autoRange();
 
@@ -58,6 +73,10 @@ private:
     ViewTransform viewTransform_;
     std::vector<LineSeries> series_;
     QString title_;
+
+    /// Cached margins for 1-pixel debounce (prevents jiggle during live edits).
+    mutable PlotMargins cachedMargins_{};
+    mutable bool hasCachedMargins_ = false;
 };
 
 }  // namespace lumen::plot
