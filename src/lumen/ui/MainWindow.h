@@ -6,6 +6,7 @@
 class QMenu;
 
 namespace lumen::core {
+class CommandBus;
 class DocumentRegistry;
 class PlotRegistry;
 }  // namespace lumen::core
@@ -30,6 +31,7 @@ public:
     /// @p registry must outlive the window; owned by Application.
     explicit MainWindow(core::DocumentRegistry* registry,
                         core::PlotRegistry* plotRegistry = nullptr,
+                        core::CommandBus* commandBus = nullptr,
                         QWidget* parent = nullptr);
     ~MainWindow() override;
 
@@ -59,6 +61,7 @@ private:
     void updateRecentFilesMenu();
 
     core::DocumentRegistry* registry_ = nullptr;
+    core::CommandBus* commandBus_ = nullptr;
     ui::DataTableDock* dataTableDock_ = nullptr;
     ui::PlotCanvasDock* plotCanvasDock_ = nullptr;
     QMenu* recentFilesMenu_ = nullptr;

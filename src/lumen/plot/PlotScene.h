@@ -26,6 +26,10 @@ public:
     [[nodiscard]] const std::vector<LineSeries>& series() const { return series_; }
     [[nodiscard]] std::size_t seriesCount() const { return series_.size(); }
 
+    /// Mutable access to a series by index (for editing via commands).
+    /// @throws std::out_of_range if index >= seriesCount().
+    LineSeries& seriesAt(std::size_t index);
+
     // --- Axes ---
     [[nodiscard]] Axis& xAxis() { return xAxis_; }
     [[nodiscard]] Axis& yAxis() { return yAxis_; }

@@ -32,9 +32,11 @@ constexpr auto kRecentFilesKey = "recentFiles";
 
 MainWindow::MainWindow(core::DocumentRegistry* registry,
                        core::PlotRegistry* plotRegistry,
+                       core::CommandBus* commandBus,
                        QWidget* parent)
     : QMainWindow(parent)
-    , registry_(registry) {
+    , registry_(registry)
+    , commandBus_(commandBus) {
     setWindowTitle("Lumen");
     resize(kDefaultWidth, kDefaultHeight);
 

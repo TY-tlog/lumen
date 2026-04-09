@@ -174,6 +174,9 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
         painter.setClipRect(plotArea);
 
         for (const auto& series : scene.series()) {
+            if (!series.isVisible()) {
+                continue;
+            }
             QPen seriesPen(series.style().color, series.style().lineWidth,
                            series.style().penStyle);
             seriesPen.setCosmetic(true);
@@ -232,14 +235,21 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
         for (const auto& s : scene.series()) {
             double x = legendRect.left() + kLegendPadding;
 
+            // Grey out hidden series in the legend.
+            const float opacity = s.isVisible() ? 1.0F : 0.35F;
+
             // Color line.
-            QPen entryPen(s.style().color, 2);
+            QColor lineColor = s.style().color;
+            lineColor.setAlphaF(opacity);
+            QPen entryPen(lineColor, 2);
             painter.setPen(entryPen);
             double lineY = y + fm.height() / 2.0;
             painter.drawLine(QPointF(x, lineY), QPointF(x + kLegendLineLength, lineY));
 
             // Name.
-            painter.setPen(tokens::color::text::secondary);
+            QColor textColor = tokens::color::text::secondary;
+            textColor.setAlphaF(opacity);
+            painter.setPen(textColor);
             QString label = s.name().isEmpty() ? QStringLiteral("Series") : s.name();
             painter.drawText(QPointF(x + kLegendLineLength + kLegendSpacing, y + fm.ascent()),
                              label);

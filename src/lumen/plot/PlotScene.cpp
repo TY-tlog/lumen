@@ -1,6 +1,7 @@
 #include "plot/PlotScene.h"
 
 #include <algorithm>
+#include <stdexcept>
 
 namespace lumen::plot {
 
@@ -20,6 +21,13 @@ void PlotScene::addSeries(LineSeries series) {
 
 void PlotScene::clearSeries() {
     series_.clear();
+}
+
+LineSeries& PlotScene::seriesAt(std::size_t index) {
+    if (index >= series_.size()) {
+        throw std::out_of_range("PlotScene::seriesAt: index out of range");
+    }
+    return series_[index];
 }
 
 void PlotScene::setTitle(const QString& title) {

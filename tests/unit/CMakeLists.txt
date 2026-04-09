@@ -15,6 +15,7 @@ add_executable(lumen_unit_tests
     test_plot_scene.cpp
     test_plot_renderer.cpp
     test_plot_registry.cpp
+    test_command_bus.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.h
 )

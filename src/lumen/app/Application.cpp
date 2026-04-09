@@ -1,5 +1,6 @@
 #include "Application.h"
 
+#include "../core/CommandBus.h"
 #include "../core/DocumentRegistry.h"
 #include "../core/EventBus.h"
 #include "../core/PlotRegistry.h"
@@ -25,12 +26,13 @@ Application::Application(int argc, char* argv[])
     loadStyleSheet();
 
     eventBus_ = std::make_unique<core::EventBus>();
+    commandBus_ = std::make_unique<core::CommandBus>();
     documentRegistry_ =
         std::make_unique<core::DocumentRegistry>(eventBus_.get());
     plotRegistry_ =
         std::make_unique<core::PlotRegistry>(eventBus_.get());
     mainWindow_ = std::make_unique<MainWindow>(
-        documentRegistry_.get(), plotRegistry_.get());
+        documentRegistry_.get(), plotRegistry_.get(), commandBus_.get());
 }
 
 Application::~Application() = default;

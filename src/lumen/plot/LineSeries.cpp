@@ -101,4 +101,16 @@ DataRange LineSeries::dataRange() const
     return DataRange{xMin, xMax, yMin, yMax};
 }
 
+void LineSeries::setStyle(PlotStyle style) {
+    style_ = std::move(style);
+}
+
+void LineSeries::setName(QString name) {
+    name_ = std::move(name);
+}
+
+void LineSeries::setVisible(bool visible) {
+    visible_ = visible;
+}
+
 } // namespace lumen::plot

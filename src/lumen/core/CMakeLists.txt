@@ -1,12 +1,17 @@
 # Lumen core module — event bus, document registry, application state.
 
 add_library(lumen_core STATIC
+    Command.h
+    CommandBus.cpp
+    CommandBus.h
     DocumentRegistry.cpp
     DocumentRegistry.h
     EventBus.cpp
     EventBus.h
     PlotRegistry.cpp
     PlotRegistry.h
+    commands/ChangeLineStyleCommand.cpp
+    commands/ChangeLineStyleCommand.h
 )
 
 target_include_directories(lumen_core
@@ -18,6 +23,7 @@ target_link_libraries(lumen_core
     PUBLIC
         Qt6::Core
         lumen_data
+        lumen_plot
     PRIVATE
         lumen::compile_options
 )
