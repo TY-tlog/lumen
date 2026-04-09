@@ -60,3 +60,4 @@ tests/fixtures/real/
 
 # Generated test fixtures (large, not committed)
 tests/fixtures/tiny/large_100k.csv
+.claude/
