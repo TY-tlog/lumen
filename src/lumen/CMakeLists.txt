@@ -37,6 +37,8 @@ qt_add_executable(lumen
     ui/DataTableDock.h
     ui/MainWindow.cpp
     ui/MainWindow.h
+    ui/InteractionController.cpp
+    ui/InteractionController.h
     ui/PlotCanvas.cpp
     ui/PlotCanvas.h
     ui/PlotCanvasDock.cpp

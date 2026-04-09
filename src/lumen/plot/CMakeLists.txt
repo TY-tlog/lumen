@@ -11,6 +11,7 @@ target_sources(lumen_plot PRIVATE
     Axis.cpp Axis.h
     PlotScene.cpp PlotScene.h
     PlotRenderer.cpp PlotRenderer.h
+    HitTester.cpp HitTester.h
 )
 
 target_include_directories(lumen_plot

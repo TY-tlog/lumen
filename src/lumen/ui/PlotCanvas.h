@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QPointF>
 #include <QWidget>
 
 namespace lumen::plot {
@@ -9,11 +8,15 @@ class PlotScene;
 
 namespace lumen::ui {
 
-/// Widget that renders a PlotScene and handles mouse interaction.
+class InteractionController;
+
+/// Widget that renders a PlotScene and delegates interaction to
+/// InteractionController.
 ///
-/// Supports pan (left drag), zoom (scroll wheel, shift/ctrl for
-/// axis-specific), zoom box (right drag), reset (double-click),
-/// and crosshair with data coordinate tooltip.
+/// PlotCanvas is a thin rendering host: it paints the plot via
+/// PlotRenderer and draws overlays (zoom box, crosshair) using
+/// state from InteractionController.  All mouse/wheel logic lives
+/// in InteractionController (see ADR-020).
 class PlotCanvas : public QWidget {
     Q_OBJECT
 
@@ -22,6 +25,8 @@ public:
 
     void setPlotScene(plot::PlotScene* scene);
     [[nodiscard]] plot::PlotScene* plotScene() const { return scene_; }
+
+    [[nodiscard]] InteractionController* controller() const { return controller_; }
 
     [[nodiscard]] QSize minimumSizeHint() const override;
 
@@ -37,21 +42,7 @@ private:
     void drawCrosshair(QPainter& painter);
 
     plot::PlotScene* scene_ = nullptr;
-
-    // Interaction state.
-    bool panning_ = false;
-    QPointF panStart_;
-    double panStartXMin_ = 0.0;
-    double panStartXMax_ = 0.0;
-    double panStartYMin_ = 0.0;
-    double panStartYMax_ = 0.0;
-
-    bool zoomBoxing_ = false;
-    QPoint zoomBoxStart_;
-    QPoint zoomBoxEnd_;
-
-    QPointF lastMousePos_;
-    bool mouseInWidget_ = false;
+    InteractionController* controller_ = nullptr;
 };
 
 }  // namespace lumen::ui

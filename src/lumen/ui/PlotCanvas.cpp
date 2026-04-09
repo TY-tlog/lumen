@@ -1,5 +1,7 @@
 #include "PlotCanvas.h"
 
+#include "InteractionController.h"
+
 #include <plot/CoordinateMapper.h>
 #include <plot/PlotRenderer.h>
 #include <plot/PlotScene.h>
@@ -12,15 +14,21 @@
 
 namespace lumen::ui {
 
-namespace {
-constexpr double kZoomInFactor = 1.2;
-constexpr double kZoomOutFactor = 1.0 / 1.2;
-}  // namespace
-
 PlotCanvas::PlotCanvas(QWidget* parent)
-    : QWidget(parent) {
+    : QWidget(parent)
+    , controller_(new InteractionController(this, this))
+{
     setMouseTracking(true);
     setFocusPolicy(Qt::StrongFocus);
+
+    connect(controller_, &InteractionController::requestRepaint, this,
+            QOverload<>::of(&QWidget::update));
+    connect(controller_, &InteractionController::emptyAreaDoubleClicked, this, [this]() {
+        if (scene_ != nullptr) {
+            scene_->autoRange();
+            update();
+        }
+    });
 }
 
 void PlotCanvas::setPlotScene(plot::PlotScene* scene) {
@@ -46,15 +54,16 @@ void PlotCanvas::paintEvent(QPaintEvent* /*event*/) {
     renderer.render(painter, *scene_, size());
 
     // Draw zoom box if active.
-    if (zoomBoxing_) {
+    if (controller_->isZoomBoxActive()) {
         QPen boxPen(lumen::tokens::color::accent::primary, 1, Qt::DashLine);
         painter.setPen(boxPen);
         painter.setBrush(QColor(10, 132, 255, 30));
-        painter.drawRect(QRect(zoomBoxStart_, zoomBoxEnd_).normalized());
+        painter.drawRect(controller_->zoomBoxRect());
     }
 
-    // Draw crosshair if mouse is in widget and not dragging.
-    if (mouseInWidget_ && !panning_ && !zoomBoxing_) {
+    // Draw crosshair if mouse is in plot area and not dragging.
+    if (controller_->isMouseInPlotArea()
+        && controller_->mode() == InteractionMode::Idle) {
         drawCrosshair(painter);
     }
 }
@@ -65,21 +74,22 @@ void PlotCanvas::drawCrosshair(QPainter& painter) {
     }
 
     QRectF plotArea = scene_->computePlotArea(size());
-    if (!plotArea.contains(lastMousePos_)) {
+    QPointF mousePos = controller_->lastMousePos();
+    if (!plotArea.contains(mousePos)) {
         return;
     }
 
     const auto& vt = scene_->viewTransform();
     plot::CoordinateMapper mapper(vt.xMin(), vt.xMax(), vt.yMin(), vt.yMax(), plotArea);
-    auto [dataX, dataY] = mapper.pixelToData(lastMousePos_);
+    auto [dataX, dataY] = mapper.pixelToData(mousePos);
 
     // Crosshair lines.
     QPen crossPen(lumen::tokens::color::text::tertiary, 1, Qt::DotLine);
     painter.setPen(crossPen);
-    painter.drawLine(QPointF(lastMousePos_.x(), plotArea.top()),
-                     QPointF(lastMousePos_.x(), plotArea.bottom()));
-    painter.drawLine(QPointF(plotArea.left(), lastMousePos_.y()),
-                     QPointF(plotArea.right(), lastMousePos_.y()));
+    painter.drawLine(QPointF(mousePos.x(), plotArea.top()),
+                     QPointF(mousePos.x(), plotArea.bottom()));
+    painter.drawLine(QPointF(plotArea.left(), mousePos.y()),
+                     QPointF(plotArea.right(), mousePos.y()));
 
     // Coordinate tooltip.
     QString coords = QStringLiteral("(%1, %2)")
@@ -95,13 +105,13 @@ void PlotCanvas::drawCrosshair(QPainter& painter) {
     int textH = fm.height() + 4;
 
     // Position tooltip to the right and above cursor, stay in plot area.
-    double tipX = lastMousePos_.x() + 10;
-    double tipY = lastMousePos_.y() - textH - 4;
+    double tipX = mousePos.x() + 10;
+    double tipY = mousePos.y() - textH - 4;
     if (tipX + textW > plotArea.right()) {
-        tipX = lastMousePos_.x() - textW - 10;
+        tipX = mousePos.x() - textW - 10;
     }
     if (tipY < plotArea.top()) {
-        tipY = lastMousePos_.y() + 10;
+        tipY = mousePos.y() + 10;
     }
 
     QRectF tipRect(tipX, tipY, textW, textH);
@@ -114,127 +124,23 @@ void PlotCanvas::drawCrosshair(QPainter& painter) {
 }
 
 void PlotCanvas::mousePressEvent(QMouseEvent* event) {
-    if (scene_ == nullptr) {
-        return;
-    }
-
-    if (event->button() == Qt::LeftButton) {
-        panning_ = true;
-        panStart_ = event->position();
-        const auto& vt = scene_->viewTransform();
-        panStartXMin_ = vt.xMin();
-        panStartXMax_ = vt.xMax();
-        panStartYMin_ = vt.yMin();
-        panStartYMax_ = vt.yMax();
-        setCursor(Qt::ClosedHandCursor);
-    } else if (event->button() == Qt::RightButton) {
-        zoomBoxing_ = true;
-        zoomBoxStart_ = event->pos();
-        zoomBoxEnd_ = event->pos();
-    }
+    controller_->handleMousePress(event);
 }
 
 void PlotCanvas::mouseMoveEvent(QMouseEvent* event) {
-    lastMousePos_ = event->position();
-    mouseInWidget_ = true;
-
-    if (panning_ && scene_ != nullptr) {
-        QRectF plotArea = scene_->computePlotArea(size());
-        const auto& vt = scene_->viewTransform();
-        plot::CoordinateMapper mapper(vt.xMin(), vt.xMax(), vt.yMin(), vt.yMax(), plotArea);
-
-        auto [startDataX, startDataY] = mapper.pixelToData(panStart_);
-        auto [curDataX, curDataY] = mapper.pixelToData(lastMousePos_);
-
-        double dx = startDataX - curDataX;
-        double dy = startDataY - curDataY;
-
-        // Reset to start and apply new pan.
-        scene_->viewTransform().setBaseRange(panStartXMin_, panStartXMax_,
-                                              panStartYMin_, panStartYMax_);
-        scene_->viewTransform().reset();
-        scene_->viewTransform().pan(dx, dy);
-        update();
-        return;
-    }
-
-    if (zoomBoxing_) {
-        zoomBoxEnd_ = event->pos();
-        update();
-        return;
-    }
-
-    // Crosshair update.
-    update();
+    controller_->handleMouseMove(event);
 }
 
 void PlotCanvas::mouseReleaseEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton && panning_) {
-        panning_ = false;
-        setCursor(Qt::ArrowCursor);
-        // Update base range to current view so future pans work correctly.
-        auto& vt = scene_->viewTransform();
-        vt.setBaseRange(vt.xMin(), vt.xMax(), vt.yMin(), vt.yMax());
-    }
-
-    if (event->button() == Qt::RightButton && zoomBoxing_ && scene_ != nullptr) {
-        zoomBoxing_ = false;
-        QRect box = QRect(zoomBoxStart_, zoomBoxEnd_).normalized();
-        if (box.width() > 5 && box.height() > 5) {
-            QRectF plotArea = scene_->computePlotArea(size());
-            const auto& vt = scene_->viewTransform();
-            plot::CoordinateMapper mapper(vt.xMin(), vt.xMax(), vt.yMin(), vt.yMax(), plotArea);
-
-            auto [x1, y1] = mapper.pixelToData(box.topLeft());
-            auto [x2, y2] = mapper.pixelToData(box.bottomRight());
-
-            double xMin = std::min(x1, x2);
-            double xMax = std::max(x1, x2);
-            double yMin = std::min(y1, y2);
-            double yMax = std::max(y1, y2);
-
-            scene_->viewTransform().setBaseRange(xMin, xMax, yMin, yMax);
-            scene_->viewTransform().reset();
-        }
-        update();
-    }
+    controller_->handleMouseRelease(event);
 }
 
 void PlotCanvas::wheelEvent(QWheelEvent* event) {
-    if (scene_ == nullptr) {
-        return;
-    }
-
-    double factor = (event->angleDelta().y() > 0) ? kZoomInFactor : kZoomOutFactor;
-
-    QRectF plotArea = scene_->computePlotArea(size());
-    const auto& vt = scene_->viewTransform();
-    plot::CoordinateMapper mapper(vt.xMin(), vt.xMax(), vt.yMin(), vt.yMax(), plotArea);
-
-    auto [cx, cy] = mapper.pixelToData(event->position());
-
-    if (event->modifiers() & Qt::ShiftModifier) {
-        scene_->viewTransform().zoomX(factor, cx);
-    } else if (event->modifiers() & Qt::ControlModifier) {
-        scene_->viewTransform().zoomY(factor, cy);
-    } else {
-        scene_->viewTransform().zoom(factor, cx, cy);
-    }
-
-    // Update base range so panning works from the new zoom level.
-    auto& vtMut = scene_->viewTransform();
-    vtMut.setBaseRange(vtMut.xMin(), vtMut.xMax(), vtMut.yMin(), vtMut.yMax());
-
-    update();
-    event->accept();
+    controller_->handleWheel(event);
 }
 
-void PlotCanvas::mouseDoubleClickEvent(QMouseEvent* /*event*/) {
-    if (scene_ == nullptr) {
-        return;
-    }
-    scene_->autoRange();
-    update();
+void PlotCanvas::mouseDoubleClickEvent(QMouseEvent* event) {
+    controller_->handleDoubleClick(event);
 }
 
 }  // namespace lumen::ui
