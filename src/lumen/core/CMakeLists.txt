@@ -10,8 +10,14 @@ add_library(lumen_core STATIC
     EventBus.h
     PlotRegistry.cpp
     PlotRegistry.h
+    commands/ChangeAxisPropertiesCommand.cpp
+    commands/ChangeAxisPropertiesCommand.h
+    commands/ChangeLegendCommand.cpp
+    commands/ChangeLegendCommand.h
     commands/ChangeLineStyleCommand.cpp
     commands/ChangeLineStyleCommand.h
+    commands/ChangeTitleCommand.cpp
+    commands/ChangeTitleCommand.h
 )
 
 target_include_directories(lumen_core
