@@ -197,6 +197,13 @@ void PlotCanvas::startTitleEdit() {
         finishTitleEdit(true);
     });
 
+    // Connect focus loss to apply (same as Enter).
+    connect(titleEditor_, &QLineEdit::editingFinished, this, [this]() {
+        if (titleEditor_ != nullptr) {
+            finishTitleEdit(true);
+        }
+    });
+
     // Enter inline editing mode to suppress pan/zoom.
     controller_->setMode(InteractionMode::EditingTitleInline);
 }
@@ -232,6 +239,10 @@ bool PlotCanvas::eventFilter(QObject* obj, QEvent* event) {
 }
 
 void PlotCanvas::mousePressEvent(QMouseEvent* event) {
+    // If inline title editing is active, finish it first.
+    if (titleEditor_ != nullptr) {
+        finishTitleEdit(true);
+    }
     controller_->handleMousePress(event);
 }
 
