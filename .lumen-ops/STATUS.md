@@ -154,3 +154,29 @@ All passed on 2026-04-09:
   data flow, HitTester, InteractionController, LineSeries mutability,
   style persistence, resolved/remaining tech debt.
 - Awaiting human review and approval before commit.
+
+## 2026-04-09 — Phase 3a close
+
+### Delivered
+- T1+T3 CommandBus + ChangeLineStyleCommand + LineSeries mutability (Backend)
+- T2 HitTester + InteractionController extraction (Frontend)
+- T4+T5 LinePropertyDialog + double-click flow + style persistence (Frontend)
+- ADRs 018-020 (Architect)
+- Architecture.md Phase 3a section (Architect)
+
+### Test results
+- 161/161 tests pass, ASan+UBSan clean
+
+### Human verification (9 acceptance checks)
+All passed on 2026-04-09:
+1. Open CSV → auto line plot
+2. Double-click ON line → LinePropertyDialog opens
+3. Change color/width → OK → line updates
+4. Double-click EMPTY space → view resets
+5. Add second Y series, edit its style independently
+6. Uncheck Visible → series disappears
+7. Switch column → switch back → custom style preserved
+8. Pan, zoom, crosshair still work
+9. Undo works via CommandBus
+
+Human response: "Yes perfectly works."
