@@ -20,6 +20,8 @@ add_executable(lumen_unit_tests
     test_command_bus.cpp
     test_hit_tester.cpp
     test_legend.cpp
+    test_hit_tester_regions.cpp
+    test_plot_scene_margins.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.h
 )

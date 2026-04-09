@@ -3,6 +3,11 @@
 #include "plot/CoordinateMapper.h"
 #include "plot/LineSeries.h"
 #include "plot/PlotScene.h"
+#include "style/DesignTokens.h"
+
+#include <QFont>
+#include <QFontMetrics>
+#include <QRectF>
 
 #include <cmath>
 #include <limits>
@@ -82,6 +87,88 @@ double HitTester::pointToSegmentDistance(QPointF point, QPointF segA, QPointF se
     const double dy = point.y() - closestY;
 
     return std::sqrt(dx * dx + dy * dy);
+}
+
+QRectF HitTester::computeLegendRect(const PlotScene& scene, QRectF plotArea)
+{
+    // Mirror the legend layout logic in PlotRenderer.
+    constexpr int kLegendPadding = 8;
+    constexpr int kLegendLineLength = 20;
+    constexpr int kLegendSpacing = 4;
+
+    if (scene.seriesCount() <= 1) {
+        return {};  // No legend drawn for 0-1 series.
+    }
+
+    QFont bodyFont;
+    bodyFont.setPixelSize(tokens::typography::body.sizePx);
+    bodyFont.setWeight(tokens::typography::body.weight);
+    QFontMetrics fm(bodyFont);
+
+    int legendHeight = static_cast<int>(scene.seriesCount()) *
+                       (fm.height() + kLegendSpacing) + kLegendPadding;
+    int legendWidth = 0;
+    for (const auto& s : scene.series()) {
+        int textWidth = fm.horizontalAdvance(s.name().isEmpty()
+                                             ? QStringLiteral("Series")
+                                             : s.name());
+        legendWidth = std::max(legendWidth, textWidth);
+    }
+    legendWidth += kLegendLineLength + kLegendSpacing * 2 + kLegendPadding * 2;
+
+    return QRectF(plotArea.right() - legendWidth - kLegendPadding,
+                  plotArea.top() + kLegendPadding,
+                  legendWidth, legendHeight);
+}
+
+RegionHitResult HitTester::hitNonSeriesElement(
+    const PlotScene& scene,
+    QSizeF widgetSize,
+    QPointF pixelPos)
+{
+    QRectF plotArea = scene.computePlotArea(widgetSize);
+
+    // 1. Title region: above the plot area, spanning its width.
+    if (!scene.title().isEmpty()) {
+        QRectF titleRect(plotArea.left(), 0.0,
+                         plotArea.width(), plotArea.top());
+        if (titleRect.contains(pixelPos)) {
+            return {HitKind::Title};
+        }
+    }
+
+    // 2. Legend region (top-right inside plot area).
+    {
+        QRectF legendRect = computeLegendRect(scene, plotArea);
+        if (legendRect.isValid() && legendRect.contains(pixelPos)) {
+            return {HitKind::Legend};
+        }
+    }
+
+    // 3. X axis band: below the plot area.
+    {
+        QRectF xAxisBand(plotArea.left(), plotArea.bottom(),
+                         plotArea.width(), widgetSize.height() - plotArea.bottom());
+        if (xAxisBand.contains(pixelPos)) {
+            return {HitKind::XAxis};
+        }
+    }
+
+    // 4. Y axis band: left of the plot area.
+    {
+        QRectF yAxisBand(0.0, plotArea.top(),
+                         plotArea.left(), plotArea.height());
+        if (yAxisBand.contains(pixelPos)) {
+            return {HitKind::YAxis};
+        }
+    }
+
+    // 5. Inside the plot area.
+    if (plotArea.contains(pixelPos)) {
+        return {HitKind::PlotArea};
+    }
+
+    return {HitKind::None};
 }
 
 }  // namespace lumen::plot
