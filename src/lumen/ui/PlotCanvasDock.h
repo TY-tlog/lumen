@@ -1,6 +1,10 @@
 #pragma once
 
+#include <plot/PlotStyle.h>
+
 #include <QDockWidget>
+#include <QHash>
+#include <QString>
 
 #include <memory>
 #include <vector>
@@ -11,6 +15,7 @@ class QPushButton;
 class QHBoxLayout;
 
 namespace lumen::core {
+class CommandBus;
 class PlotRegistry;
 }
 
@@ -41,6 +46,9 @@ public:
     /// Set the PlotRegistry for document-to-canvas tracking.
     void setPlotRegistry(core::PlotRegistry* registry);
 
+    /// Set the CommandBus for undo-able property changes.
+    void setCommandBus(core::CommandBus* bus);
+
     /// Set the DataFrame to plot. Populates column pickers and creates
     /// default plot (first numeric col as X, second as Y).
     /// @p documentPath is used to register the canvas in PlotRegistry.
@@ -48,6 +56,10 @@ public:
 
     /// Access the canvas widget.
     [[nodiscard]] PlotCanvas* canvas() const { return canvas_; }
+
+private slots:
+    void onSeriesDoubleClicked(int seriesIndex);
+    void onEmptyAreaDoubleClicked();
 
 private:
     void buildToolBar();
@@ -68,11 +80,17 @@ private:
     QWidget* yContainer_ = nullptr;
     QHBoxLayout* yLayout_ = nullptr;
 
+    core::CommandBus* commandBus_ = nullptr;
     core::PlotRegistry* registry_ = nullptr;
     const data::DataFrame* dataFrame_ = nullptr;
     QString documentPath_;
     std::unique_ptr<plot::PlotScene> scene_;
     QStringList numericColumns_;
+
+    // Style persistence across column changes (T5).
+    QHash<QString, plot::PlotStyle> customStyles_;
+    QHash<QString, bool> customVisibility_;
+    QHash<QString, QString> customNames_;
 };
 
 }  // namespace lumen::ui
