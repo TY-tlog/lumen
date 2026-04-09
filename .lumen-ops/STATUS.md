@@ -176,3 +176,37 @@ All passed on 2026-04-09:
 - Updated `docs/architecture.md` with Phase 3b section.
 - Updated ADR-013, ADR-016, ADR-017 status notes.
 - Awaiting human review and approval.
+
+## 2026-04-10 — Phase 3b close
+
+### Delivered
+- T1+T2+T3 Axis setters+signal, PlotScene title state, Legend class (Backend)
+- T4 ChangeAxisPropertiesCommand, ChangeTitleCommand, ChangeLegendCommand (Backend)
+- T5 HitTester hitNonSeriesElement with HitKind enum (Frontend)
+- T6 PlotScene::computeMargins replacing hardcoded 60/50/30/15 (Frontend, resolves ADR-013)
+- T6.5 HitTester::hitTestPoint + nearest-sample crosshair (Frontend, resolves ADR-017)
+- T7+T8+T9+T10 AxisDialog, TitleDialog+inline editor, LegendDialog, dispatch (Frontend)
+- ADRs 021-024 (Architect)
+- Phase 3a review retroactively written (Architect)
+- Fix: title editor focus loss handler preventing stuck interaction mode
+
+### ADR resolutions
+- ADR-013 (hardcoded margins): RESOLVED by T6 computeMargins
+- ADR-017 (cursor crosshair): RESOLVED by T6.5 hitTestPoint
+
+### Test results
+- 217/217 tests pass, ASan+UBSan clean
+
+### Human verification
+All items confirmed working on 2026-04-10:
+1. Open CSV → auto line plot
+2. Double-click X axis → AxisDialog, change label
+3. Double-click Y axis → AxisDialog, change range
+4. Double-click title area → inline editor
+5. Double-click legend → LegendDialog
+6. Double-click line → LinePropertyDialog (Phase 3a preserved)
+7. Crosshair snaps to nearest data sample
+8. Pan, zoom, box-zoom work
+9. Dynamic margins adjust to content
+
+Human response: "good it works"
