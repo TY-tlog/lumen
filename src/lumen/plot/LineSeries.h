@@ -44,6 +44,11 @@ public:
     [[nodiscard]] const QString& name() const { return name_; }
     [[nodiscard]] bool isVisible() const { return visible_; }
 
+    /// Access the X column.
+    [[nodiscard]] const data::Column* xColumn() const { return xCol_; }
+    /// Access the Y column.
+    [[nodiscard]] const data::Column* yColumn() const { return yCol_; }
+
     void setStyle(PlotStyle style);
     void setName(QString name);
     void setVisible(bool visible);

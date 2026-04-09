@@ -3,6 +3,7 @@
 #include "InteractionController.h"
 
 #include <plot/CoordinateMapper.h>
+#include <plot/HitTester.h>
 #include <plot/PlotRenderer.h>
 #include <plot/PlotScene.h>
 #include <plot/ViewTransform.h>
@@ -81,20 +82,50 @@ void PlotCanvas::drawCrosshair(QPainter& painter) {
 
     const auto& vt = scene_->viewTransform();
     plot::CoordinateMapper mapper(vt.xMin(), vt.xMax(), vt.yMin(), vt.yMax(), plotArea);
-    auto [dataX, dataY] = mapper.pixelToData(mousePos);
 
-    // Crosshair lines.
+    // Snap to nearest data sample; hide entirely if too far from data.
+    auto hit = plot::HitTester::hitTestPoint(*scene_, mapper, mousePos, 20.0);
+    if (!hit.has_value()) {
+        return;
+    }
+
+    // Compute the snapped pixel position from the actual data point.
+    QPointF snappedPixel = mapper.dataToPixel(hit->dataPoint.x(), hit->dataPoint.y());
+
+    // Crosshair lines at the snapped position.
     QPen crossPen(lumen::tokens::color::text::tertiary, 1, Qt::DotLine);
     painter.setPen(crossPen);
-    painter.drawLine(QPointF(mousePos.x(), plotArea.top()),
-                     QPointF(mousePos.x(), plotArea.bottom()));
-    painter.drawLine(QPointF(plotArea.left(), mousePos.y()),
-                     QPointF(plotArea.right(), mousePos.y()));
+    painter.drawLine(QPointF(snappedPixel.x(), plotArea.top()),
+                     QPointF(snappedPixel.x(), plotArea.bottom()));
+    painter.drawLine(QPointF(plotArea.left(), snappedPixel.y()),
+                     QPointF(plotArea.right(), snappedPixel.y()));
 
-    // Coordinate tooltip.
-    QString coords = QStringLiteral("(%1, %2)")
-                         .arg(dataX, 0, 'g', 4)
-                         .arg(dataY, 0, 'g', 4);
+    // Small marker circle at the snapped point in the series color.
+    const auto& allSeries = scene_->series();
+    QColor seriesColor = lumen::tokens::color::accent::primary;
+    QString seriesName;
+    if (hit->seriesIndex >= 0
+        && static_cast<std::size_t>(hit->seriesIndex) < allSeries.size()) {
+        seriesColor = allSeries[static_cast<std::size_t>(hit->seriesIndex)].style().color;
+        seriesName = allSeries[static_cast<std::size_t>(hit->seriesIndex)].name();
+    }
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(seriesColor);
+    painter.drawEllipse(snappedPixel, 4.0, 4.0);
+
+    // Tooltip with series name and actual data values (6 significant digits).
+    QString coords;
+    if (seriesName.isEmpty()) {
+        coords = QStringLiteral("(%1, %2)")
+                     .arg(hit->dataPoint.x(), 0, 'g', 6)
+                     .arg(hit->dataPoint.y(), 0, 'g', 6);
+    } else {
+        coords = QStringLiteral("%1: (%2, %3)")
+                     .arg(seriesName)
+                     .arg(hit->dataPoint.x(), 0, 'g', 6)
+                     .arg(hit->dataPoint.y(), 0, 'g', 6);
+    }
 
     QFont f;
     f.setPixelSize(lumen::tokens::typography::footnote.sizePx);
@@ -104,14 +135,14 @@ void PlotCanvas::drawCrosshair(QPainter& painter) {
     int textW = fm.horizontalAdvance(coords) + 8;
     int textH = fm.height() + 4;
 
-    // Position tooltip to the right and above cursor, stay in plot area.
-    double tipX = mousePos.x() + 10;
-    double tipY = mousePos.y() - textH - 4;
+    // Position tooltip to the right and above the snapped point, stay in plot area.
+    double tipX = snappedPixel.x() + 10;
+    double tipY = snappedPixel.y() - textH - 4;
     if (tipX + textW > plotArea.right()) {
-        tipX = mousePos.x() - textW - 10;
+        tipX = snappedPixel.x() - textW - 10;
     }
     if (tipY < plotArea.top()) {
-        tipY = mousePos.y() + 10;
+        tipY = snappedPixel.y() + 10;
     }
 
     QRectF tipRect(tipX, tipY, textW, textH);
