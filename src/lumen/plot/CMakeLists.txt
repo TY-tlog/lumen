@@ -9,6 +9,7 @@ target_sources(lumen_plot PRIVATE
     LineSeries.cpp LineSeries.h
     PlotStyle.h
     Axis.cpp Axis.h
+    Legend.cpp Legend.h
     PlotScene.cpp PlotScene.h
     PlotRenderer.cpp PlotRenderer.h
     HitTester.cpp HitTester.h

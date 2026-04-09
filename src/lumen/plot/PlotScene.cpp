@@ -34,6 +34,14 @@ void PlotScene::setTitle(const QString& title) {
     title_ = title;
 }
 
+void PlotScene::setTitleFontPx(int px) {
+    titleFontPx_ = px;
+}
+
+void PlotScene::setTitleWeight(QFont::Weight w) {
+    titleWeight_ = w;
+}
+
 QRectF PlotScene::computePlotArea(QSizeF widgetSize) const {
     double topMargin = title_.isEmpty() ? kTopMarginNoTitle : kTopMarginWithTitle;
 

@@ -1,9 +1,11 @@
 #pragma once
 
 #include "Axis.h"
+#include "Legend.h"
 #include "LineSeries.h"
 #include "ViewTransform.h"
 
+#include <QFont>
 #include <QRectF>
 #include <QSizeF>
 #include <QString>
@@ -12,7 +14,7 @@
 
 namespace lumen::plot {
 
-/// Top-level plot container — owns axes, series, title.
+/// Top-level plot container — owns axes, series, title, legend.
 ///
 /// Given a widget size, computes the plot area rectangle accounting
 /// for margins needed by axis labels, tick labels, and title.
@@ -44,6 +46,20 @@ public:
     void setTitle(const QString& title);
     [[nodiscard]] const QString& title() const { return title_; }
 
+    /// Set the title font size in pixels (default: 17 from tokens::typography::title3).
+    void setTitleFontPx(int px);
+    /// Get the title font size in pixels.
+    [[nodiscard]] int titleFontPx() const { return titleFontPx_; }
+
+    /// Set the title font weight (default: QFont::DemiBold).
+    void setTitleWeight(QFont::Weight w);
+    /// Get the title font weight.
+    [[nodiscard]] QFont::Weight titleWeight() const { return titleWeight_; }
+
+    // --- Legend ---
+    [[nodiscard]] Legend& legend() { return legend_; }
+    [[nodiscard]] const Legend& legend() const { return legend_; }
+
     /// Compute the data plotting area given the total widget size.
     /// Accounts for margins: left (Y ticks+label), bottom (X ticks+label),
     /// top (title), right (padding).
@@ -58,6 +74,9 @@ private:
     ViewTransform viewTransform_;
     std::vector<LineSeries> series_;
     QString title_;
+    int titleFontPx_ = 17;  // tokens::typography::title3.sizePx
+    QFont::Weight titleWeight_ = QFont::DemiBold;
+    Legend legend_;
 };
 
 }  // namespace lumen::plot

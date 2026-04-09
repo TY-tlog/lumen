@@ -2,6 +2,7 @@
 
 #include "plot/Axis.h"
 #include "plot/CoordinateMapper.h"
+#include "plot/Legend.h"
 #include "plot/LineSeries.h"
 #include "plot/PlotScene.h"
 #include "style/DesignTokens.h"
@@ -35,10 +36,10 @@ QFont bodyStrongFont() {
     return f;
 }
 
-QFont title3Font() {
+QFont titleFontFromScene(const PlotScene& scene) {
     QFont f;
-    f.setPixelSize(tokens::typography::title3.sizePx);
-    f.setWeight(tokens::typography::title3.weight);
+    f.setPixelSize(scene.titleFontPx());
+    f.setWeight(scene.titleWeight());
     return f;
 }
 
@@ -47,6 +48,37 @@ QFont bodyFont() {
     f.setPixelSize(tokens::typography::body.sizePx);
     f.setWeight(tokens::typography::body.weight);
     return f;
+}
+
+/// Compute the legend bounding rect for a given position.
+QRectF computeLegendRect(LegendPosition position, const QRectF& plotArea,
+                         int legendWidth, int legendHeight) {
+    switch (position) {
+        case LegendPosition::TopLeft:
+            return QRectF(plotArea.left() + kLegendPadding,
+                          plotArea.top() + kLegendPadding,
+                          legendWidth, legendHeight);
+        case LegendPosition::TopRight:
+            return QRectF(plotArea.right() - legendWidth - kLegendPadding,
+                          plotArea.top() + kLegendPadding,
+                          legendWidth, legendHeight);
+        case LegendPosition::BottomLeft:
+            return QRectF(plotArea.left() + kLegendPadding,
+                          plotArea.bottom() - legendHeight - kLegendPadding,
+                          legendWidth, legendHeight);
+        case LegendPosition::BottomRight:
+            return QRectF(plotArea.right() - legendWidth - kLegendPadding,
+                          plotArea.bottom() - legendHeight - kLegendPadding,
+                          legendWidth, legendHeight);
+        case LegendPosition::OutsideRight:
+            return QRectF(plotArea.right() + kLegendPadding,
+                          plotArea.top() + kLegendPadding,
+                          legendWidth, legendHeight);
+    }
+    // Fallback to TopRight.
+    return QRectF(plotArea.right() - legendWidth - kLegendPadding,
+                  plotArea.top() + kLegendPadding,
+                  legendWidth, legendHeight);
 }
 
 }  // namespace
@@ -69,23 +101,27 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
     auto xTicks = scene.xAxis().ticks();
     auto yTicks = scene.yAxis().ticks();
 
-    // 5. Draw grid lines (border.subtle, dashed).
+    // 5. Draw grid lines (border.subtle, dashed) — respect gridVisible per axis.
     {
         QPen gridPen(tokens::color::border::subtle, tokens::plot::gridLineWidth, Qt::DashLine);
         painter.setPen(gridPen);
 
-        for (const auto& tick : xTicks) {
-            auto px = mapper.dataToPixel(tick.value, vt.yMin());
-            if (px.x() >= plotArea.left() && px.x() <= plotArea.right()) {
-                painter.drawLine(QPointF(px.x(), plotArea.top()),
-                                 QPointF(px.x(), plotArea.bottom()));
+        if (scene.xAxis().gridVisible()) {
+            for (const auto& tick : xTicks) {
+                auto px = mapper.dataToPixel(tick.value, vt.yMin());
+                if (px.x() >= plotArea.left() && px.x() <= plotArea.right()) {
+                    painter.drawLine(QPointF(px.x(), plotArea.top()),
+                                     QPointF(px.x(), plotArea.bottom()));
+                }
             }
         }
-        for (const auto& tick : yTicks) {
-            auto px = mapper.dataToPixel(vt.xMin(), tick.value);
-            if (px.y() >= plotArea.top() && px.y() <= plotArea.bottom()) {
-                painter.drawLine(QPointF(plotArea.left(), px.y()),
-                                 QPointF(plotArea.right(), px.y()));
+        if (scene.yAxis().gridVisible()) {
+            for (const auto& tick : yTicks) {
+                auto px = mapper.dataToPixel(vt.xMin(), tick.value);
+                if (px.y() >= plotArea.top() && px.y() <= plotArea.bottom()) {
+                    painter.drawLine(QPointF(plotArea.left(), px.y()),
+                                     QPointF(plotArea.right(), px.y()));
+                }
             }
         }
     }
@@ -198,17 +234,18 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
         painter.restore();
     }
 
-    // 10. Title.
+    // 10. Title — use PlotScene font properties instead of hardcoded title3.
     if (!scene.title().isEmpty()) {
         painter.setPen(tokens::color::text::primary);
-        painter.setFont(title3Font());
+        painter.setFont(titleFontFromScene(scene));
         QRectF titleRect(plotArea.left(), 4, plotArea.width(), 24);
         painter.drawText(titleRect, Qt::AlignHCenter | Qt::AlignVCenter,
                          scene.title());
     }
 
-    // 11. Legend (top-right inside plot area).
-    if (scene.seriesCount() > 1) {
+    // 11. Legend — uses Legend state for position and visibility.
+    const auto& legendState = scene.legend();
+    if (legendState.isVisible() && scene.seriesCount() > 1) {
         painter.setFont(bodyFont());
         QFontMetrics fm(painter.font());
 
@@ -221,9 +258,8 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
         }
         legendWidth += kLegendLineLength + kLegendSpacing * 2 + kLegendPadding * 2;
 
-        QRectF legendRect(plotArea.right() - legendWidth - kLegendPadding,
-                          plotArea.top() + kLegendPadding,
-                          legendWidth, legendHeight);
+        QRectF legendRect = computeLegendRect(
+            legendState.position(), plotArea, legendWidth, legendHeight);
 
         // Background.
         painter.setPen(Qt::NoPen);
