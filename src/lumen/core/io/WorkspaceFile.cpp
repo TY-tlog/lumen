@@ -4,6 +4,7 @@
 #include "plot/Axis.h"
 #include "plot/Legend.h"
 #include "plot/LineSeries.h"
+#include "plot/PlotItem.h"
 #include "plot/PlotScene.h"
 #include "plot/PlotStyle.h"
 #include "plot/ViewTransform.h"
@@ -212,15 +213,19 @@ WorkspaceFile WorkspaceFile::captureFromScene(const plot::PlotScene* scene)
 
     // Series
     QJsonArray seriesArr;
-    for (const auto& s : scene->series()) {
+    for (const auto& item : scene->items()) {
+        const auto* ls = dynamic_cast<const plot::LineSeries*>(item.get());
+        if (!ls) continue;  // Phase 5.2 will add scatter/bar serialization.
+
         QJsonObject sObj;
-        sObj[QLatin1String("xColumn")]   = s.xColumn() ? s.xColumn()->name() : QString();
-        sObj[QLatin1String("yColumn")]   = s.yColumn() ? s.yColumn()->name() : QString();
-        sObj[QLatin1String("color")]     = s.style().color.name(QColor::HexRgb);
-        sObj[QLatin1String("lineWidth")] = s.style().lineWidth;
-        sObj[QLatin1String("lineStyle")] = penStyleToString(s.style().penStyle);
-        sObj[QLatin1String("name")]      = s.name();
-        sObj[QLatin1String("visible")]   = s.isVisible();
+        sObj[QLatin1String("type")]      = QStringLiteral("line");
+        sObj[QLatin1String("xColumn")]   = ls->xColumn() ? ls->xColumn()->name() : QString();
+        sObj[QLatin1String("yColumn")]   = ls->yColumn() ? ls->yColumn()->name() : QString();
+        sObj[QLatin1String("color")]     = ls->style().color.name(QColor::HexRgb);
+        sObj[QLatin1String("lineWidth")] = ls->style().lineWidth;
+        sObj[QLatin1String("lineStyle")] = penStyleToString(ls->style().penStyle);
+        sObj[QLatin1String("name")]      = ls->name();
+        sObj[QLatin1String("visible")]   = ls->isVisible();
         seriesArr.append(sObj);
     }
     plotObj[QLatin1String("series")] = seriesArr;
@@ -280,29 +285,36 @@ void WorkspaceFile::applyToScene(plot::PlotScene* scene,
 
     // Series — resolve column names against the DataFrame.
     if (plotObj.contains(QLatin1String("series")) && df) {
-        scene->clearSeries();
+        scene->clearItems();
         const QJsonArray seriesArr = plotObj[QLatin1String("series")].toArray();
         for (const auto& val : seriesArr) {
             const QJsonObject sObj = val.toObject();
-            const QString xColName = sObj[QLatin1String("xColumn")].toString();
-            const QString yColName = sObj[QLatin1String("yColumn")].toString();
 
-            const data::Column* xCol = df->columnByName(xColName);
-            const data::Column* yCol = df->columnByName(yColName);
+            // Read type field; default to "line" for backward compat with Phase 4 files.
+            const QString typeStr = sObj[QLatin1String("type")].toString(QStringLiteral("line"));
 
-            if (!xCol || !yCol) continue;  // skip unresolvable series
+            if (typeStr == QLatin1String("line")) {
+                const QString xColName = sObj[QLatin1String("xColumn")].toString();
+                const QString yColName = sObj[QLatin1String("yColumn")].toString();
 
-            plot::PlotStyle style;
-            style.color    = QColor(sObj[QLatin1String("color")].toString(QStringLiteral("#0a84ff")));
-            style.lineWidth = sObj[QLatin1String("lineWidth")].toDouble(1.5);
-            style.penStyle  = penStyleFromString(sObj[QLatin1String("lineStyle")].toString());
+                const data::Column* xCol = df->columnByName(xColName);
+                const data::Column* yCol = df->columnByName(yColName);
 
-            const QString name    = sObj[QLatin1String("name")].toString();
-            const bool    visible = sObj[QLatin1String("visible")].toBool(true);
+                if (!xCol || !yCol) continue;  // skip unresolvable series
 
-            plot::LineSeries series(xCol, yCol, style, name);
-            series.setVisible(visible);
-            scene->addSeries(std::move(series));
+                plot::PlotStyle style;
+                style.color    = QColor(sObj[QLatin1String("color")].toString(QStringLiteral("#0a84ff")));
+                style.lineWidth = sObj[QLatin1String("lineWidth")].toDouble(1.5);
+                style.penStyle  = penStyleFromString(sObj[QLatin1String("lineStyle")].toString());
+
+                const QString name    = sObj[QLatin1String("name")].toString();
+                const bool    visible = sObj[QLatin1String("visible")].toBool(true);
+
+                auto series = std::make_unique<plot::LineSeries>(xCol, yCol, style, name);
+                series->setVisible(visible);
+                scene->addItem(std::move(series));
+            }
+            // Phase 5.2 will add "scatter" and "bar" dispatch here.
         }
     }
 }

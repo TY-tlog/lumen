@@ -4,6 +4,7 @@
 #include "plot/CoordinateMapper.h"
 #include "plot/Legend.h"
 #include "plot/LineSeries.h"
+#include "plot/PlotItem.h"
 #include "plot/PlotScene.h"
 #include "style/DesignTokens.h"
 
@@ -204,31 +205,16 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
         }
     }
 
-    // 9. Clip to plot area and draw series.
+    // 9. Clip to plot area and draw series/items.
     {
         painter.save();
         painter.setClipRect(plotArea);
 
-        for (const auto& series : scene.series()) {
-            if (!series.isVisible()) {
+        for (const auto& item : scene.items()) {
+            if (!item->isVisible()) {
                 continue;
             }
-            QPen seriesPen(series.style().color, series.style().lineWidth,
-                           series.style().penStyle);
-            seriesPen.setCosmetic(true);
-            painter.setPen(seriesPen);
-            painter.setBrush(Qt::NoBrush);
-
-            auto polylines = series.buildPolylines();
-            for (const auto& poly : polylines) {
-                // Map data points to pixels.
-                QPolygonF pixelPoly;
-                pixelPoly.reserve(poly.size());
-                for (const auto& pt : poly) {
-                    pixelPoly.append(mapper.dataToPixel(pt.x(), pt.y()));
-                }
-                painter.drawPolyline(pixelPoly);
-            }
+            item->paint(&painter, mapper, plotArea);
         }
 
         painter.restore();
@@ -245,15 +231,15 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
 
     // 11. Legend — uses Legend state for position and visibility.
     const auto& legendState = scene.legend();
-    if (legendState.isVisible() && scene.seriesCount() > 1) {
+    if (legendState.isVisible() && scene.itemCount() > 1) {
         painter.setFont(bodyFont());
         QFontMetrics fm(painter.font());
 
-        int legendHeight = static_cast<int>(scene.seriesCount()) *
+        int legendHeight = static_cast<int>(scene.itemCount()) *
                            (fm.height() + kLegendSpacing) + kLegendPadding;
         int legendWidth = 0;
-        for (const auto& s : scene.series()) {
-            int textWidth = fm.horizontalAdvance(s.name().isEmpty() ? "Series" : s.name());
+        for (const auto& item : scene.items()) {
+            int textWidth = fm.horizontalAdvance(item->name().isEmpty() ? "Series" : item->name());
             legendWidth = std::max(legendWidth, textWidth);
         }
         legendWidth += kLegendLineLength + kLegendSpacing * 2 + kLegendPadding * 2;
@@ -268,14 +254,14 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
 
         // Entries.
         double y = legendRect.top() + kLegendPadding;
-        for (const auto& s : scene.series()) {
+        for (const auto& item : scene.items()) {
             double x = legendRect.left() + kLegendPadding;
 
-            // Grey out hidden series in the legend.
-            const float opacity = s.isVisible() ? 1.0F : 0.35F;
+            // Grey out hidden items in the legend.
+            const float opacity = item->isVisible() ? 1.0F : 0.35F;
 
             // Color line.
-            QColor lineColor = s.style().color;
+            QColor lineColor = item->primaryColor();
             lineColor.setAlphaF(opacity);
             QPen entryPen(lineColor, 2);
             painter.setPen(entryPen);
@@ -286,7 +272,7 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
             QColor textColor = tokens::color::text::secondary;
             textColor.setAlphaF(opacity);
             painter.setPen(textColor);
-            QString label = s.name().isEmpty() ? QStringLiteral("Series") : s.name();
+            QString label = item->name().isEmpty() ? QStringLiteral("Series") : item->name();
             painter.drawText(QPointF(x + kLegendLineLength + kLegendSpacing, y + fm.ascent()),
                              label);
 

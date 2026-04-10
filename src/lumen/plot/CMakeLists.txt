@@ -6,6 +6,7 @@ target_sources(lumen_plot PRIVATE
     NiceNumbers.cpp NiceNumbers.h
     CoordinateMapper.cpp CoordinateMapper.h
     ViewTransform.cpp ViewTransform.h
+    PlotItem.h
     LineSeries.cpp LineSeries.h
     PlotStyle.h
     Axis.cpp Axis.h

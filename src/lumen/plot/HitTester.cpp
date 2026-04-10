@@ -3,6 +3,7 @@
 #include "data/Column.h"
 #include "plot/CoordinateMapper.h"
 #include "plot/LineSeries.h"
+#include "plot/PlotItem.h"
 #include "plot/PlotScene.h"
 #include "style/DesignTokens.h"
 
@@ -25,11 +26,14 @@ std::optional<HitTester::HitResult> HitTester::hitTest(
     int bestIndex = -1;
     double bestDistance = std::numeric_limits<double>::max();
 
-    const auto& allSeries = scene.series();
-    for (std::size_t i = 0; i < allSeries.size(); ++i) {
-        const auto& series = allSeries[i];
+    const auto& allItems = scene.items();
+    for (std::size_t i = 0; i < allItems.size(); ++i) {
+        const auto* ls = dynamic_cast<const LineSeries*>(allItems[i].get());
+        if (!ls) {
+            continue;  // Phase 5.2 will add scatter/bar hit-test paths.
+        }
 
-        auto polylines = series.buildPolylines();
+        auto polylines = ls->buildPolylines();
         double minDistForSeries = std::numeric_limits<double>::max();
 
         for (const auto& polyline : polylines) {
@@ -73,15 +77,18 @@ std::optional<PointHitResult> HitTester::hitTestPoint(
 
     auto [cursorDataX, cursorDataY] = mapper.pixelToData(pixelPos);
 
-    const auto& allSeries = scene.series();
-    for (std::size_t si = 0; si < allSeries.size(); ++si) {
-        const auto& series = allSeries[si];
-        if (!series.isVisible()) {
+    const auto& allItems = scene.items();
+    for (std::size_t si = 0; si < allItems.size(); ++si) {
+        const auto* ls = dynamic_cast<const LineSeries*>(allItems[si].get());
+        if (!ls) {
+            continue;  // Phase 5.2 will add scatter/bar hit-test paths.
+        }
+        if (!ls->isVisible()) {
             continue;
         }
 
-        const auto* xCol = series.xColumn();
-        const auto* yCol = series.yColumn();
+        const auto* xCol = ls->xColumn();
+        const auto* yCol = ls->yColumn();
         if (xCol == nullptr || yCol == nullptr) {
             continue;
         }
@@ -173,8 +180,8 @@ QRectF HitTester::computeLegendRect(const PlotScene& scene, QRectF plotArea)
     constexpr int kLegendLineLength = 20;
     constexpr int kLegendSpacing = 4;
 
-    if (scene.seriesCount() <= 1) {
-        return {};  // No legend drawn for 0-1 series.
+    if (scene.itemCount() <= 1) {
+        return {};  // No legend drawn for 0-1 items.
     }
 
     QFont bodyFont;
@@ -182,13 +189,13 @@ QRectF HitTester::computeLegendRect(const PlotScene& scene, QRectF plotArea)
     bodyFont.setWeight(tokens::typography::body.weight);
     QFontMetrics fm(bodyFont);
 
-    int legendHeight = static_cast<int>(scene.seriesCount()) *
+    int legendHeight = static_cast<int>(scene.itemCount()) *
                        (fm.height() + kLegendSpacing) + kLegendPadding;
     int legendWidth = 0;
-    for (const auto& s : scene.series()) {
-        int textWidth = fm.horizontalAdvance(s.name().isEmpty()
+    for (const auto& item : scene.items()) {
+        int textWidth = fm.horizontalAdvance(item->name().isEmpty()
                                              ? QStringLiteral("Series")
-                                             : s.name());
+                                             : item->name());
         legendWidth = std::max(legendWidth, textWidth);
     }
     legendWidth += kLegendLineLength + kLegendSpacing * 2 + kLegendPadding * 2;

@@ -12,19 +12,43 @@ namespace lumen::plot {
 
 PlotScene::PlotScene() = default;
 
+void PlotScene::addItem(std::unique_ptr<PlotItem> item) {
+    items_.push_back(std::move(item));
+}
+
+PlotItem* PlotScene::itemAt(std::size_t index) {
+    if (index >= items_.size()) {
+        throw std::out_of_range("PlotScene::itemAt: index out of range");
+    }
+    return items_[index].get();
+}
+
+const PlotItem* PlotScene::itemAt(std::size_t index) const {
+    if (index >= items_.size()) {
+        throw std::out_of_range("PlotScene::itemAt: index out of range");
+    }
+    return items_[index].get();
+}
+
+void PlotScene::clearItems() {
+    items_.clear();
+}
+
 void PlotScene::addSeries(LineSeries series) {
-    series_.push_back(std::move(series));
+    items_.push_back(std::make_unique<LineSeries>(std::move(series)));
 }
 
 void PlotScene::clearSeries() {
-    series_.clear();
+    clearItems();
 }
 
 LineSeries& PlotScene::seriesAt(std::size_t index) {
-    if (index >= series_.size()) {
+    if (index >= items_.size()) {
         throw std::out_of_range("PlotScene::seriesAt: index out of range");
     }
-    return series_[index];
+    auto* ls = dynamic_cast<LineSeries*>(items_[index].get());
+    assert(ls && "PlotScene::seriesAt: item is not a LineSeries");
+    return *ls;
 }
 
 void PlotScene::setTitle(const QString& title) {
@@ -129,8 +153,15 @@ QRectF PlotScene::computePlotArea(QSizeF widgetSize) const {
 }
 
 void PlotScene::autoRange() {
-    xAxis_.autoRange(series_);
-    yAxis_.autoRange(series_);
+    // Build a temporary vector of LineSeries for Axis::autoRange compatibility.
+    std::vector<LineSeries> seriesVec;
+    for (const auto& item : items_) {
+        if (auto* ls = dynamic_cast<const LineSeries*>(item.get())) {
+            seriesVec.push_back(*ls);
+        }
+    }
+    xAxis_.autoRange(seriesVec);
+    yAxis_.autoRange(seriesVec);
     viewTransform_.setBaseRange(xAxis_.min(), xAxis_.max(),
                                 yAxis_.min(), yAxis_.max());
 }

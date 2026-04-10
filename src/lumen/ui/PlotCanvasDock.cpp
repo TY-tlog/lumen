@@ -17,6 +17,7 @@
 #include <data/ColumnType.h>
 #include <data/DataFrame.h>
 #include <plot/LineSeries.h>
+#include <plot/PlotItem.h>
 #include <plot/PlotScene.h>
 #include <plot/PlotStyle.h>
 
@@ -247,10 +248,10 @@ void PlotCanvasDock::onLegendDoubleClicked() {
     // Collect series names and colors.
     QStringList seriesNames;
     QList<QColor> seriesColors;
-    for (std::size_t i = 0; i < scene_->seriesCount(); ++i) {
-        const auto& s = scene_->series()[i];
-        seriesNames.append(s.name());
-        seriesColors.append(s.style().color);
+    for (std::size_t i = 0; i < scene_->itemCount(); ++i) {
+        const auto* item = scene_->itemAt(i);
+        seriesNames.append(item->name());
+        seriesColors.append(item->primaryColor());
     }
 
     LegendDialog dialog(this);
