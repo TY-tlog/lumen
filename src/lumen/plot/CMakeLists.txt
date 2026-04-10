@@ -8,6 +8,8 @@ target_sources(lumen_plot PRIVATE
     ViewTransform.cpp ViewTransform.h
     PlotItem.h
     LineSeries.cpp LineSeries.h
+    ScatterSeries.cpp ScatterSeries.h
+    BarSeries.cpp BarSeries.h
     PlotStyle.h
     Axis.cpp Axis.h
     Legend.cpp Legend.h
