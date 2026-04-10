@@ -28,6 +28,7 @@ add_executable(lumen_unit_tests
     test_hit_test_point.cpp
     test_workspace_file.cpp
     test_workspace_manager.cpp
+    test_figure_exporter.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.h
 )

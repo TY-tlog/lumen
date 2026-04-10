@@ -1,6 +1,11 @@
-# Lumen I/O module — workspace sidecar files and workspace management.
+# Lumen I/O module — workspace sidecar files, workspace management,
+# and figure export (PNG/SVG/PDF).
+
+find_package(Qt6 REQUIRED COMPONENTS Svg)
 
 add_library(lumen_io STATIC
+    FigureExporter.cpp
+    FigureExporter.h
     WorkspaceFile.cpp
     WorkspaceFile.h
     WorkspaceManager.cpp
@@ -15,6 +20,8 @@ target_include_directories(lumen_io
 target_link_libraries(lumen_io
     PUBLIC
         Qt6::Core
+        Qt6::Gui
+        Qt6::Svg
         lumen_data
         lumen_plot
         lumen_core
