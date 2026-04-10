@@ -68,6 +68,7 @@ target_link_libraries(lumen
         Qt6::Widgets
         lumen_data
         lumen_core
+        lumen_io
         lumen::compile_options
         lumen_style
         lumen_plot

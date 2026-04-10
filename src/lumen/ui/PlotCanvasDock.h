@@ -57,6 +57,9 @@ public:
     /// Access the canvas widget.
     [[nodiscard]] PlotCanvas* canvas() const { return canvas_; }
 
+    /// Access the underlying PlotScene (for workspace serialization).
+    [[nodiscard]] plot::PlotScene* scene() const { return scene_.get(); }
+
 private slots:
     void onSeriesDoubleClicked(int seriesIndex);
     void onEmptyAreaDoubleClicked();

@@ -11,6 +11,10 @@ class DocumentRegistry;
 class PlotRegistry;
 }  // namespace lumen::core
 
+namespace lumen::core::io {
+class WorkspaceManager;
+}  // namespace lumen::core::io
+
 namespace lumen {
 
 class MainWindow;
@@ -42,6 +46,7 @@ private:
     std::unique_ptr<core::CommandBus> commandBus_;
     std::unique_ptr<core::DocumentRegistry> documentRegistry_;
     std::unique_ptr<core::PlotRegistry> plotRegistry_;
+    std::unique_ptr<core::io::WorkspaceManager> workspaceManager_;
     std::unique_ptr<MainWindow> mainWindow_;
 };
 

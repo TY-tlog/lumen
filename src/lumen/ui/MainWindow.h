@@ -11,6 +11,10 @@ class DocumentRegistry;
 class PlotRegistry;
 }  // namespace lumen::core
 
+namespace lumen::core::io {
+class WorkspaceManager;
+}  // namespace lumen::core::io
+
 namespace lumen::ui {
 class DataTableDock;
 class PlotCanvasDock;
@@ -32,6 +36,7 @@ public:
     explicit MainWindow(core::DocumentRegistry* registry,
                         core::PlotRegistry* plotRegistry = nullptr,
                         core::CommandBus* commandBus = nullptr,
+                        core::io::WorkspaceManager* workspaceManager = nullptr,
                         QWidget* parent = nullptr);
     ~MainWindow() override;
 
@@ -42,11 +47,17 @@ public:
 protected:
     void closeEvent(QCloseEvent* event) override;
 
+private slots:
+    void onSaveWorkspace();
+    void onSaveWorkspaceAs();
+    void onRevertToSaved();
+
 private:
     void buildMenus();
     void restoreGeometry();
     void saveGeometry() const;
     void showAbout();
+    void updateWindowTitle();
 
     /// Open a CSV file via QFileDialog.
     void openCsvFile();
@@ -62,9 +73,11 @@ private:
 
     core::DocumentRegistry* registry_ = nullptr;
     core::CommandBus* commandBus_ = nullptr;
+    core::io::WorkspaceManager* workspaceManager_ = nullptr;
     ui::DataTableDock* dataTableDock_ = nullptr;
     ui::PlotCanvasDock* plotCanvasDock_ = nullptr;
     QMenu* recentFilesMenu_ = nullptr;
+    QString currentDocPath_;
 
     static constexpr int kMaxRecentFiles = 10;
 };
