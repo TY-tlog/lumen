@@ -51,6 +51,7 @@ private slots:
     void onSaveWorkspace();
     void onSaveWorkspaceAs();
     void onRevertToSaved();
+    void onExportFigure();
 
 private:
     void buildMenus();

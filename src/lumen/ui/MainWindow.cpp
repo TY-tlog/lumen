@@ -1,10 +1,12 @@
 #include "MainWindow.h"
 
 #include "DataTableDock.h"
+#include "ExportDialog.h"
 #include "PlotCanvas.h"
 #include "PlotCanvasDock.h"
 
 #include <core/DocumentRegistry.h>
+#include <core/io/FigureExporter.h>
 #include <core/io/WorkspaceManager.h>
 #include <data/FileLoader.h>
 
@@ -105,6 +107,12 @@ void MainWindow::buildMenus() {
 
     auto* revertAction = fileMenu->addAction(tr("&Revert to Saved"));
     connect(revertAction, &QAction::triggered, this, &MainWindow::onRevertToSaved);
+
+    fileMenu->addSeparator();
+
+    auto* exportAction = fileMenu->addAction(tr("&Export Figure..."));
+    exportAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_E));
+    connect(exportAction, &QAction::triggered, this, &MainWindow::onExportFigure);
 
     fileMenu->addSeparator();
 
@@ -341,6 +349,37 @@ void MainWindow::onRevertToSaved() {
     if (workspaceManager_->revertToSaved(currentDocPath_)) {
         plotCanvasDock_->canvas()->update();
         statusBar()->showMessage(tr("Reverted to saved workspace"), 3000);
+    }
+}
+
+void MainWindow::onExportFigure() {
+    if (plotCanvasDock_ == nullptr || plotCanvasDock_->scene() == nullptr) {
+        return;
+    }
+
+    ui::ExportDialog dialog(this);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    auto opts = dialog.options();
+
+    core::io::FigureExporter::Options exportOpts;
+    exportOpts.format = static_cast<core::io::FigureExporter::Format>(opts.format);
+    exportOpts.widthPx = opts.widthPx;
+    exportOpts.heightPx = opts.heightPx;
+    exportOpts.dpi = opts.dpi;
+    exportOpts.transparentBackground = opts.transparentBackground;
+    exportOpts.outputPath = opts.outputPath;
+
+    QString error = core::io::FigureExporter::exportFigure(
+        plotCanvasDock_->scene(), exportOpts);
+
+    if (error.isEmpty()) {
+        statusBar()->showMessage(
+            tr("Exported to %1").arg(opts.outputPath), 3000);
+    } else {
+        QMessageBox::warning(this, tr("Export Failed"), error);
     }
 }
 

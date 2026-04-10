@@ -1,6 +1,8 @@
 # Lumen I/O module — workspace sidecar files and workspace management.
 
 add_library(lumen_io STATIC
+    FigureExporter.cpp
+    FigureExporter.h
     WorkspaceFile.cpp
     WorkspaceFile.h
     WorkspaceManager.cpp
