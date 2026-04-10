@@ -222,3 +222,32 @@ Human response: "good it works"
 - Updated `docs/architecture.md` with Phase 4 section.
 - **Hard rule**: Phase 4 review will be in SAME commit as STATUS close.
 - Awaiting human review and approval.
+
+## 2026-04-11 — Phase 4 close
+
+### Delivered
+- T1+T2 WorkspaceFile + WorkspaceManager (Backend)
+- T3 MainWindow save/revert UI, unsaved-changes prompt (Frontend)
+- T5 FigureExporter PNG/SVG/PDF (Backend)
+- T6 ExportDialog + Export Figure menu (Frontend)
+- ADRs 025-027
+
+### Sub-phase gates
+- M4.1 (persistence): passed — human verified save/reopen roundtrip
+- M4.2 (export): passed — human verified PNG/SVG/PDF export
+
+### Test results
+- 247/247 tests pass, ASan+UBSan clean
+
+### Human verification
+- Edit persistence: save, close, reopen → edits restored ✓
+- Unsaved-changes prompt on close ✓
+- PNG export at 300 DPI ✓
+- SVG vector export ✓
+- PDF export ✓
+
+Human responses: "yes." (M4.1), "yes" (M4.2)
+
+### Phase 3b lesson applied
+This review (docs/reviews/phase-4-review.md) is committed in the
+SAME commit as this STATUS entry.
