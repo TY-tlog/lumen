@@ -27,6 +27,8 @@ add_executable(lumen_unit_tests
     test_axis_commands.cpp
     test_title_command.cpp
     test_legend_commands.cpp
+    test_scatter_commands.cpp
+    test_bar_commands.cpp
     test_hit_test_point.cpp
     test_workspace_file.cpp
     test_workspace_manager.cpp

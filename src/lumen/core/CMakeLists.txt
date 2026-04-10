@@ -18,6 +18,10 @@ add_library(lumen_core STATIC
     commands/ChangeLineStyleCommand.h
     commands/ChangeTitleCommand.cpp
     commands/ChangeTitleCommand.h
+    commands/ChangeScatterPropertiesCommand.cpp
+    commands/ChangeScatterPropertiesCommand.h
+    commands/ChangeBarPropertiesCommand.cpp
+    commands/ChangeBarPropertiesCommand.h
 )
 
 target_include_directories(lumen_core

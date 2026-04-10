@@ -1,25 +1,31 @@
 #include "PlotCanvasDock.h"
 
 #include "AxisDialog.h"
+#include "BarPropertyDialog.h"
 #include "InteractionController.h"
 #include "LegendDialog.h"
 #include "LinePropertyDialog.h"
 #include "PlotCanvas.h"
+#include "ScatterPropertyDialog.h"
 #include "TitleDialog.h"
 
 #include <core/CommandBus.h>
 #include <core/PlotRegistry.h>
 #include <core/commands/ChangeAxisPropertiesCommand.h>
+#include <core/commands/ChangeBarPropertiesCommand.h>
 #include <core/commands/ChangeLegendCommand.h>
 #include <core/commands/ChangeLineStyleCommand.h>
+#include <core/commands/ChangeScatterPropertiesCommand.h>
 #include <core/commands/ChangeTitleCommand.h>
 #include <data/Column.h>
 #include <data/ColumnType.h>
 #include <data/DataFrame.h>
+#include <plot/BarSeries.h>
 #include <plot/LineSeries.h>
 #include <plot/PlotItem.h>
 #include <plot/PlotScene.h>
 #include <plot/PlotStyle.h>
+#include <plot/ScatterSeries.h>
 
 #include <QComboBox>
 #include <QHBoxLayout>
@@ -106,6 +112,19 @@ void PlotCanvasDock::buildToolBar() {
     connect(addSeriesBtn_, &QPushButton::clicked, this, [this]() {
         addYSeries();
     });
+
+    toolBar_->addSeparator();
+
+    // Plot type combo (T11).
+    toolBar_->addWidget(new QLabel(QStringLiteral(" Type: "), toolBar_));
+    plotTypeCombo_ = new QComboBox(toolBar_);
+    plotTypeCombo_->addItem(QStringLiteral("Line"));
+    plotTypeCombo_->addItem(QStringLiteral("Scatter"));
+    plotTypeCombo_->addItem(QStringLiteral("Bar"));
+    toolBar_->addWidget(plotTypeCombo_);
+    connect(plotTypeCombo_, &QComboBox::currentIndexChanged, this, [this]() {
+        rebuildPlot();
+    });
 }
 
 void PlotCanvasDock::setPlotRegistry(core::PlotRegistry* registry) {
@@ -118,34 +137,94 @@ void PlotCanvasDock::setCommandBus(core::CommandBus* bus) {
 
 void PlotCanvasDock::onSeriesDoubleClicked(int seriesIndex) {
     if (!scene_ || seriesIndex < 0 ||
-        seriesIndex >= static_cast<int>(scene_->seriesCount())) {
+        seriesIndex >= static_cast<int>(scene_->itemCount())) {
         return;
     }
 
-    auto& series = scene_->seriesAt(static_cast<std::size_t>(seriesIndex));
-    LinePropertyDialog dialog(this);
-    dialog.setStyle(series.style(), series.name(), series.isVisible());
+    auto idx = static_cast<std::size_t>(seriesIndex);
+    auto* item = scene_->itemAt(idx);
 
-    if (dialog.exec() == QDialog::Accepted) {
-        // Persist custom style for this column name (T5).
-        QString colName = series.name();
-        customStyles_[colName] = dialog.resultStyle();
-        customVisibility_[colName] = dialog.resultVisible();
-        customNames_[colName] = dialog.resultName();
-
-        if (commandBus_ != nullptr) {
-            auto cmd = std::make_unique<core::commands::ChangeLineStyleCommand>(
-                scene_.get(), static_cast<std::size_t>(seriesIndex),
-                dialog.resultStyle(), dialog.resultName(),
-                dialog.resultVisible());
-            commandBus_->execute(std::move(cmd));
-        } else {
-            // Fallback without undo.
-            series.setStyle(dialog.resultStyle());
-            series.setName(dialog.resultName());
-            series.setVisible(dialog.resultVisible());
+    // T12: Dispatch based on item type.
+    switch (item->type()) {
+    case plot::PlotItem::Type::Scatter: {
+        auto* scatter = dynamic_cast<plot::ScatterSeries*>(item);
+        if (scatter == nullptr) { return; }
+        ScatterPropertyDialog dialog(this);
+        dialog.setProperties(scatter->color(), scatter->markerShape(),
+                             scatter->markerSize(), scatter->filled(),
+                             scatter->name(), scatter->isVisible());
+        if (dialog.exec() == QDialog::Accepted) {
+            customVisibility_[scatter->name()] = dialog.resultVisible();
+            customNames_[scatter->name()] = dialog.resultName();
+            if (commandBus_ != nullptr) {
+                auto cmd = std::make_unique<core::commands::ChangeScatterPropertiesCommand>(
+                    scene_.get(), idx, dialog.resultColor(),
+                    dialog.resultMarkerShape(), dialog.resultMarkerSize(),
+                    dialog.resultFilled(), dialog.resultName(),
+                    dialog.resultVisible());
+                commandBus_->execute(std::move(cmd));
+            } else {
+                scatter->setColor(dialog.resultColor());
+                scatter->setMarkerShape(dialog.resultMarkerShape());
+                scatter->setMarkerSize(dialog.resultMarkerSize());
+                scatter->setFilled(dialog.resultFilled());
+                scatter->setName(dialog.resultName());
+                scatter->setVisible(dialog.resultVisible());
+            }
+            canvas_->update();
         }
-        canvas_->update();
+        break;
+    }
+    case plot::PlotItem::Type::Bar: {
+        auto* bar = dynamic_cast<plot::BarSeries*>(item);
+        if (bar == nullptr) { return; }
+        BarPropertyDialog dialog(this);
+        dialog.setProperties(bar->fillColor(), bar->outlineColor(),
+                             bar->barWidth(), bar->name(), bar->isVisible());
+        if (dialog.exec() == QDialog::Accepted) {
+            customVisibility_[bar->name()] = dialog.resultVisible();
+            customNames_[bar->name()] = dialog.resultName();
+            if (commandBus_ != nullptr) {
+                auto cmd = std::make_unique<core::commands::ChangeBarPropertiesCommand>(
+                    scene_.get(), idx, dialog.resultFillColor(),
+                    dialog.resultOutlineColor(), dialog.resultBarWidth(),
+                    dialog.resultName(), dialog.resultVisible());
+                commandBus_->execute(std::move(cmd));
+            } else {
+                bar->setFillColor(dialog.resultFillColor());
+                bar->setOutlineColor(dialog.resultOutlineColor());
+                bar->setBarWidth(dialog.resultBarWidth());
+                bar->setName(dialog.resultName());
+                bar->setVisible(dialog.resultVisible());
+            }
+            canvas_->update();
+        }
+        break;
+    }
+    case plot::PlotItem::Type::Line:
+    default: {
+        auto& series = scene_->seriesAt(idx);
+        LinePropertyDialog dialog(this);
+        dialog.setStyle(series.style(), series.name(), series.isVisible());
+        if (dialog.exec() == QDialog::Accepted) {
+            QString colName = series.name();
+            customStyles_[colName] = dialog.resultStyle();
+            customVisibility_[colName] = dialog.resultVisible();
+            customNames_[colName] = dialog.resultName();
+            if (commandBus_ != nullptr) {
+                auto cmd = std::make_unique<core::commands::ChangeLineStyleCommand>(
+                    scene_.get(), idx, dialog.resultStyle(),
+                    dialog.resultName(), dialog.resultVisible());
+                commandBus_->execute(std::move(cmd));
+            } else {
+                series.setStyle(dialog.resultStyle());
+                series.setName(dialog.resultName());
+                series.setVisible(dialog.resultVisible());
+            }
+            canvas_->update();
+        }
+        break;
+    }
     }
 }
 
@@ -406,25 +485,55 @@ void PlotCanvasDock::rebuildPlot() {
             continue;
         }
 
-        // Both columns must be Double for LineSeries.
+        // Both columns must be Double for series.
         if (xCol->type() != data::ColumnType::Double ||
             yCol->type() != data::ColumnType::Double) {
             continue;
         }
 
-        scene_->addSeries(plot::LineSeries(
-            xCol, yCol, plot::PlotStyle::fromPalette(seriesIdx), yName));
+        // Create series based on plot type combo (T11).
+        QString plotType = plotTypeCombo_ != nullptr
+                               ? plotTypeCombo_->currentText()
+                               : QStringLiteral("Line");
 
-        // Apply persisted custom style if available (T5).
-        auto& addedSeries = scene_->seriesAt(scene_->seriesCount() - 1);
-        if (customStyles_.contains(yName)) {
-            addedSeries.setStyle(customStyles_[yName]);
+        if (plotType == QStringLiteral("Scatter")) {
+            auto scatter = std::make_unique<plot::ScatterSeries>(
+                xCol, yCol, plot::PlotStyle::fromPalette(seriesIdx).color, yName);
+            scene_->addItem(std::move(scatter));
+        } else if (plotType == QStringLiteral("Bar")) {
+            auto bar = std::make_unique<plot::BarSeries>(
+                xCol, yCol, plot::PlotStyle::fromPalette(seriesIdx).color, yName);
+            scene_->addItem(std::move(bar));
+        } else {
+            scene_->addSeries(plot::LineSeries(
+                xCol, yCol, plot::PlotStyle::fromPalette(seriesIdx), yName));
+
+            // Apply persisted custom style if available (T5).
+            auto& addedSeries = scene_->seriesAt(scene_->seriesCount() - 1);
+            if (customStyles_.contains(yName)) {
+                addedSeries.setStyle(customStyles_[yName]);
+            }
         }
+
+        // Apply persisted visibility/name across all types.
+        auto* lastItem = scene_->itemAt(scene_->itemCount() - 1);
         if (customVisibility_.contains(yName)) {
-            addedSeries.setVisible(customVisibility_[yName]);
+            if (auto* ls = dynamic_cast<plot::LineSeries*>(lastItem)) {
+                ls->setVisible(customVisibility_[yName]);
+            } else if (auto* ss = dynamic_cast<plot::ScatterSeries*>(lastItem)) {
+                ss->setVisible(customVisibility_[yName]);
+            } else if (auto* bs = dynamic_cast<plot::BarSeries*>(lastItem)) {
+                bs->setVisible(customVisibility_[yName]);
+            }
         }
         if (customNames_.contains(yName)) {
-            addedSeries.setName(customNames_[yName]);
+            if (auto* ls = dynamic_cast<plot::LineSeries*>(lastItem)) {
+                ls->setName(customNames_[yName]);
+            } else if (auto* ss = dynamic_cast<plot::ScatterSeries*>(lastItem)) {
+                ss->setName(customNames_[yName]);
+            } else if (auto* bs = dynamic_cast<plot::BarSeries*>(lastItem)) {
+                bs->setName(customNames_[yName]);
+            }
         }
 
         yNames.append(yName);
