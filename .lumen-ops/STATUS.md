@@ -210,3 +210,15 @@ All items confirmed working on 2026-04-10:
 9. Dynamic margins adjust to content
 
 Human response: "good it works"
+
+## 2026-04-10 — Phase 4 opening (Architect session 6)
+- Wrote `docs/plans/phase-4-plan.md`: 8 tasks in 2 sub-phases with
+  human verification gates between them.
+  - Sub-phase 4.1: WorkspaceFile, WorkspaceManager, MainWindow save/revert UI
+  - Sub-phase 4.2: FigureExporter, ExportDialog
+  - T8: review+STATUS in SAME commit (Phase 3b lesson applied)
+- Drafted ADRs 025-027: workspace sidecar format, export reuses
+  PlotRenderer, synchronous export.
+- Updated `docs/architecture.md` with Phase 4 section.
+- **Hard rule**: Phase 4 review will be in SAME commit as STATUS close.
+- Awaiting human review and approval.
