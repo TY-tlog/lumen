@@ -63,6 +63,10 @@ public:
     /// Sets range mode to Auto.
     void autoRange(const std::vector<LineSeries>& seriesList);
 
+    /// Extend the current auto-range to include additional bounds.
+    /// Only meaningful after autoRange() has been called. Keeps Auto mode.
+    void extendAutoRange(double lo, double hi);
+
     /// Current minimum value (auto or manual depending on range mode).
     [[nodiscard]] double min() const;
 

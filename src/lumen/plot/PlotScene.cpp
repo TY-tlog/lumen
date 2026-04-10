@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 
 namespace lumen::plot {
@@ -153,15 +154,35 @@ QRectF PlotScene::computePlotArea(QSizeF widgetSize) const {
 }
 
 void PlotScene::autoRange() {
-    // Build a temporary vector of LineSeries for Axis::autoRange compatibility.
-    std::vector<LineSeries> seriesVec;
+    // Start with LineSeries via Axis::autoRange (preserves original behavior).
+    std::vector<LineSeries> lineSeriesVec;
     for (const auto& item : items_) {
+        if (!item->isVisible()) {
+            continue;
+        }
         if (auto* ls = dynamic_cast<const LineSeries*>(item.get())) {
-            seriesVec.push_back(*ls);
+            lineSeriesVec.push_back(*ls);
         }
     }
-    xAxis_.autoRange(seriesVec);
-    yAxis_.autoRange(seriesVec);
+    xAxis_.autoRange(lineSeriesVec);
+    yAxis_.autoRange(lineSeriesVec);
+
+    // Extend auto range to include non-LineSeries items.
+    for (const auto& item : items_) {
+        if (!item->isVisible()) {
+            continue;
+        }
+        if (dynamic_cast<const LineSeries*>(item.get()) != nullptr) {
+            continue;  // Already handled above.
+        }
+        QRectF bounds = item->dataBounds();
+        if (bounds.isEmpty()) {
+            continue;
+        }
+        xAxis_.extendAutoRange(bounds.left(), bounds.right());
+        yAxis_.extendAutoRange(bounds.top(), bounds.bottom());
+    }
+
     viewTransform_.setBaseRange(xAxis_.min(), xAxis_.max(),
                                 yAxis_.min(), yAxis_.max());
 }

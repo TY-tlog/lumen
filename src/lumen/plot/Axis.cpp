@@ -110,6 +110,14 @@ void Axis::autoRange(const std::vector<LineSeries>& seriesList) {
     autoMax_ = hi;
 }
 
+void Axis::extendAutoRange(double lo, double hi) {
+    double padding = (hi > lo) ? (hi - lo) * 0.05 : 0.5;
+    double paddedLo = lo - padding;
+    double paddedHi = hi + padding;
+    autoMin_ = std::min(autoMin_, paddedLo);
+    autoMax_ = std::max(autoMax_, paddedHi);
+}
+
 double Axis::min() const {
     return (rangeMode_ == RangeMode::Manual) ? manualMin_ : autoMin_;
 }
