@@ -263,3 +263,31 @@ SAME commit as this STATUS entry.
 - Hard rules: 247 tests unchanged in 5.1, Phase 4 workspace backward
   compat, single rendering code path, review-in-same-commit.
 - Awaiting human review and approval.
+
+## 2026-04-11 — Phase 5 close
+
+### Delivered
+- T1-T4 PlotItem abstraction, LineSeries refactor (Backend, Phase 5.1)
+- T6+T7 ScatterSeries + BarSeries (Backend, Phase 5.2)
+- T8 ChangeScatterPropertiesCommand + ChangeBarPropertiesCommand (Backend)
+- T9+T10 ScatterPropertyDialog + BarPropertyDialog (Frontend)
+- T11 Column picker Plot Type combo (Frontend)
+- T12 HitTester dispatch by item type (Frontend)
+- T13 Legend mixed swatches (Frontend)
+- Fix: autoRange includes scatter/bar bounds via extendAutoRange
+- ADRs 028-031
+
+### Sub-phase gates
+- M5.1 (refactor): passed — 247 tests unchanged, human verified
+- M5.2 (new types): passed — scatter+bar visible and editable
+
+### Test results
+- 275/275 tests pass, ASan+UBSan clean
+
+### Human verification
+- M5.1: "Yes everything is good."
+- M5.2: "Yes perfectly show."
+
+### Phase 3b/4 lesson applied
+This review (docs/reviews/phase-5-review.md) is committed in the
+SAME commit as this STATUS entry.
