@@ -235,8 +235,9 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
         painter.setFont(bodyFont());
         QFontMetrics fm(painter.font());
 
+        constexpr int kLegendRowHeight = 18;
         int legendHeight = static_cast<int>(scene.itemCount()) *
-                           (fm.height() + kLegendSpacing) + kLegendPadding;
+                           kLegendRowHeight + kLegendPadding;
         int legendWidth = 0;
         for (const auto& item : scene.items()) {
             int textWidth = fm.horizontalAdvance(item->name().isEmpty() ? "Series" : item->name());
@@ -252,23 +253,51 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
         painter.setBrush(QColor(255, 255, 255, 220));
         painter.drawRoundedRect(legendRect, tokens::radius::xs, tokens::radius::xs);
 
-        // Entries.
+        // Entries — T13: mixed swatches by item type.
+        constexpr int kRowHeight = 18;
         double y = legendRect.top() + kLegendPadding;
         for (const auto& item : scene.items()) {
             double x = legendRect.left() + kLegendPadding;
 
-            // Grey out hidden items in the legend.
             const float opacity = item->isVisible() ? 1.0F : 0.35F;
 
-            // Color line.
-            QColor lineColor = item->primaryColor();
-            lineColor.setAlphaF(opacity);
-            QPen entryPen(lineColor, 2);
-            painter.setPen(entryPen);
-            double lineY = y + fm.height() / 2.0;
-            painter.drawLine(QPointF(x, lineY), QPointF(x + kLegendLineLength, lineY));
+            QColor itemColor = item->primaryColor();
+            itemColor.setAlphaF(opacity);
+            double swatchCenterY = y + kRowHeight / 2.0;
 
-            // Name.
+            switch (item->type()) {
+            case PlotItem::Type::Scatter: {
+                // Draw a filled circle marker.
+                painter.setPen(Qt::NoPen);
+                painter.setBrush(itemColor);
+                double r = 4.0;
+                double cx = x + kLegendLineLength / 2.0;
+                painter.drawEllipse(QPointF(cx, swatchCenterY), r, r);
+                break;
+            }
+            case PlotItem::Type::Bar: {
+                // Draw a filled 12x8 rectangle.
+                painter.setPen(Qt::NoPen);
+                painter.setBrush(itemColor);
+                double rectW = 12.0;
+                double rectH = 8.0;
+                double rx = x + (kLegendLineLength - rectW) / 2.0;
+                double ry = swatchCenterY - rectH / 2.0;
+                painter.drawRect(QRectF(rx, ry, rectW, rectH));
+                break;
+            }
+            case PlotItem::Type::Line:
+            default: {
+                // Draw a 20px line segment.
+                QPen entryPen(itemColor, 2);
+                painter.setPen(entryPen);
+                painter.drawLine(QPointF(x, swatchCenterY),
+                                 QPointF(x + kLegendLineLength, swatchCenterY));
+                break;
+            }
+            }
+
+            // Name text.
             QColor textColor = tokens::color::text::secondary;
             textColor.setAlphaF(opacity);
             painter.setPen(textColor);
@@ -276,7 +305,7 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
             painter.drawText(QPointF(x + kLegendLineLength + kLegendSpacing, y + fm.ascent()),
                              label);
 
-            y += fm.height() + kLegendSpacing;
+            y += kRowHeight;
         }
     }
 }

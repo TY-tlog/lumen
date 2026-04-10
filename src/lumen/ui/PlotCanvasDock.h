@@ -87,6 +87,7 @@ private:
     QPushButton* addSeriesBtn_ = nullptr;
     QWidget* yContainer_ = nullptr;
     QHBoxLayout* yLayout_ = nullptr;
+    QComboBox* plotTypeCombo_ = nullptr;
 
     core::CommandBus* commandBus_ = nullptr;
     core::PlotRegistry* registry_ = nullptr;

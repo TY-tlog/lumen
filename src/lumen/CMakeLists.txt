@@ -18,7 +18,7 @@ foreach(_f Inter-Regular.ttf Inter-Medium.ttf Inter-SemiBold.ttf Inter-Bold.ttf)
 endforeach()
 
 if(_fonts_present)
-    message(STATUS "Inter font files found — embedding in binary")
+    message(STATUS "Inter font files found -- embedding in binary")
     set(LUMEN_FONT_QRC "${_font_dir}/fonts.qrc")
 else()
     message(WARNING "Inter font files not found in resources/fonts/. "
@@ -47,6 +47,10 @@ qt_add_executable(lumen
     ui/LegendDialog.h
     ui/LinePropertyDialog.cpp
     ui/LinePropertyDialog.h
+    ui/ScatterPropertyDialog.cpp
+    ui/ScatterPropertyDialog.h
+    ui/BarPropertyDialog.cpp
+    ui/BarPropertyDialog.h
     ui/PlotCanvas.cpp
     ui/PlotCanvas.h
     ui/PlotCanvasDock.cpp
