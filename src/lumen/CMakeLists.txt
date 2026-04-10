@@ -35,6 +35,8 @@ qt_add_executable(lumen
     ui/DataFrameTableModel.h
     ui/DataTableDock.cpp
     ui/DataTableDock.h
+    ui/ExportDialog.cpp
+    ui/ExportDialog.h
     ui/MainWindow.cpp
     ui/MainWindow.h
     ui/AxisDialog.cpp
