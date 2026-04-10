@@ -1,5 +1,6 @@
 #pragma once
 
+#include "plot/PlotItem.h"
 #include "plot/PlotStyle.h"
 
 #include <QPolygonF>
@@ -25,13 +26,22 @@ struct DataRange {
 ///
 /// Builds polylines from the column data, breaking at NaN values.
 /// Both columns must be of type Double.
-class LineSeries {
+class LineSeries : public PlotItem {
 public:
     /// Construct a line series from X and Y columns.
     /// Both columns must be Double type.
     /// @throws std::invalid_argument if columns are not Double type or have different row counts.
     LineSeries(const data::Column* xCol, const data::Column* yCol,
                PlotStyle style, QString name = {});
+
+    // --- PlotItem overrides ---
+    Type type() const override { return Type::Line; }
+    QRectF dataBounds() const override;
+    void paint(QPainter* painter, const CoordinateMapper& mapper,
+               const QRectF& plotArea) const override;
+    bool isVisible() const override { return visible_; }
+    QString name() const override { return name_; }
+    QColor primaryColor() const override { return style_.color; }
 
     /// Build polylines from the column data.
     /// Returns one QPolygonF per contiguous non-NaN segment.
@@ -41,8 +51,6 @@ public:
     [[nodiscard]] DataRange dataRange() const;
 
     [[nodiscard]] const PlotStyle& style() const { return style_; }
-    [[nodiscard]] const QString& name() const { return name_; }
-    [[nodiscard]] bool isVisible() const { return visible_; }
 
     /// Access the X column.
     [[nodiscard]] const data::Column* xColumn() const { return xCol_; }

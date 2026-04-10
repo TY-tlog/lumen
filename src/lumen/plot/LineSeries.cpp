@@ -2,7 +2,9 @@
 
 #include "data/Column.h"
 #include "data/ColumnType.h"
+#include "plot/CoordinateMapper.h"
 
+#include <QPen>
 #include <QPointF>
 
 #include <cmath>
@@ -99,6 +101,33 @@ DataRange LineSeries::dataRange() const
     }
 
     return DataRange{xMin, xMax, yMin, yMax};
+}
+
+QRectF LineSeries::dataBounds() const
+{
+    auto range = dataRange();
+    return QRectF(QPointF(range.xMin, range.yMin),
+                  QPointF(range.xMax, range.yMax));
+}
+
+void LineSeries::paint(QPainter* painter, const CoordinateMapper& mapper,
+                       const QRectF& /*plotArea*/) const
+{
+    QPen seriesPen(style_.color, style_.lineWidth, style_.penStyle);
+    seriesPen.setCosmetic(true);
+    painter->setPen(seriesPen);
+    painter->setBrush(Qt::NoBrush);
+
+    auto polylines = buildPolylines();
+    for (const auto& poly : polylines) {
+        // Map data points to pixels.
+        QPolygonF pixelPoly;
+        pixelPoly.reserve(poly.size());
+        for (const auto& pt : poly) {
+            pixelPoly.append(mapper.dataToPixel(pt.x(), pt.y()));
+        }
+        painter->drawPolyline(pixelPoly);
+    }
 }
 
 void LineSeries::setStyle(PlotStyle style) {
