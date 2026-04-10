@@ -511,3 +511,76 @@ Single rendering code path. Synchronous (ADR-027).
 
 1. **No command merging** — rapid edits create many undo entries.
 2. **OutsideRight legend margin** — partial.
+
+## Phase 5 additions — Scatter and Bar Plots
+
+### PlotItem abstraction (ADR-028)
+
+```
+PlotItem (abstract base)
+  ├── LineSeries    — polyline rendering, segment hit-test
+  ├── ScatterSeries — marker rendering (6 shapes), point hit-test
+  └── BarSeries     — rectangle rendering, rect hit-test
+```
+
+Each subclass implements:
+- `type()` → Type enum (Line/Scatter/Bar)
+- `paint(QPainter*, CoordinateMapper, plotArea)` — self-rendering
+- `dataBounds()` → QRectF
+- `isVisible()`, `name()`, `primaryColor()` — for legend/range
+
+Type-specific properties (lineWidth, markerShape, barWidth) stay
+on concrete classes, not on PlotItem.
+
+### PlotScene container change
+
+```
+PlotScene
+  items_: vector<unique_ptr<PlotItem>>
+  addItem(unique_ptr<PlotItem>)  ← primary
+  addSeries(LineSeries)          ← backward compat wrapper
+  itemAt(index) → PlotItem*
+```
+
+### Polymorphic rendering (preserves ADR-026)
+
+PlotRenderer iterates `scene.items()` and calls `item->paint()`.
+No type switch needed. Legend uses `item->primaryColor()` and
+`item->name()` with type-specific swatches:
+- Line: 20px line segment
+- Scatter: filled marker of series shape
+- Bar: filled 12x8 rectangle
+
+### HitTester dispatch for dialogs
+
+Double-click on a PlotItem checks `item->type()`:
+- Type::Line → LinePropertyDialog
+- Type::Scatter → ScatterPropertyDialog
+- Type::Bar → BarPropertyDialog
+
+### New commands (bundled pattern from Phase 3a)
+
+- `ChangeScatterPropertiesCommand` — color, markerShape, markerSize,
+  filled, name, visible
+- `ChangeBarPropertiesCommand` — fillColor, outlineColor, barWidth,
+  name, visible
+
+### ColumnPicker extension
+
+"Plot type" combo (Line/Scatter/Bar) above X/Y selectors. "Add
+Series" creates the selected type. Type is immutable after creation
+(ADR-029).
+
+### Workspace format (additive, ADR-025 v1)
+
+Series entries gain a "type" field: "line", "scatter", or "bar".
+Missing "type" defaults to "line" for backward compat with Phase 4.
+Type-specific fields: scatter has markerShape/markerSize/filled;
+bar has fillColor/outlineColor/barWidth.
+
+### Layering unchanged
+
+- `plot/` contains PlotItem, LineSeries, ScatterSeries, BarSeries
+- `core/commands/` contains type-specific commands
+- `ui/` contains type-specific dialogs
+- No new cross-layer dependencies

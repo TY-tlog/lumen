@@ -251,3 +251,15 @@ Human responses: "yes." (M4.1), "yes" (M4.2)
 ### Phase 3b lesson applied
 This review (docs/reviews/phase-4-review.md) is committed in the
 SAME commit as this STATUS entry.
+
+## 2026-04-11 — Phase 5 opening (Architect session 7)
+- Wrote `docs/plans/phase-5-plan.md`: 15 tasks in 2 sub-phases.
+  - Phase 5.1: PlotItem abstraction (refactor-only, M5.1 gate)
+  - Phase 5.2: ScatterSeries + BarSeries + dialogs + commands
+  - T15: review+STATUS in SAME commit (enforced verbatim)
+- Drafted ADRs 028-031: PlotItem abstraction, series type immutable,
+  marker rendering strategy, bar layout.
+- Updated `docs/architecture.md` with Phase 5 section.
+- Hard rules: 247 tests unchanged in 5.1, Phase 4 workspace backward
+  compat, single rendering code path, review-in-same-commit.
+- Awaiting human review and approval.
