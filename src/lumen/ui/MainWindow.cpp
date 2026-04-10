@@ -1,9 +1,11 @@
 #include "MainWindow.h"
 
 #include "DataTableDock.h"
+#include "PlotCanvas.h"
 #include "PlotCanvasDock.h"
 
 #include <core/DocumentRegistry.h>
+#include <core/io/WorkspaceManager.h>
 #include <data/FileLoader.h>
 
 #include <QAction>
@@ -33,10 +35,12 @@ constexpr auto kRecentFilesKey = "recentFiles";
 MainWindow::MainWindow(core::DocumentRegistry* registry,
                        core::PlotRegistry* plotRegistry,
                        core::CommandBus* commandBus,
+                       core::io::WorkspaceManager* workspaceManager,
                        QWidget* parent)
     : QMainWindow(parent)
     , registry_(registry)
-    , commandBus_(commandBus) {
+    , commandBus_(commandBus)
+    , workspaceManager_(workspaceManager) {
     setWindowTitle("Lumen");
     resize(kDefaultWidth, kDefaultHeight);
 
@@ -58,6 +62,16 @@ MainWindow::MainWindow(core::DocumentRegistry* registry,
     addDockWidget(Qt::RightDockWidgetArea, plotCanvasDock_);
     plotCanvasDock_->hide();
 
+    // Connect workspace modification tracking.
+    if (workspaceManager_ != nullptr) {
+        connect(workspaceManager_, &core::io::WorkspaceManager::modifiedChanged,
+                this, [this](const QString& path, bool /*modified*/) {
+            if (path == currentDocPath_) {
+                updateWindowTitle();
+            }
+        });
+    }
+
     // Status bar
     statusBar()->showMessage(tr("Ready"));
 
@@ -78,6 +92,19 @@ void MainWindow::buildMenus() {
     // Recent files submenu
     recentFilesMenu_ = fileMenu->addMenu(tr("Recent Files"));
     updateRecentFilesMenu();
+
+    fileMenu->addSeparator();
+
+    // Save / Revert actions
+    auto* saveAction = fileMenu->addAction(tr("&Save Workspace"));
+    saveAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_S));
+    connect(saveAction, &QAction::triggered, this, &MainWindow::onSaveWorkspace);
+
+    auto* saveAsAction = fileMenu->addAction(tr("Save Workspace &As..."));
+    connect(saveAsAction, &QAction::triggered, this, &MainWindow::onSaveWorkspaceAs);
+
+    auto* revertAction = fileMenu->addAction(tr("&Revert to Saved"));
+    connect(revertAction, &QAction::triggered, this, &MainWindow::onRevertToSaved);
 
     fileMenu->addSeparator();
 
@@ -116,8 +143,12 @@ void MainWindow::loadFile(const QString& filePath) {
         dataTableDock_->show();
         plotCanvasDock_->setDataFrame(existing, filePath);
         plotCanvasDock_->show();
+        currentDocPath_ = filePath;
+        if (workspaceManager_ != nullptr) {
+            workspaceManager_->registerPlotScene(filePath, plotCanvasDock_->scene());
+        }
+        updateWindowTitle();
         QFileInfo fi(filePath);
-        setWindowTitle(QStringLiteral("Lumen — %1").arg(fi.fileName()));
         statusBar()->showMessage(
             tr("Loaded %1 (%2 rows x %3 cols)")
                 .arg(fi.fileName())
@@ -146,9 +177,13 @@ void MainWindow::loadFile(const QString& filePath) {
                 plotCanvasDock_->setDataFrame(rawDf, path);
                 plotCanvasDock_->show();
 
+                currentDocPath_ = path;
+                if (workspaceManager_ != nullptr) {
+                    workspaceManager_->registerPlotScene(path, plotCanvasDock_->scene());
+                }
+                updateWindowTitle();
+
                 QFileInfo info(path);
-                setWindowTitle(
-                    QStringLiteral("Lumen — %1").arg(info.fileName()));
                 statusBar()->showMessage(
                     tr("Loaded %1 (%2 rows x %3 cols)")
                         .arg(info.fileName())
@@ -243,6 +278,19 @@ void MainWindow::saveGeometry() const {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
+    if (!currentDocPath_.isEmpty() && workspaceManager_ != nullptr &&
+        workspaceManager_->isModified(currentDocPath_)) {
+        auto result = QMessageBox::question(
+            this, tr("Unsaved Changes"),
+            tr("Save workspace for %1?").arg(QFileInfo(currentDocPath_).fileName()),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+        if (result == QMessageBox::Save) {
+            workspaceManager_->saveWorkspace(currentDocPath_);
+        } else if (result == QMessageBox::Cancel) {
+            event->ignore();
+            return;
+        }
+    }
     saveGeometry();
     QMainWindow::closeEvent(event);
 }
@@ -255,6 +303,58 @@ void MainWindow::showAbout() {
            "<p>Standalone interactive scientific plot viewer.</p>"
            "<p>Phase 1 — Data Layer and First UI Shell.</p>")
             .arg(QApplication::applicationVersion()));
+}
+
+void MainWindow::onSaveWorkspace() {
+    if (currentDocPath_.isEmpty() || workspaceManager_ == nullptr) {
+        return;
+    }
+    if (workspaceManager_->saveWorkspace(currentDocPath_)) {
+        statusBar()->showMessage(tr("Workspace saved"), 3000);
+    } else {
+        statusBar()->showMessage(tr("Failed to save workspace"), 3000);
+    }
+}
+
+void MainWindow::onSaveWorkspaceAs() {
+    if (currentDocPath_.isEmpty() || workspaceManager_ == nullptr) {
+        return;
+    }
+    QString path = QFileDialog::getSaveFileName(
+        this, tr("Save Workspace As"),
+        workspaceManager_->defaultSidecarPath(currentDocPath_),
+        tr("Lumen Workspace (*.lumen.json)"));
+    if (!path.isEmpty()) {
+        if (workspaceManager_->saveWorkspaceAs(currentDocPath_, path)) {
+            statusBar()->showMessage(
+                tr("Workspace saved to %1").arg(path), 3000);
+        } else {
+            statusBar()->showMessage(tr("Failed to save workspace"), 3000);
+        }
+    }
+}
+
+void MainWindow::onRevertToSaved() {
+    if (currentDocPath_.isEmpty() || workspaceManager_ == nullptr) {
+        return;
+    }
+    if (workspaceManager_->revertToSaved(currentDocPath_)) {
+        plotCanvasDock_->canvas()->update();
+        statusBar()->showMessage(tr("Reverted to saved workspace"), 3000);
+    }
+}
+
+void MainWindow::updateWindowTitle() {
+    QString title = QStringLiteral("Lumen");
+    if (!currentDocPath_.isEmpty()) {
+        QFileInfo fi(currentDocPath_);
+        title = QStringLiteral("Lumen — %1").arg(fi.fileName());
+        if (workspaceManager_ != nullptr &&
+            workspaceManager_->isModified(currentDocPath_)) {
+            title += QStringLiteral(" \u25CF");
+        }
+    }
+    setWindowTitle(title);
 }
 
 }  // namespace lumen

@@ -4,6 +4,7 @@
 #include "../core/DocumentRegistry.h"
 #include "../core/EventBus.h"
 #include "../core/PlotRegistry.h"
+#include "../core/io/WorkspaceManager.h"
 #include "../style/StyleManager.h"
 #include "../ui/MainWindow.h"
 
@@ -31,8 +32,11 @@ Application::Application(int argc, char* argv[])
         std::make_unique<core::DocumentRegistry>(eventBus_.get());
     plotRegistry_ =
         std::make_unique<core::PlotRegistry>(eventBus_.get());
-    mainWindow_ = std::make_unique<MainWindow>(
+    workspaceManager_ = std::make_unique<core::io::WorkspaceManager>(
         documentRegistry_.get(), plotRegistry_.get(), commandBus_.get());
+    mainWindow_ = std::make_unique<MainWindow>(
+        documentRegistry_.get(), plotRegistry_.get(), commandBus_.get(),
+        workspaceManager_.get());
 }
 
 Application::~Application() = default;
