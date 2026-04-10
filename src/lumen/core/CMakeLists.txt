@@ -33,3 +33,5 @@ target_link_libraries(lumen_core
     PRIVATE
         lumen::compile_options
 )
+
+add_subdirectory(io)

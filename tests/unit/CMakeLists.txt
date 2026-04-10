@@ -26,6 +26,8 @@ add_executable(lumen_unit_tests
     test_title_command.cpp
     test_legend_commands.cpp
     test_hit_test_point.cpp
+    test_workspace_file.cpp
+    test_workspace_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.h
 )
@@ -44,6 +46,7 @@ target_link_libraries(lumen_unit_tests
         Qt6::Test
         lumen_data
         lumen_core
+        lumen_io
         lumen::compile_options
         lumen_style
         lumen_plot
