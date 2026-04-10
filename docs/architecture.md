@@ -436,3 +436,78 @@ All follow LinePropertyDialog's API pattern from Phase 3a.
    Phase 5 can add merge logic.
 2. **No edit persistence** — custom styles/edits lost on file
    close. Phase 4 adds session persistence.
+
+## Phase 4 additions — Save and Export
+
+### New core/io/ submodule
+
+Three classes in `src/lumen/core/io/`:
+
+- `WorkspaceFile` — serializes/deserializes PlotScene state to
+  JSON sidecar (.lumen.json). Schema v1. See ADR-025.
+- `WorkspaceManager` — tracks modification state per document.
+  Listens to CommandBus::commandExecuted and DocumentRegistry::
+  documentOpened. Provides save/load/revert API.
+- `FigureExporter` — renders PlotScene to PNG/SVG/PDF via
+  PlotRenderer::render() with different QPainter targets. See
+  ADR-026.
+
+### WorkspaceManager position
+
+```
+CommandBus::commandExecuted ──→ WorkspaceManager marks modified
+DocumentRegistry::documentOpened ──→ WorkspaceManager auto-loads sidecar
+PlotRegistry ──→ WorkspaceManager resolves doc → PlotScene
+```
+
+### Save/load data flow
+
+```
+Open CSV → FileLoader → DocumentRegistry
+  → PlotCanvasDock creates default PlotScene
+  → WorkspaceManager::loadWorkspaceIfExists
+    → if sidecar: WorkspaceFile::loadFromPath → applyToScene
+```
+
+### Modified tracking
+
+```
+Edit → Command → CommandBus::execute
+  → commandExecuted signal
+  → WorkspaceManager marks modified
+  → modifiedChanged → MainWindow title "● filename"
+```
+
+### Export data flow (ADR-026)
+
+```
+File → Export Figure → ExportDialog
+  → FigureExporter::exportFigure(scene, options)
+  → PNG: QImage + QPainter + PlotRenderer::render
+  → SVG: QSvgGenerator + QPainter + PlotRenderer::render
+  → PDF: QPdfWriter + QPainter + PlotRenderer::render
+```
+
+Single rendering code path. Synchronous (ADR-027).
+
+### Layering
+
+- `core/io/` depends on `data/`, `plot/`, `core/`
+- `ui/` depends on `core/io/` for save/export
+- `plot/` and `data/` unchanged
+
+### Resolved tech debt (cumulative after Phase 4)
+
+| Debt | Resolution | Phase | ADR |
+|------|-----------|-------|-----|
+| Inline interaction | InteractionController | 3a | ADR-016→020 |
+| No hit-testing | HitTester | 3a | ADR-017→019 |
+| No undo/redo | CommandBus | 3a | ADR-006→018 |
+| Hardcoded margins | computeMargins() | 3b | ADR-013→022 |
+| Cursor crosshair | hitTestPoint() | 3b | ADR-017→T6.5 |
+| No edit persistence | WorkspaceManager + sidecar | 4 | ADR-025 |
+
+### Remaining tech debt (after Phase 4)
+
+1. **No command merging** — rapid edits create many undo entries.
+2. **OutsideRight legend margin** — partial.
