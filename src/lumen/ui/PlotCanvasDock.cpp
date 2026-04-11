@@ -439,9 +439,14 @@ void PlotCanvasDock::addYSeries() {
         removeBtn = new QPushButton(QStringLiteral("×"), yContainer_);
         removeBtn->setFixedWidth(24);
         removeBtn->setToolTip(tr("Remove this series"));
-        int idx = static_cast<int>(yEntries_.size());
-        connect(removeBtn, &QPushButton::clicked, this, [this, idx]() {
-            removeYSeries(idx);
+        connect(removeBtn, &QPushButton::clicked, this, [this, removeBtn]() {
+            // Find the entry by its remove button pointer (stable across deletions).
+            for (int i = 0; i < static_cast<int>(yEntries_.size()); ++i) {
+                if (yEntries_[static_cast<std::size_t>(i)].removeBtn == removeBtn) {
+                    removeYSeries(i);
+                    return;
+                }
+            }
         });
     }
 
