@@ -81,4 +81,15 @@ double Volume3D::valueAt(const std::vector<std::size_t>& index) const
     return data_[(z * dimY_.length * dimX_.length) + (y * dimX_.length) + x];
 }
 
+std::unique_ptr<Dataset> Volume3D::clone() const
+{
+    Dimension clonedX = dimX_;
+    Dimension clonedY = dimY_;
+    Dimension clonedZ = dimZ_;
+    std::vector<double> clonedData = data_;
+    return std::make_unique<Volume3D>(
+        name_, unit_, std::move(clonedX), std::move(clonedY),
+        std::move(clonedZ), std::move(clonedData));
+}
+
 } // namespace lumen::data

@@ -6,6 +6,7 @@
 #include <QObject>
 
 #include <cstddef>
+#include <memory>
 #include <vector>
 
 namespace lumen::data {
@@ -46,6 +47,9 @@ public:
 
     /// Access a single value by multi-dimensional index.
     [[nodiscard]] virtual double valueAt(const std::vector<std::size_t>& index) const = 0;
+
+    /// Deep-copy this dataset. The clone has no parent QObject.
+    [[nodiscard]] virtual std::unique_ptr<Dataset> clone() const = 0;
 
 signals:
     /// Emitted when data values change.

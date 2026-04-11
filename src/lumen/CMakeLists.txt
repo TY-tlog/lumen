@@ -76,6 +76,7 @@ target_link_libraries(lumen
         lumen_data_io
         lumen_core
         lumen_io
+        lumen_reactive
         lumen::compile_options
         lumen_style
         lumen_plot

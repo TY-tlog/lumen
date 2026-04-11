@@ -134,4 +134,15 @@ std::size_t Rank1Dataset::rowCount() const
     return std::visit([](const auto& vec) -> std::size_t { return vec.size(); }, storage_);
 }
 
+std::unique_ptr<Dataset> Rank1Dataset::clone() const
+{
+    return std::visit(
+        [this](const auto& vec) -> std::unique_ptr<Dataset> {
+            using Vec = std::decay_t<decltype(vec)>;
+            Vec clonedData = vec;
+            return std::make_unique<Rank1Dataset>(name_, unit_, std::move(clonedData));
+        },
+        storage_);
+}
+
 } // namespace lumen::data

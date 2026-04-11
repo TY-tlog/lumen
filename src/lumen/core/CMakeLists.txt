@@ -39,3 +39,4 @@ target_link_libraries(lumen_core
 )
 
 add_subdirectory(io)
+add_subdirectory(reactive)

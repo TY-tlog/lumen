@@ -51,6 +51,9 @@ add_executable(lumen_unit_tests
     test_hdf5_loader.cpp
     test_netcdf_loader.cpp
     test_data_table_dock_placeholders.cpp
+    test_reactive_mode.cpp
+    test_dependency_graph.cpp
+    test_reactive_binding.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
 )
 
@@ -93,6 +96,7 @@ target_link_libraries(lumen_unit_tests
         lumen_data_io
         lumen_core
         lumen_io
+        lumen_reactive
         lumen::compile_options
         lumen_style
         lumen_plot
