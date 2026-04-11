@@ -65,8 +65,8 @@ bool WorkspaceManager::loadWorkspaceIfExists(const QString& docPath)
     if (it == scenes_.end() || !it.value())
         return false;
 
-    const data::DataFrame* df = docs_ ? docs_->document(docPath) : nullptr;
-    ws.applyToScene(it.value(), df);
+    const data::TabularBundle* bundle = docs_ ? docs_->document(docPath) : nullptr;
+    ws.applyToScene(it.value(), bundle);
 
     savedPaths_[docPath] = sidecar;
     setModified(docPath, false);
@@ -88,8 +88,8 @@ bool WorkspaceManager::revertToSaved(const QString& docPath)
     if (it == scenes_.end() || !it.value())
         return false;
 
-    const data::DataFrame* df = docs_ ? docs_->document(docPath) : nullptr;
-    ws.applyToScene(it.value(), df);
+    const data::TabularBundle* bundle = docs_ ? docs_->document(docPath) : nullptr;
+    ws.applyToScene(it.value(), bundle);
 
     setModified(docPath, false);
     return true;

@@ -11,8 +11,8 @@ DocumentRegistry::DocumentRegistry(EventBus* eventBus, QObject* parent)
 {
 }
 
-const lumen::data::DataFrame* DocumentRegistry::addDocument(
-    const QString& path, std::shared_ptr<lumen::data::DataFrame> df)
+const lumen::data::TabularBundle* DocumentRegistry::addDocument(
+    const QString& path, std::shared_ptr<lumen::data::TabularBundle> bundle)
 {
     // If already open, return existing — no duplicate.
     auto it = documents_.find(path);
@@ -21,7 +21,7 @@ const lumen::data::DataFrame* DocumentRegistry::addDocument(
         return it->second.get();
     }
 
-    auto [insertIt, ok] = documents_.emplace(path, std::move(df));
+    auto [insertIt, ok] = documents_.emplace(path, std::move(bundle));
     Q_ASSERT(ok);
 
     qInfo() << "Document opened:" << path;
@@ -35,7 +35,7 @@ const lumen::data::DataFrame* DocumentRegistry::addDocument(
     return insertIt->second.get();
 }
 
-const lumen::data::DataFrame* DocumentRegistry::document(const QString& path) const
+const lumen::data::TabularBundle* DocumentRegistry::document(const QString& path) const
 {
     auto it = documents_.find(path);
     if (it == documents_.end()) {

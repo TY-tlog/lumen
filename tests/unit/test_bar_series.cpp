@@ -5,7 +5,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "data/Column.h"
+#include "data/Rank1Dataset.h"
+#include "data/Unit.h"
 #include "plot/BarSeries.h"
 #include "plot/CoordinateMapper.h"
 
@@ -15,9 +16,11 @@
 
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <vector>
 
-using lumen::data::Column;
+using lumen::data::Rank1Dataset;
+using lumen::data::Unit;
 using lumen::plot::BarSeries;
 using lumen::plot::CoordinateMapper;
 using Catch::Matchers::WithinAbs;
@@ -71,10 +74,10 @@ bool hasNonWhitePixels(const QImage& image) {
 TEST_CASE("BarSeries: paint produces bars",
           "[plot][bar_series]")
 {
-    Column xCol("x", std::vector<double>{1.0, 3.0, 5.0, 7.0, 9.0});
-    Column yCol("y", std::vector<double>{2.0, 4.0, 6.0, 8.0, 3.0});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{1.0, 3.0, 5.0, 7.0, 9.0});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{2.0, 4.0, 6.0, 8.0, 3.0});
 
-    BarSeries series(&xCol, &yCol, Qt::blue, "bars");
+    BarSeries series(xCol, yCol, Qt::blue, "bars");
     QImage image = renderBars(series);
 
     REQUIRE(hasNonWhitePixels(image));
@@ -84,10 +87,10 @@ TEST_CASE("BarSeries: NaN skipped",
           "[plot][bar_series]")
 {
     // All NaN should produce an empty (all-white) image.
-    Column xCol("x", std::vector<double>{kNaN, kNaN, kNaN});
-    Column yCol("y", std::vector<double>{kNaN, kNaN, kNaN});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{kNaN, kNaN, kNaN});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{kNaN, kNaN, kNaN});
 
-    BarSeries series(&xCol, &yCol, Qt::blue, "nan_bars");
+    BarSeries series(xCol, yCol, Qt::blue, "nan_bars");
     QImage image = renderBars(series);
 
     CHECK_FALSE(hasNonWhitePixels(image));
@@ -96,10 +99,10 @@ TEST_CASE("BarSeries: NaN skipped",
 TEST_CASE("BarSeries: partial NaN renders only valid bars",
           "[plot][bar_series]")
 {
-    Column xCol("x", std::vector<double>{2.0, kNaN, 8.0});
-    Column yCol("y", std::vector<double>{5.0, 5.0, 5.0});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{2.0, kNaN, 8.0});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{5.0, 5.0, 5.0});
 
-    BarSeries series(&xCol, &yCol, Qt::green, "partial");
+    BarSeries series(xCol, yCol, Qt::green, "partial");
     QImage image = renderBars(series);
 
     // Should have content from the two valid bars.
@@ -110,10 +113,10 @@ TEST_CASE("BarSeries: dataBounds includes y=0 baseline",
           "[plot][bar_series]")
 {
     // All positive Y values -- yMin should still be 0.
-    Column xCol("x", std::vector<double>{1.0, 3.0, 5.0});
-    Column yCol("y", std::vector<double>{10.0, 20.0, 30.0});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{1.0, 3.0, 5.0});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{10.0, 20.0, 30.0});
 
-    BarSeries series(&xCol, &yCol, Qt::red);
+    BarSeries series(xCol, yCol, Qt::red);
     QRectF bounds = series.dataBounds();
 
     CHECK_THAT(bounds.left(), WithinAbs(1.0, 1e-10));
@@ -126,10 +129,10 @@ TEST_CASE("BarSeries: dataBounds includes y=0 baseline",
 TEST_CASE("BarSeries: dataBounds with negative y includes both 0 and negative",
           "[plot][bar_series]")
 {
-    Column xCol("x", std::vector<double>{1.0, 3.0});
-    Column yCol("y", std::vector<double>{-5.0, 10.0});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{1.0, 3.0});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{-5.0, 10.0});
 
-    BarSeries series(&xCol, &yCol, Qt::red);
+    BarSeries series(xCol, yCol, Qt::red);
     QRectF bounds = series.dataBounds();
 
     CHECK_THAT(bounds.top(), WithinAbs(-5.0, 1e-10));
@@ -139,10 +142,10 @@ TEST_CASE("BarSeries: dataBounds with negative y includes both 0 and negative",
 TEST_CASE("BarSeries: dataBounds with all NaN returns zero rect",
           "[plot][bar_series]")
 {
-    Column xCol("x", std::vector<double>{kNaN, kNaN});
-    Column yCol("y", std::vector<double>{kNaN, kNaN});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{kNaN, kNaN});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{kNaN, kNaN});
 
-    BarSeries series(&xCol, &yCol, Qt::blue);
+    BarSeries series(xCol, yCol, Qt::blue);
     QRectF bounds = series.dataBounds();
 
     CHECK_THAT(bounds.left(), WithinAbs(0.0, 1e-10));
@@ -154,10 +157,10 @@ TEST_CASE("BarSeries: dataBounds with all NaN returns zero rect",
 TEST_CASE("BarSeries: single point -- fallback bar width (2px min)",
           "[plot][bar_series]")
 {
-    Column xCol("x", std::vector<double>{5.0});
-    Column yCol("y", std::vector<double>{8.0});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{5.0});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{8.0});
 
-    BarSeries series(&xCol, &yCol, Qt::red, "single");
+    BarSeries series(xCol, yCol, Qt::red, "single");
     QImage image = renderBars(series);
 
     // Single point should still produce a visible bar (min 2px width).
@@ -167,10 +170,10 @@ TEST_CASE("BarSeries: single point -- fallback bar width (2px min)",
 TEST_CASE("BarSeries: setters work",
           "[plot][bar_series]")
 {
-    Column xCol("x", std::vector<double>{1.0, 2.0});
-    Column yCol("y", std::vector<double>{3.0, 4.0});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{1.0, 2.0});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{3.0, 4.0});
 
-    BarSeries series(&xCol, &yCol, Qt::red, "original");
+    BarSeries series(xCol, yCol, Qt::red, "original");
 
     series.setFillColor(Qt::blue);
     CHECK(series.fillColor() == QColor(Qt::blue));
@@ -200,10 +203,10 @@ TEST_CASE("BarSeries: setters work",
 TEST_CASE("BarSeries: invisible hides",
           "[plot][bar_series]")
 {
-    Column xCol("x", std::vector<double>{1.0, 3.0, 5.0, 7.0, 9.0});
-    Column yCol("y", std::vector<double>{2.0, 4.0, 6.0, 8.0, 3.0});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{1.0, 3.0, 5.0, 7.0, 9.0});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{2.0, 4.0, 6.0, 8.0, 3.0});
 
-    BarSeries series(&xCol, &yCol, Qt::blue, "hidden");
+    BarSeries series(xCol, yCol, Qt::blue, "hidden");
     series.setVisible(false);
 
     QImage image = renderBars(series);
@@ -213,10 +216,10 @@ TEST_CASE("BarSeries: invisible hides",
 TEST_CASE("BarSeries: outline renders when set",
           "[plot][bar_series]")
 {
-    Column xCol("x", std::vector<double>{5.0});
-    Column yCol("y", std::vector<double>{8.0});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{5.0});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{8.0});
 
-    BarSeries series(&xCol, &yCol, Qt::blue, "outlined");
+    BarSeries series(xCol, yCol, Qt::blue, "outlined");
     series.setOutlineColor(Qt::black);
     series.setBarWidth(0.8);
 
@@ -227,9 +230,9 @@ TEST_CASE("BarSeries: outline renders when set",
 TEST_CASE("BarSeries: type returns Bar",
           "[plot][bar_series]")
 {
-    Column xCol("x", std::vector<double>{1.0});
-    Column yCol("y", std::vector<double>{1.0});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{1.0});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{1.0});
 
-    BarSeries series(&xCol, &yCol, Qt::red);
+    BarSeries series(xCol, yCol, Qt::red);
     CHECK(series.type() == lumen::plot::PlotItem::Type::Bar);
 }

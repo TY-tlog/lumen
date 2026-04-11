@@ -2,7 +2,8 @@
 
 #include "core/CommandBus.h"
 #include "core/commands/ChangeScatterPropertiesCommand.h"
-#include "data/Column.h"
+#include "data/Rank1Dataset.h"
+#include "data/Unit.h"
 #include "plot/PlotScene.h"
 #include "plot/ScatterSeries.h"
 
@@ -11,38 +12,37 @@
 
 using lumen::core::CommandBus;
 using lumen::core::commands::ChangeScatterPropertiesCommand;
-using lumen::data::Column;
+using lumen::data::Rank1Dataset;
+using lumen::data::Unit;
 using lumen::plot::MarkerShape;
 using lumen::plot::PlotScene;
 using lumen::plot::ScatterSeries;
 
 namespace {
 
-std::pair<std::unique_ptr<PlotScene>, std::pair<Column, Column>>
-makeSceneWithScatter() {
-    auto cols = std::make_pair(
-        Column("x", std::vector<double>{1.0, 2.0, 3.0}),
-        Column("y", std::vector<double>{4.0, 5.0, 6.0}));
+struct ScatterFixture {
+    std::shared_ptr<Rank1Dataset> xDs = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{1.0, 2.0, 3.0});
+    std::shared_ptr<Rank1Dataset> yDs = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{4.0, 5.0, 6.0});
+    std::unique_ptr<PlotScene> scene = std::make_unique<PlotScene>();
 
-    auto scene = std::make_unique<PlotScene>();
-    scene->addItem(std::make_unique<ScatterSeries>(
-        &cols.first, &cols.second, Qt::red, "scatter1"));
-    return {std::move(scene), std::move(cols)};
-}
+    ScatterFixture() {
+        scene->addItem(std::make_unique<ScatterSeries>(xDs, yDs, Qt::red, "scatter1"));
+    }
+};
 
 }  // namespace
 
 TEST_CASE("ChangeScatterPropertiesCommand: execute applies new properties",
           "[core][scatter_command]") {
-    auto [scene, cols] = makeSceneWithScatter();
+    ScatterFixture fix;
 
     auto cmd = std::make_unique<ChangeScatterPropertiesCommand>(
-        scene.get(), 0, QColor(Qt::blue), MarkerShape::Diamond, 12, false,
+        fix.scene.get(), 0, QColor(Qt::blue), MarkerShape::Diamond, 12, false,
         "renamed", false);
 
     cmd->execute();
 
-    auto* scatter = dynamic_cast<ScatterSeries*>(scene->itemAt(0));
+    auto* scatter = dynamic_cast<ScatterSeries*>(fix.scene->itemAt(0));
     REQUIRE(scatter != nullptr);
     CHECK(scatter->color() == QColor(Qt::blue));
     CHECK(scatter->markerShape() == MarkerShape::Diamond);
@@ -54,13 +54,13 @@ TEST_CASE("ChangeScatterPropertiesCommand: execute applies new properties",
 
 TEST_CASE("ChangeScatterPropertiesCommand: undo restores old properties",
           "[core][scatter_command]") {
-    auto [scene, cols] = makeSceneWithScatter();
+    ScatterFixture fix;
 
-    auto* scatter = dynamic_cast<ScatterSeries*>(scene->itemAt(0));
+    auto* scatter = dynamic_cast<ScatterSeries*>(fix.scene->itemAt(0));
     REQUIRE(scatter != nullptr);
 
     auto cmd = std::make_unique<ChangeScatterPropertiesCommand>(
-        scene.get(), 0, QColor(Qt::green), MarkerShape::Square, 15, false,
+        fix.scene.get(), 0, QColor(Qt::green), MarkerShape::Square, 15, false,
         "changed", false);
 
     cmd->execute();
@@ -78,15 +78,15 @@ TEST_CASE("ChangeScatterPropertiesCommand: undo restores old properties",
 
 TEST_CASE("ChangeScatterPropertiesCommand: round-trip through CommandBus",
           "[core][scatter_command]") {
-    auto [scene, cols] = makeSceneWithScatter();
+    ScatterFixture fix;
 
     CommandBus bus;
 
     bus.execute(std::make_unique<ChangeScatterPropertiesCommand>(
-        scene.get(), 0, QColor(Qt::cyan), MarkerShape::Triangle, 10, false,
+        fix.scene.get(), 0, QColor(Qt::cyan), MarkerShape::Triangle, 10, false,
         "bus_test", false));
 
-    auto* scatter = dynamic_cast<ScatterSeries*>(scene->itemAt(0));
+    auto* scatter = dynamic_cast<ScatterSeries*>(fix.scene->itemAt(0));
     REQUIRE(scatter != nullptr);
     CHECK(scatter->color() == QColor(Qt::cyan));
 
@@ -99,10 +99,10 @@ TEST_CASE("ChangeScatterPropertiesCommand: round-trip through CommandBus",
 
 TEST_CASE("ChangeScatterPropertiesCommand: description is non-empty",
           "[core][scatter_command]") {
-    auto [scene, cols] = makeSceneWithScatter();
+    ScatterFixture fix;
 
     auto cmd = std::make_unique<ChangeScatterPropertiesCommand>(
-        scene.get(), 0, QColor(Qt::red), MarkerShape::Circle, 6, true,
+        fix.scene.get(), 0, QColor(Qt::red), MarkerShape::Circle, 6, true,
         "scatter1", true);
 
     CHECK_FALSE(cmd->description().isEmpty());

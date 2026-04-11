@@ -1,10 +1,11 @@
 #pragma once
 
-#include "DataFrame.h"
+#include "TabularBundle.h"
 
 #include <QString>
 
 #include <cstddef>
+#include <memory>
 #include <vector>
 
 namespace lumen::data {
@@ -17,6 +18,9 @@ struct CsvReaderOptions {
     /// Maximum number of rows to scan for type inference (0 = scan all).
     std::size_t inferenceRows = 100;
 };
+
+/// Type tags for column inference (internal to CsvReader).
+enum class InferredType { Int64, Double, String };
 
 /// Streaming RFC 4180 CSV parser.
 ///
@@ -34,10 +38,10 @@ public:
     explicit CsvReader(CsvReaderOptions options = {});
 
     /// Parse CSV from a file path. Throws CsvError on parse failure.
-    [[nodiscard]] DataFrame readFile(const QString& filePath) const;
+    [[nodiscard]] TabularBundle readFile(const QString& filePath) const;
 
     /// Parse CSV from a string. Throws CsvError on parse failure.
-    [[nodiscard]] DataFrame readString(const std::string& content) const;
+    [[nodiscard]] TabularBundle readString(const std::string& content) const;
 
 private:
     /// Tokenize a single row from the input, advancing pos. Returns the fields.
@@ -59,13 +63,13 @@ private:
     [[nodiscard]] static bool detectHeader(const std::vector<std::string>& firstRow);
 
     /// Infer column types from the first N rows.
-    [[nodiscard]] std::vector<ColumnType> inferTypes(
+    [[nodiscard]] std::vector<InferredType> inferTypes(
         const std::vector<std::vector<std::string>>& rows) const;
 
-    /// Build a DataFrame from parsed rows, header names, and inferred types.
-    [[nodiscard]] DataFrame buildDataFrame(const std::vector<std::string>& headers,
-                                           const std::vector<ColumnType>& types,
-                                           const std::vector<std::vector<std::string>>& dataRows) const;
+    /// Build a TabularBundle from parsed rows, header names, and inferred types.
+    [[nodiscard]] TabularBundle buildBundle(const std::vector<std::string>& headers,
+                                            const std::vector<InferredType>& types,
+                                            const std::vector<std::vector<std::string>>& dataRows) const;
 
     /// Skip a UTF-8 BOM if present at the beginning of the content.
     [[nodiscard]] static std::size_t skipBom(const std::string& content);

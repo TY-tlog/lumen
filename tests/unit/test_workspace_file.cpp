@@ -1,8 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "core/io/WorkspaceFile.h"
-#include "data/Column.h"
-#include "data/DataFrame.h"
+#include "data/Rank1Dataset.h"
+#include "data/TabularBundle.h"
+#include "data/Unit.h"
 #include "plot/LineSeries.h"
 #include "plot/PlotScene.h"
 #include "plot/PlotStyle.h"
@@ -14,9 +15,12 @@
 #include <QJsonObject>
 #include <QTemporaryDir>
 
+#include <memory>
+
 using lumen::core::io::WorkspaceFile;
-using lumen::data::Column;
-using lumen::data::DataFrame;
+using lumen::data::Rank1Dataset;
+using lumen::data::TabularBundle;
+using lumen::data::Unit;
 using lumen::plot::Axis;
 using lumen::plot::Legend;
 using lumen::plot::LegendPosition;
@@ -28,10 +32,9 @@ using lumen::plot::TickFormat;
 
 namespace {
 
-/// Helper: build a minimal PlotScene with one series.
 struct TestSceneFixture {
-    Column xCol{"time", std::vector<double>{1.0, 2.0, 3.0}};
-    Column yCol{"voltage", std::vector<double>{10.0, 20.0, 30.0}};
+    std::shared_ptr<Rank1Dataset> xDs = std::make_shared<Rank1Dataset>("time", Unit::dimensionless(), std::vector<double>{1.0, 2.0, 3.0});
+    std::shared_ptr<Rank1Dataset> yDs = std::make_shared<Rank1Dataset>("voltage", Unit::dimensionless(), std::vector<double>{10.0, 20.0, 30.0});
     PlotScene scene;
 
     TestSceneFixture()
@@ -40,17 +43,16 @@ struct TestSceneFixture {
         style.color = QColor(0x0a, 0x84, 0xff);
         style.lineWidth = 2.0;
         style.penStyle = Qt::DashLine;
-        scene.addSeries(LineSeries(&xCol, &yCol, style, "voltage_mV"));
+        scene.addSeries(LineSeries(xDs, yDs, style, "voltage_mV"));
     }
 };
 
-/// Helper: build a DataFrame matching the test columns.
-std::unique_ptr<DataFrame> makeTestDataFrame()
+std::unique_ptr<TabularBundle> makeTestBundle()
 {
-    std::vector<Column> cols;
-    cols.emplace_back("time", std::vector<double>{1.0, 2.0, 3.0});
-    cols.emplace_back("voltage", std::vector<double>{10.0, 20.0, 30.0});
-    return std::make_unique<DataFrame>(std::move(cols));
+    auto bundle = std::make_unique<TabularBundle>();
+    bundle->addColumn(std::make_shared<Rank1Dataset>("time", Unit::dimensionless(), std::vector<double>{1.0, 2.0, 3.0}));
+    bundle->addColumn(std::make_shared<Rank1Dataset>("voltage", Unit::dimensionless(), std::vector<double>{10.0, 20.0, 30.0}));
+    return bundle;
 }
 
 }  // namespace
@@ -76,23 +78,19 @@ TEST_CASE("WorkspaceFile: save and load roundtrip", "[core][io][workspace_file]"
     fix.scene.legend().setPosition(LegendPosition::BottomLeft);
     fix.scene.legend().setVisible(false);
 
-    // Capture and save.
     WorkspaceFile ws = WorkspaceFile::captureFromScene(&fix.scene);
     REQUIRE(ws.isValid());
     REQUIRE(ws.version() == 1);
     ws.saveToPath(path);
 
-    // Load back.
     WorkspaceFile loaded = WorkspaceFile::loadFromPath(path);
     REQUIRE(loaded.isValid());
     REQUIRE(loaded.version() == 1);
 
-    // Apply to a fresh scene.
-    auto df = makeTestDataFrame();
+    auto bundle = makeTestBundle();
     PlotScene fresh;
-    loaded.applyToScene(&fresh, df.get());
+    loaded.applyToScene(&fresh, bundle.get());
 
-    // Verify roundtrip.
     CHECK(fresh.title() == "Test Plot");
     CHECK(fresh.titleFontPx() == 20);
     CHECK(fresh.titleWeight() == QFont::Bold);
@@ -118,8 +116,7 @@ TEST_CASE("WorkspaceFile: save and load roundtrip", "[core][io][workspace_file]"
     CHECK(fresh.series()[0].style().penStyle == Qt::DashLine);
 }
 
-TEST_CASE("WorkspaceFile: captureFromScene captures viewport",
-          "[core][io][workspace_file]") {
+TEST_CASE("WorkspaceFile: captureFromScene captures viewport", "[core][io][workspace_file]") {
     PlotScene scene;
     scene.viewTransform().setBaseRange(10.0, 200.0, -30.0, 70.0);
 
@@ -134,8 +131,7 @@ TEST_CASE("WorkspaceFile: captureFromScene captures viewport",
     CHECK(vp["ymax"].toDouble() == 70.0);
 }
 
-TEST_CASE("WorkspaceFile: captureFromScene captures series",
-          "[core][io][workspace_file]") {
+TEST_CASE("WorkspaceFile: captureFromScene captures series", "[core][io][workspace_file]") {
     TestSceneFixture fix;
     fix.scene.seriesAt(0).setVisible(false);
 
@@ -156,13 +152,11 @@ TEST_CASE("WorkspaceFile: captureFromScene captures series",
     CHECK(s0["visible"].toBool() == false);
 }
 
-TEST_CASE("WorkspaceFile: invalid JSON returns isValid false",
-          "[core][io][workspace_file]") {
+TEST_CASE("WorkspaceFile: invalid JSON returns isValid false", "[core][io][workspace_file]") {
     QTemporaryDir tmpDir;
     REQUIRE(tmpDir.isValid());
     const QString path = tmpDir.path() + "/bad.lumen.json";
 
-    // Write garbage.
     QFile file(path);
     REQUIRE(file.open(QIODevice::WriteOnly));
     file.write("{ this is not valid json!!!");
@@ -173,15 +167,13 @@ TEST_CASE("WorkspaceFile: invalid JSON returns isValid false",
     CHECK(ws.version() == 0);
 }
 
-TEST_CASE("WorkspaceFile: missing version field returns isValid false",
-          "[core][io][workspace_file]") {
+TEST_CASE("WorkspaceFile: missing version field returns isValid false", "[core][io][workspace_file]") {
     QTemporaryDir tmpDir;
     REQUIRE(tmpDir.isValid());
     const QString path = tmpDir.path() + "/no_version.lumen.json";
 
     QJsonObject obj;
     obj["plot"] = QJsonObject();
-    // No "version" key.
     QFile file(path);
     REQUIRE(file.open(QIODevice::WriteOnly));
     file.write(QJsonDocument(obj).toJson());
@@ -191,16 +183,14 @@ TEST_CASE("WorkspaceFile: missing version field returns isValid false",
     CHECK_FALSE(ws.isValid());
 }
 
-TEST_CASE("WorkspaceFile: missing optional fields use defaults",
-          "[core][io][workspace_file]") {
+TEST_CASE("WorkspaceFile: missing optional fields use defaults", "[core][io][workspace_file]") {
     QTemporaryDir tmpDir;
     REQUIRE(tmpDir.isValid());
     const QString path = tmpDir.path() + "/minimal.lumen.json";
 
-    // Write a minimal valid JSON with only version and empty plot.
     QJsonObject root;
     root["version"] = 1;
-    root["plot"] = QJsonObject();  // empty — no viewport, title, etc.
+    root["plot"] = QJsonObject();
     QFile file(path);
     REQUIRE(file.open(QIODevice::WriteOnly));
     file.write(QJsonDocument(root).toJson());
@@ -209,17 +199,14 @@ TEST_CASE("WorkspaceFile: missing optional fields use defaults",
     WorkspaceFile ws = WorkspaceFile::loadFromPath(path);
     REQUIRE(ws.isValid());
 
-    // Apply to a scene; should not crash, scene keeps its defaults.
     PlotScene scene;
     scene.setTitle("Original");
     ws.applyToScene(&scene, nullptr);
 
-    // Title was not in the JSON, so it remains as set before apply.
     CHECK(scene.title() == "Original");
 }
 
-TEST_CASE("WorkspaceFile: applyToScene restores title",
-          "[core][io][workspace_file]") {
+TEST_CASE("WorkspaceFile: applyToScene restores title", "[core][io][workspace_file]") {
     TestSceneFixture fix;
     fix.scene.setTitle("Captured Title");
     fix.scene.setTitleFontPx(24);
@@ -232,49 +219,46 @@ TEST_CASE("WorkspaceFile: applyToScene restores title",
     target.setTitle("Old Title");
     target.setTitleFontPx(12);
 
-    auto df = makeTestDataFrame();
-    ws.applyToScene(&target, df.get());
+    auto bundle = makeTestBundle();
+    ws.applyToScene(&target, bundle.get());
 
     CHECK(target.title() == "Captured Title");
     CHECK(target.titleFontPx() == 24);
     CHECK(target.titleWeight() == QFont::Black);
 }
 
-TEST_CASE("WorkspaceFile: nonexistent file returns invalid",
-          "[core][io][workspace_file]") {
+TEST_CASE("WorkspaceFile: nonexistent file returns invalid", "[core][io][workspace_file]") {
     WorkspaceFile ws = WorkspaceFile::loadFromPath("/nonexistent/path/to/file.lumen.json");
     CHECK_FALSE(ws.isValid());
     CHECK(ws.version() == 0);
 }
 
-TEST_CASE("WorkspaceFile: captureFromScene with null scene returns invalid",
-          "[core][io][workspace_file]") {
+TEST_CASE("WorkspaceFile: captureFromScene with null scene returns invalid", "[core][io][workspace_file]") {
     WorkspaceFile ws = WorkspaceFile::captureFromScene(nullptr);
     CHECK_FALSE(ws.isValid());
 }
 
-TEST_CASE("WorkspaceFile: multiple series roundtrip",
-          "[core][io][workspace_file]") {
+TEST_CASE("WorkspaceFile: multiple series roundtrip", "[core][io][workspace_file]") {
     QTemporaryDir tmpDir;
     REQUIRE(tmpDir.isValid());
     const QString path = tmpDir.path() + "/multi.lumen.json";
 
-    Column xCol{"time", std::vector<double>{1.0, 2.0}};
-    Column y1Col{"voltage", std::vector<double>{10.0, 20.0}};
-    Column y2Col{"current", std::vector<double>{0.1, 0.2}};
+    auto xDs = std::make_shared<Rank1Dataset>("time", Unit::dimensionless(), std::vector<double>{1.0, 2.0});
+    auto y1Ds = std::make_shared<Rank1Dataset>("voltage", Unit::dimensionless(), std::vector<double>{10.0, 20.0});
+    auto y2Ds = std::make_shared<Rank1Dataset>("current", Unit::dimensionless(), std::vector<double>{0.1, 0.2});
 
     PlotScene scene;
     PlotStyle s1;
     s1.color = QColor(Qt::red);
     s1.lineWidth = 1.0;
     s1.penStyle = Qt::SolidLine;
-    scene.addSeries(LineSeries(&xCol, &y1Col, s1, "Voltage"));
+    scene.addSeries(LineSeries(xDs, y1Ds, s1, "Voltage"));
 
     PlotStyle s2;
     s2.color = QColor(Qt::blue);
     s2.lineWidth = 2.5;
     s2.penStyle = Qt::DotLine;
-    scene.addSeries(LineSeries(&xCol, &y2Col, s2, "Current"));
+    scene.addSeries(LineSeries(xDs, y2Ds, s2, "Current"));
 
     WorkspaceFile ws = WorkspaceFile::captureFromScene(&scene);
     ws.saveToPath(path);
@@ -282,15 +266,13 @@ TEST_CASE("WorkspaceFile: multiple series roundtrip",
     WorkspaceFile loaded = WorkspaceFile::loadFromPath(path);
     REQUIRE(loaded.isValid());
 
-    // Build a DataFrame with all three columns.
-    std::vector<Column> cols;
-    cols.emplace_back("time", std::vector<double>{1.0, 2.0});
-    cols.emplace_back("voltage", std::vector<double>{10.0, 20.0});
-    cols.emplace_back("current", std::vector<double>{0.1, 0.2});
-    DataFrame df(std::move(cols));
+    TabularBundle bundle;
+    bundle.addColumn(std::make_shared<Rank1Dataset>("time", Unit::dimensionless(), std::vector<double>{1.0, 2.0}));
+    bundle.addColumn(std::make_shared<Rank1Dataset>("voltage", Unit::dimensionless(), std::vector<double>{10.0, 20.0}));
+    bundle.addColumn(std::make_shared<Rank1Dataset>("current", Unit::dimensionless(), std::vector<double>{0.1, 0.2}));
 
     PlotScene target;
-    loaded.applyToScene(&target, &df);
+    loaded.applyToScene(&target, &bundle);
 
     REQUIRE(target.seriesCount() == 2);
     CHECK(target.series()[0].name() == "Voltage");

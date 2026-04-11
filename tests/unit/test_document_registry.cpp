@@ -4,8 +4,9 @@
 
 #include <core/DocumentRegistry.h>
 #include <core/EventBus.h>
-#include <data/Column.h>
-#include <data/DataFrame.h>
+#include <data/Rank1Dataset.h>
+#include <data/TabularBundle.h>
+#include <data/Unit.h>
 
 #include <QCoreApplication>
 #include <QSignalSpy>
@@ -17,7 +18,6 @@
 using namespace lumen::core;
 using namespace lumen::data;
 
-// Helper: ensure QCoreApplication exists for signal/slot processing.
 static QCoreApplication* ensureApp()
 {
     if (QCoreApplication::instance() == nullptr) {
@@ -29,27 +29,26 @@ static QCoreApplication* ensureApp()
     return QCoreApplication::instance();
 }
 
-/// Build a small test DataFrame wrapped in shared_ptr.
-static std::shared_ptr<DataFrame> makeTestDf()
+static std::shared_ptr<TabularBundle> makeTestBundle()
 {
-    std::vector<Column> cols;
-    cols.emplace_back(QStringLiteral("x"), std::vector<int64_t>{1, 2, 3});
-    return std::make_shared<DataFrame>(std::move(cols));
+    auto bundle = std::make_shared<TabularBundle>();
+    bundle->addColumn(std::make_shared<Rank1Dataset>(QStringLiteral("x"), Unit::dimensionless(),
+                                                      std::vector<int64_t>{1, 2, 3}));
+    return bundle;
 }
 
 TEST_CASE("DocumentRegistry add and retrieve", "[docreg]") {
     ensureApp();
 
     DocumentRegistry reg;
-    auto df = makeTestDf();
+    auto bundle = makeTestBundle();
 
-    const DataFrame* ptr = reg.addDocument(QStringLiteral("/tmp/a.csv"), df);
+    const TabularBundle* ptr = reg.addDocument(QStringLiteral("/tmp/a.csv"), bundle);
     REQUIRE(ptr != nullptr);
     REQUIRE(ptr->rowCount() == 3);
     REQUIRE(reg.count() == 1);
 
-    // Retrieve by path.
-    const DataFrame* found = reg.document(QStringLiteral("/tmp/a.csv"));
+    const TabularBundle* found = reg.document(QStringLiteral("/tmp/a.csv"));
     REQUIRE(found == ptr);
 }
 
@@ -64,11 +63,11 @@ TEST_CASE("DocumentRegistry duplicate add returns existing", "[docreg]") {
     ensureApp();
 
     DocumentRegistry reg;
-    auto df1 = makeTestDf();
-    auto df2 = makeTestDf();
+    auto b1 = makeTestBundle();
+    auto b2 = makeTestBundle();
 
-    const DataFrame* ptr1 = reg.addDocument(QStringLiteral("/tmp/dup.csv"), df1);
-    const DataFrame* ptr2 = reg.addDocument(QStringLiteral("/tmp/dup.csv"), df2);
+    const TabularBundle* ptr1 = reg.addDocument(QStringLiteral("/tmp/dup.csv"), b1);
+    const TabularBundle* ptr2 = reg.addDocument(QStringLiteral("/tmp/dup.csv"), b2);
 
     REQUIRE(ptr1 == ptr2);
     REQUIRE(reg.count() == 1);
@@ -78,7 +77,7 @@ TEST_CASE("DocumentRegistry close removes document", "[docreg]") {
     ensureApp();
 
     DocumentRegistry reg;
-    reg.addDocument(QStringLiteral("/tmp/close.csv"), makeTestDf());
+    reg.addDocument(QStringLiteral("/tmp/close.csv"), makeTestBundle());
 
     REQUIRE(reg.count() == 1);
     REQUIRE(reg.closeDocument(QStringLiteral("/tmp/close.csv")));
@@ -99,7 +98,7 @@ TEST_CASE("DocumentRegistry emits documentOpened signal", "[docreg]") {
     DocumentRegistry reg;
     QSignalSpy spy(&reg, &DocumentRegistry::documentOpened);
 
-    reg.addDocument(QStringLiteral("/tmp/sig.csv"), makeTestDf());
+    reg.addDocument(QStringLiteral("/tmp/sig.csv"), makeTestBundle());
 
     REQUIRE(spy.count() == 1);
     REQUIRE(spy.at(0).at(0).toString() == QStringLiteral("/tmp/sig.csv"));
@@ -109,7 +108,7 @@ TEST_CASE("DocumentRegistry emits documentClosed signal", "[docreg]") {
     ensureApp();
 
     DocumentRegistry reg;
-    reg.addDocument(QStringLiteral("/tmp/sig2.csv"), makeTestDf());
+    reg.addDocument(QStringLiteral("/tmp/sig2.csv"), makeTestBundle());
 
     QSignalSpy spy(&reg, &DocumentRegistry::documentClosed);
     reg.closeDocument(QStringLiteral("/tmp/sig2.csv"));
@@ -137,7 +136,7 @@ TEST_CASE("DocumentRegistry publishes to EventBus", "[docreg]") {
         REQUIRE(v.toString() == QStringLiteral("/tmp/bus.csv"));
     });
 
-    reg.addDocument(QStringLiteral("/tmp/bus.csv"), makeTestDf());
+    reg.addDocument(QStringLiteral("/tmp/bus.csv"), makeTestBundle());
     QCoreApplication::processEvents();
     REQUIRE(openReceived);
 

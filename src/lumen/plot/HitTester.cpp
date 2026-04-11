@@ -1,6 +1,6 @@
 #include "plot/HitTester.h"
 
-#include "data/Column.h"
+#include "data/Rank1Dataset.h"
 #include "plot/CoordinateMapper.h"
 #include "plot/LineSeries.h"
 #include "plot/PlotItem.h"
@@ -87,14 +87,14 @@ std::optional<PointHitResult> HitTester::hitTestPoint(
             continue;
         }
 
-        const auto* xCol = ls->xColumn();
-        const auto* yCol = ls->yColumn();
-        if (xCol == nullptr || yCol == nullptr) {
+        const auto& xDs = ls->xDataset();
+        const auto& yDs = ls->yDataset();
+        if (!xDs || !yDs) {
             continue;
         }
 
-        const auto& xData = xCol->doubleData();
-        const auto& yData = yCol->doubleData();
+        const auto& xData = xDs->doubleData();
+        const auto& yData = yDs->doubleData();
         const auto count = xData.size();
         if (count == 0) {
             continue;

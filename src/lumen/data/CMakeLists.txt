@@ -1,16 +1,11 @@
 # Lumen data module — CSV parser and data model.
 
 add_library(lumen_data STATIC
-    Column.cpp
-    Column.h
-    ColumnType.h
     CoordinateArray.cpp
     CoordinateArray.h
     CsvError.h
     CsvReader.cpp
     CsvReader.h
-    DataFrame.cpp
-    DataFrame.h
     Dataset.cpp
     Dataset.h
     Dimension.h

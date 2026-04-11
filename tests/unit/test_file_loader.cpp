@@ -3,17 +3,16 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <data/FileLoader.h>
+#include <data/TabularBundle.h>
 
 #include <QCoreApplication>
 #include <QSignalSpy>
 #include <QString>
-#include <QTimer>
 
 #include <memory>
 
 using namespace lumen::data;
 
-// Helper: ensure QCoreApplication exists.
 static QCoreApplication* ensureApp()
 {
     if (QCoreApplication::instance() == nullptr) {
@@ -25,8 +24,6 @@ static QCoreApplication* ensureApp()
     return QCoreApplication::instance();
 }
 
-/// Spin the event loop until a QSignalSpy receives at least one signal,
-/// or timeout (ms) is reached.  Returns true if the signal was received.
 static bool waitForSignal(QSignalSpy& spy, int timeoutMs = 5000)
 {
     if (spy.count() > 0) {
@@ -52,15 +49,15 @@ TEST_CASE("FileLoader loads a small CSV file asynchronously", "[fileloader]") {
     REQUIRE(failedSpy.count() == 0);
     REQUIRE(finishedSpy.count() == 1);
 
-    // Verify the returned DataFrame.
+    // Verify the returned TabularBundle.
     auto args = finishedSpy.takeFirst();
     auto path = args.at(0).toString();
-    auto dfPtr = args.at(1).value<std::shared_ptr<DataFrame>>();
+    auto bundlePtr = args.at(1).value<std::shared_ptr<TabularBundle>>();
 
     REQUIRE(path == fixturePath);
-    REQUIRE(dfPtr != nullptr);
-    REQUIRE(dfPtr->columnCount() == 3);
-    REQUIRE(dfPtr->rowCount() == 4);
+    REQUIRE(bundlePtr != nullptr);
+    REQUIRE(bundlePtr->columnCount() == 3);
+    REQUIRE(bundlePtr->rowCount() == 4);
 
     delete loader;
 }
@@ -78,7 +75,6 @@ TEST_CASE("FileLoader emits progress signals", "[fileloader]") {
     loader->load(fixturePath);
     REQUIRE(waitForSignal(finishedSpy));
 
-    // We expect multiple progress signals (0, 10, 30, 40, 90, 100).
     REQUIRE(progressSpy.count() >= 2);
 
     delete loader;

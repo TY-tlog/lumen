@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <data/Column.h>
+#include <data/Rank1Dataset.h>
+#include <data/Unit.h>
+#include <memory>
 #include <plot/Axis.h>
 #include <plot/LineSeries.h>
 #include <plot/PlotScene.h>

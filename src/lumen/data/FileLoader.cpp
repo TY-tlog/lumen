@@ -97,7 +97,7 @@ void FileLoader::doLoad(const QString& filePath)
         Q_EMIT progress(40);
 
         CsvReader reader;
-        DataFrame df = reader.readString(content);
+        TabularBundle bundle = reader.readString(content);
 
         if (cancelled_.load(std::memory_order_relaxed)) {
             Q_EMIT failed(filePath, QStringLiteral("Load cancelled"));
@@ -107,10 +107,10 @@ void FileLoader::doLoad(const QString& filePath)
 
         Q_EMIT progress(90);
 
-        auto sharedDf = std::make_shared<DataFrame>(std::move(df));
+        auto sharedBundle = std::make_shared<TabularBundle>(std::move(bundle));
 
         Q_EMIT progress(100);
-        Q_EMIT finished(filePath, std::move(sharedDf));
+        Q_EMIT finished(filePath, std::move(sharedBundle));
     } catch (const CsvError& e) {
         Q_EMIT failed(filePath, QString::fromStdString(e.what()));
     } catch (const std::exception& e) {

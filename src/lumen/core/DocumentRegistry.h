@@ -1,6 +1,6 @@
 #pragma once
 
-#include <data/DataFrame.h>
+#include <data/TabularBundle.h>
 
 #include <QObject>
 #include <QString>
@@ -12,12 +12,12 @@ namespace lumen::core {
 
 class EventBus;
 
-/// Registry of open documents (DataFrames) keyed by file path.
+/// Registry of open documents (TabularBundles) keyed by file path.
 ///
-/// Owns the DataFrame instances via shared_ptr (shared_ptr is used
-/// because DataFrames may also be referenced by UI models while
-/// still registered here, and because move-only types cannot be
-/// passed through Qt signals directly).
+/// Owns the TabularBundle instances via shared_ptr (shared_ptr is used
+/// because TabularBundles may also be referenced by UI models while
+/// still registered here, and because they need to be passed through
+/// Qt signals).
 ///
 /// Emits Qt signals and EventBus events on open/close.
 class DocumentRegistry : public QObject {
@@ -30,13 +30,13 @@ public:
 
     /// Add (or replace) a document.  If a document with the same
     /// path already exists, the existing one is returned and the
-    /// new DataFrame is discarded.
-    /// Returns a raw non-owning pointer to the stored DataFrame.
-    const lumen::data::DataFrame* addDocument(const QString& path,
-                                              std::shared_ptr<lumen::data::DataFrame> df);
+    /// new TabularBundle is discarded.
+    /// Returns a raw non-owning pointer to the stored TabularBundle.
+    const lumen::data::TabularBundle* addDocument(const QString& path,
+                                                  std::shared_ptr<lumen::data::TabularBundle> bundle);
 
     /// Retrieve a document by path.  Returns nullptr if not found.
-    [[nodiscard]] const lumen::data::DataFrame* document(const QString& path) const;
+    [[nodiscard]] const lumen::data::TabularBundle* document(const QString& path) const;
 
     /// Close (remove) a document.  Returns true if it was found and removed.
     bool closeDocument(const QString& path);
@@ -57,7 +57,7 @@ private:
     };
 
     EventBus* eventBus_ = nullptr;
-    std::unordered_map<QString, std::shared_ptr<lumen::data::DataFrame>, QStringHash> documents_;
+    std::unordered_map<QString, std::shared_ptr<lumen::data::TabularBundle>, QStringHash> documents_;
 };
 
 } // namespace lumen::core

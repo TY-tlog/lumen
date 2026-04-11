@@ -17,9 +17,8 @@
 #include <core/commands/ChangeLineStyleCommand.h>
 #include <core/commands/ChangeScatterPropertiesCommand.h>
 #include <core/commands/ChangeTitleCommand.h>
-#include <data/Column.h>
-#include <data/ColumnType.h>
-#include <data/DataFrame.h>
+#include <data/Rank1Dataset.h>
+#include <data/TabularBundle.h>
 #include <plot/BarSeries.h>
 #include <plot/LineSeries.h>
 #include <plot/PlotItem.h>
@@ -359,18 +358,30 @@ void PlotCanvasDock::onLegendDoubleClicked() {
     }
 }
 
-void PlotCanvasDock::setDataFrame(const data::DataFrame* df, const QString& documentPath) {
+void PlotCanvasDock::setDataFrame(const data::TabularBundle* bundle, const QString& documentPath) {
     documentPath_ = documentPath;
-    dataFrame_ = df;
+    bundle_ = bundle;
 
     // Find numeric columns.
     numericColumns_.clear();
-    if (df != nullptr) {
-        for (std::size_t i = 0; i < df->columnCount(); ++i) {
-            const auto& col = df->column(i);
-            if (col.type() == data::ColumnType::Double ||
-                col.type() == data::ColumnType::Int64) {
-                numericColumns_.append(col.name());
+    if (bundle != nullptr) {
+        for (int i = 0; i < bundle->columnCount(); ++i) {
+            auto col = bundle->column(i);
+            if (!col) continue;
+            // Check if the column is numeric (double or int64)
+            bool isNumeric = false;
+            try {
+                (void)col->doubleData();
+                isNumeric = true;
+            } catch (...) {}
+            if (!isNumeric) {
+                try {
+                    (void)col->int64Data();
+                    isNumeric = true;
+                } catch (...) {}
+            }
+            if (isNumeric) {
+                numericColumns_.append(col->name());
             }
         }
     }
@@ -458,14 +469,25 @@ void PlotCanvasDock::removeYSeries(int index) {
 void PlotCanvasDock::rebuildPlot() {
     scene_->clearSeries();
 
-    if (dataFrame_ == nullptr || numericColumns_.isEmpty()) {
+    if (bundle_ == nullptr || numericColumns_.isEmpty()) {
         canvas_->update();
         return;
     }
 
     QString xName = xCombo_->currentText();
-    const auto* xCol = dataFrame_->columnByName(xName);
-    if (xCol == nullptr) {
+    auto xDs = bundle_->columnByName(xName);
+    if (!xDs) {
+        canvas_->update();
+        return;
+    }
+
+    // Verify X is double
+    bool xIsDouble = false;
+    try {
+        (void)xDs->doubleData();
+        xIsDouble = true;
+    } catch (...) {}
+    if (!xIsDouble) {
         canvas_->update();
         return;
     }
@@ -480,14 +502,18 @@ void PlotCanvasDock::rebuildPlot() {
         if (yName.isEmpty() || yName == xName) {
             continue;
         }
-        const auto* yCol = dataFrame_->columnByName(yName);
-        if (yCol == nullptr) {
+        auto yDs = bundle_->columnByName(yName);
+        if (!yDs) {
             continue;
         }
 
-        // Both columns must be Double for series.
-        if (xCol->type() != data::ColumnType::Double ||
-            yCol->type() != data::ColumnType::Double) {
+        // Y column must be Double
+        bool yIsDouble = false;
+        try {
+            (void)yDs->doubleData();
+            yIsDouble = true;
+        } catch (...) {}
+        if (!yIsDouble) {
             continue;
         }
 
@@ -498,15 +524,15 @@ void PlotCanvasDock::rebuildPlot() {
 
         if (plotType == QStringLiteral("Scatter")) {
             auto scatter = std::make_unique<plot::ScatterSeries>(
-                xCol, yCol, plot::PlotStyle::fromPalette(seriesIdx).color, yName);
+                xDs, yDs, plot::PlotStyle::fromPalette(seriesIdx).color, yName);
             scene_->addItem(std::move(scatter));
         } else if (plotType == QStringLiteral("Bar")) {
             auto bar = std::make_unique<plot::BarSeries>(
-                xCol, yCol, plot::PlotStyle::fromPalette(seriesIdx).color, yName);
+                xDs, yDs, plot::PlotStyle::fromPalette(seriesIdx).color, yName);
             scene_->addItem(std::move(bar));
         } else {
             scene_->addSeries(plot::LineSeries(
-                xCol, yCol, plot::PlotStyle::fromPalette(seriesIdx), yName));
+                xDs, yDs, plot::PlotStyle::fromPalette(seriesIdx), yName));
 
             // Apply persisted custom style if available (T5).
             auto& addedSeries = scene_->seriesAt(scene_->seriesCount() - 1);

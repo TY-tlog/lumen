@@ -4,7 +4,7 @@
 #include <QString>
 
 namespace lumen::data {
-class DataFrame;
+class TabularBundle;
 }
 
 namespace lumen::plot {
@@ -30,10 +30,10 @@ public:
     /// Capture all serializable state from a PlotScene.
     static WorkspaceFile captureFromScene(const plot::PlotScene* scene);
 
-    /// Apply saved state to a PlotScene.  Needs the DataFrame to
-    /// resolve column names to Column pointers for series.
+    /// Apply saved state to a PlotScene.  Needs the TabularBundle to
+    /// resolve column names to Rank1Dataset pointers for series.
     void applyToScene(plot::PlotScene* scene,
-                      const data::DataFrame* df) const;
+                      const data::TabularBundle* bundle) const;
 
     /// Whether this workspace file was loaded/created successfully.
     [[nodiscard]] bool isValid() const;

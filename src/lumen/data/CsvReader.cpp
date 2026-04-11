@@ -1,5 +1,7 @@
 #include "CsvReader.h"
 #include "CsvError.h"
+#include "Rank1Dataset.h"
+#include "Unit.h"
 
 #include <QDebug>
 #include <QFile>
@@ -171,7 +173,7 @@ bool CsvReader::detectHeader(const std::vector<std::string>& firstRow)
     });
 }
 
-std::vector<ColumnType> CsvReader::inferTypes(
+std::vector<InferredType> CsvReader::inferTypes(
     const std::vector<std::vector<std::string>>& rows) const
 {
     if (rows.empty()) {
@@ -179,7 +181,7 @@ std::vector<ColumnType> CsvReader::inferTypes(
     }
 
     std::size_t numCols = rows[0].size();
-    std::vector<ColumnType> types(numCols, ColumnType::Int64);
+    std::vector<InferredType> types(numCols, InferredType::Int64);
 
     // Track whether we've seen any non-NaN value per column
     std::vector<bool> hasNonNaN(numCols, false);
@@ -199,29 +201,29 @@ std::vector<ColumnType> CsvReader::inferTypes(
 
             hasNonNaN[c] = true;
 
-            if (types[c] == ColumnType::String) {
+            if (types[c] == InferredType::String) {
                 continue; // Already widened to String
             }
 
             // Try int64
-            if (types[c] == ColumnType::Int64) {
+            if (types[c] == InferredType::Int64) {
                 int64_t ival{};
                 auto result = std::from_chars(val.data(), val.data() + val.size(), ival);
                 if (result.ec == std::errc{} && result.ptr == val.data() + val.size()) {
                     continue; // Still Int64
                 }
                 // Can't be int, try double
-                types[c] = ColumnType::Double;
+                types[c] = InferredType::Double;
             }
 
-            if (types[c] == ColumnType::Double) {
+            if (types[c] == InferredType::Double) {
                 double dval{};
                 auto result = std::from_chars(val.data(), val.data() + val.size(), dval);
                 if (result.ec == std::errc{} && result.ptr == val.data() + val.size()) {
                     continue; // Still Double
                 }
                 // Not numeric
-                types[c] = ColumnType::String;
+                types[c] = InferredType::String;
             }
         }
     }
@@ -229,16 +231,16 @@ std::vector<ColumnType> CsvReader::inferTypes(
     // All-NaN columns default to Double (per spec)
     for (std::size_t c = 0; c < numCols; ++c) {
         if (!hasNonNaN[c]) {
-            types[c] = ColumnType::Double;
+            types[c] = InferredType::Double;
         }
     }
 
     return types;
 }
 
-DataFrame CsvReader::buildDataFrame(const std::vector<std::string>& headers,
-                                     const std::vector<ColumnType>& types,
-                                     const std::vector<std::vector<std::string>>& dataRows) const
+TabularBundle CsvReader::buildBundle(const std::vector<std::string>& headers,
+                                      const std::vector<InferredType>& types,
+                                      const std::vector<std::vector<std::string>>& dataRows) const
 {
     std::size_t numCols = headers.size();
     std::size_t numRows = dataRows.size();
@@ -250,13 +252,13 @@ DataFrame CsvReader::buildDataFrame(const std::vector<std::string>& headers,
 
     for (std::size_t c = 0; c < numCols; ++c) {
         switch (types[c]) {
-        case ColumnType::Int64:
+        case InferredType::Int64:
             intCols[c].reserve(numRows);
             break;
-        case ColumnType::Double:
+        case InferredType::Double:
             dblCols[c].reserve(numRows);
             break;
-        case ColumnType::String:
+        case InferredType::String:
             strCols[c].reserve(numRows);
             break;
         }
@@ -268,7 +270,7 @@ DataFrame CsvReader::buildDataFrame(const std::vector<std::string>& headers,
             const std::string& val = (c < row.size()) ? row[c] : std::string{};
 
             switch (types[c]) {
-            case ColumnType::Int64: {
+            case InferredType::Int64: {
                 if (isNaN(val)) {
                     // Int64 column with NaN — shouldn't happen if inference is correct,
                     // but store 0 as fallback
@@ -280,7 +282,7 @@ DataFrame CsvReader::buildDataFrame(const std::vector<std::string>& headers,
                 }
                 break;
             }
-            case ColumnType::Double: {
+            case InferredType::Double: {
                 if (isNaN(val)) {
                     dblCols[c].push_back(std::numeric_limits<double>::quiet_NaN());
                 } else {
@@ -290,7 +292,7 @@ DataFrame CsvReader::buildDataFrame(const std::vector<std::string>& headers,
                 }
                 break;
             }
-            case ColumnType::String: {
+            case InferredType::String: {
                 strCols[c].push_back(QString::fromStdString(val));
                 break;
             }
@@ -298,28 +300,29 @@ DataFrame CsvReader::buildDataFrame(const std::vector<std::string>& headers,
         }
     }
 
-    // Build Column objects
-    std::vector<Column> columns;
-    columns.reserve(numCols);
+    // Build Rank1Dataset objects and add to TabularBundle
+    TabularBundle bundle;
     for (std::size_t c = 0; c < numCols; ++c) {
         QString colName = QString::fromStdString(headers[c]);
+        std::shared_ptr<Rank1Dataset> ds;
         switch (types[c]) {
-        case ColumnType::Int64:
-            columns.emplace_back(colName, std::move(intCols[c]));
+        case InferredType::Int64:
+            ds = std::make_shared<Rank1Dataset>(colName, Unit::dimensionless(), std::move(intCols[c]));
             break;
-        case ColumnType::Double:
-            columns.emplace_back(colName, std::move(dblCols[c]));
+        case InferredType::Double:
+            ds = std::make_shared<Rank1Dataset>(colName, Unit::dimensionless(), std::move(dblCols[c]));
             break;
-        case ColumnType::String:
-            columns.emplace_back(colName, std::move(strCols[c]));
+        case InferredType::String:
+            ds = std::make_shared<Rank1Dataset>(colName, Unit::dimensionless(), std::move(strCols[c]));
             break;
         }
+        bundle.addColumn(std::move(ds));
     }
 
-    return DataFrame(std::move(columns));
+    return bundle;
 }
 
-DataFrame CsvReader::readFile(const QString& filePath) const
+TabularBundle CsvReader::readFile(const QString& filePath) const
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -333,21 +336,21 @@ DataFrame CsvReader::readFile(const QString& filePath) const
     return readString(content);
 }
 
-DataFrame CsvReader::readString(const std::string& content) const
+TabularBundle CsvReader::readString(const std::string& content) const
 {
     if (content.empty()) {
-        return DataFrame();
+        return TabularBundle();
     }
 
     // Check if content is only BOM
     std::size_t bomLen = skipBom(content);
     if (bomLen >= content.size()) {
-        return DataFrame();
+        return TabularBundle();
     }
 
     auto rows = parseAllRows(content);
     if (rows.empty()) {
-        return DataFrame();
+        return TabularBundle();
     }
 
     // Validate: check consistent column count
@@ -391,8 +394,8 @@ DataFrame CsvReader::readString(const std::string& content) const
     // Infer types from data rows
     auto types = inferTypes(dataRows);
 
-    // Build and return the DataFrame
-    return buildDataFrame(headers, types, dataRows);
+    // Build and return the TabularBundle
+    return buildBundle(headers, types, dataRows);
 }
 
 } // namespace lumen::data

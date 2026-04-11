@@ -3,12 +3,12 @@
 #include <QAbstractTableModel>
 
 namespace lumen::data {
-class DataFrame;
+class TabularBundle;
 }  // namespace lumen::data
 
 namespace lumen::ui {
 
-/// Read-only table model backed by a const DataFrame pointer.
+/// Read-only table model backed by a const TabularBundle pointer.
 ///
 /// Formats doubles to 6 significant digits, displays NaN in text.tertiary
 /// color, and aligns numbers right.
@@ -18,8 +18,8 @@ class DataFrameTableModel : public QAbstractTableModel {
 public:
     explicit DataFrameTableModel(QObject* parent = nullptr);
 
-    /// Set the backing DataFrame. Passing nullptr clears the model.
-    void setDataFrame(const data::DataFrame* df);
+    /// Set the backing TabularBundle. Passing nullptr clears the model.
+    void setDataFrame(const data::TabularBundle* bundle);
 
     [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
     [[nodiscard]] int columnCount(const QModelIndex& parent = {}) const override;
@@ -29,7 +29,7 @@ public:
                                       int role = Qt::DisplayRole) const override;
 
 private:
-    const data::DataFrame* dataFrame_ = nullptr;
+    const data::TabularBundle* bundle_ = nullptr;
 };
 
 }  // namespace lumen::ui

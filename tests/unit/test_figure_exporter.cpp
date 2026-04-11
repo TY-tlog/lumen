@@ -5,7 +5,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <core/io/FigureExporter.h>
-#include <data/Column.h>
+#include <data/Rank1Dataset.h>
+#include <data/Unit.h>
+#include <memory>
 #include <plot/LineSeries.h>
 #include <plot/PlotScene.h>
 #include <plot/PlotStyle.h>
@@ -38,8 +40,8 @@ static AppGuard guard;
 /// Populate a PlotScene with a 5-point line series for testing.
 /// PlotScene is non-copyable/non-movable (QObject members), so we
 /// configure it in place rather than returning by value.
-void populateScene(PlotScene& scene, const Column& xCol, const Column& yCol) {
-    scene.addSeries(LineSeries(&xCol, &yCol, PlotStyle::fromPalette(0), "Test Series"));
+void populateScene(PlotScene& scene, std::shared_ptr<Rank1Dataset> xDs, std::shared_ptr<Rank1Dataset> yDs) {
+    scene.addSeries(LineSeries(xDs, yDs, PlotStyle::fromPalette(0), "Test Series"));
     scene.autoRange();
     scene.setTitle("Test Plot");
 }
@@ -60,8 +62,8 @@ void removeIfExists(const QString& path) {
 TEST_CASE("FigureExporter PNG creates file at path", "[figureexporter]") {
     std::vector<double> x = {0.0, 1.0, 2.0, 3.0, 4.0};
     std::vector<double> y = {0.0, 10.0, 5.0, 15.0, 3.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), x);
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), y);
     PlotScene scene;
     populateScene(scene, xCol, yCol);
 
@@ -86,8 +88,8 @@ TEST_CASE("FigureExporter PNG creates file at path", "[figureexporter]") {
 TEST_CASE("FigureExporter PNG has correct dimensions", "[figureexporter]") {
     std::vector<double> x = {0.0, 1.0, 2.0, 3.0, 4.0};
     std::vector<double> y = {0.0, 10.0, 5.0, 15.0, 3.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), x);
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), y);
     PlotScene scene;
     populateScene(scene, xCol, yCol);
 
@@ -115,8 +117,8 @@ TEST_CASE("FigureExporter PNG has correct dimensions", "[figureexporter]") {
 TEST_CASE("FigureExporter PNG DPI metadata is correct", "[figureexporter]") {
     std::vector<double> x = {0.0, 1.0, 2.0};
     std::vector<double> y = {0.0, 5.0, 10.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), x);
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), y);
     PlotScene scene;
     populateScene(scene, xCol, yCol);
 
@@ -147,8 +149,8 @@ TEST_CASE("FigureExporter PNG DPI metadata is correct", "[figureexporter]") {
 TEST_CASE("FigureExporter SVG creates valid SVG file", "[figureexporter]") {
     std::vector<double> x = {0.0, 1.0, 2.0, 3.0, 4.0};
     std::vector<double> y = {0.0, 10.0, 5.0, 15.0, 3.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), x);
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), y);
     PlotScene scene;
     populateScene(scene, xCol, yCol);
 
@@ -177,8 +179,8 @@ TEST_CASE("FigureExporter SVG creates valid SVG file", "[figureexporter]") {
 TEST_CASE("FigureExporter PDF creates valid PDF file", "[figureexporter]") {
     std::vector<double> x = {0.0, 1.0, 2.0, 3.0, 4.0};
     std::vector<double> y = {0.0, 10.0, 5.0, 15.0, 3.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), x);
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), y);
     PlotScene scene;
     populateScene(scene, xCol, yCol);
 
@@ -208,8 +210,8 @@ TEST_CASE("FigureExporter PDF creates valid PDF file", "[figureexporter]") {
 TEST_CASE("FigureExporter transparent PNG has transparent background", "[figureexporter]") {
     std::vector<double> x = {0.0, 1.0, 2.0, 3.0, 4.0};
     std::vector<double> y = {0.0, 10.0, 5.0, 15.0, 3.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), x);
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), y);
     PlotScene scene;
     populateScene(scene, xCol, yCol);
 
@@ -242,8 +244,8 @@ TEST_CASE("FigureExporter transparent PNG has transparent background", "[figuree
 TEST_CASE("FigureExporter does not modify PlotScene", "[figureexporter]") {
     std::vector<double> x = {0.0, 1.0, 2.0, 3.0, 4.0};
     std::vector<double> y = {0.0, 10.0, 5.0, 15.0, 3.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), x);
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), y);
     PlotScene scene;
     populateScene(scene, xCol, yCol);
 
@@ -277,8 +279,8 @@ TEST_CASE("FigureExporter does not modify PlotScene", "[figureexporter]") {
 TEST_CASE("FigureExporter returns error for invalid path", "[figureexporter]") {
     std::vector<double> x = {0.0, 1.0};
     std::vector<double> y = {0.0, 1.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), x);
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), y);
     PlotScene scene;
     populateScene(scene, xCol, yCol);
 

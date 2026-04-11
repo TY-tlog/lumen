@@ -6,10 +6,11 @@
 #include <QPolygonF>
 #include <QString>
 
+#include <memory>
 #include <vector>
 
 namespace lumen::data {
-class Column;
+class Rank1Dataset;
 } // namespace lumen::data
 
 namespace lumen::plot {
@@ -22,16 +23,16 @@ struct DataRange {
     double yMax{0.0};
 };
 
-/// A line series referencing X and Y columns from a DataFrame.
+/// A line series referencing X and Y Rank1Datasets.
 ///
-/// Builds polylines from the column data, breaking at NaN values.
-/// Both columns must be of type Double.
+/// Builds polylines from the dataset data, breaking at NaN values.
+/// Both datasets must contain double data.
 class LineSeries : public PlotItem {
 public:
-    /// Construct a line series from X and Y columns.
-    /// Both columns must be Double type.
-    /// @throws std::invalid_argument if columns are not Double type or have different row counts.
-    LineSeries(const data::Column* xCol, const data::Column* yCol,
+    /// Construct a line series from X and Y Rank1Datasets.
+    /// Both datasets must contain double data.
+    /// @throws std::invalid_argument if datasets are null, not double type, or have different row counts.
+    LineSeries(std::shared_ptr<data::Rank1Dataset> xDs, std::shared_ptr<data::Rank1Dataset> yDs,
                PlotStyle style, QString name = {});
 
     // --- PlotItem overrides ---
@@ -43,7 +44,7 @@ public:
     QString name() const override { return name_; }
     QColor primaryColor() const override { return style_.color; }
 
-    /// Build polylines from the column data.
+    /// Build polylines from the dataset data.
     /// Returns one QPolygonF per contiguous non-NaN segment.
     [[nodiscard]] std::vector<QPolygonF> buildPolylines() const;
 
@@ -52,18 +53,18 @@ public:
 
     [[nodiscard]] const PlotStyle& style() const { return style_; }
 
-    /// Access the X column.
-    [[nodiscard]] const data::Column* xColumn() const { return xCol_; }
-    /// Access the Y column.
-    [[nodiscard]] const data::Column* yColumn() const { return yCol_; }
+    /// Access the X dataset.
+    [[nodiscard]] const std::shared_ptr<data::Rank1Dataset>& xDataset() const { return xDs_; }
+    /// Access the Y dataset.
+    [[nodiscard]] const std::shared_ptr<data::Rank1Dataset>& yDataset() const { return yDs_; }
 
     void setStyle(PlotStyle style);
     void setName(QString name);
     void setVisible(bool visible);
 
 private:
-    const data::Column* xCol_;
-    const data::Column* yCol_;
+    std::shared_ptr<data::Rank1Dataset> xDs_;
+    std::shared_ptr<data::Rank1Dataset> yDs_;
     PlotStyle style_;
     QString name_;
     bool visible_ = true;
