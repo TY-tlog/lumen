@@ -121,8 +121,16 @@ void PlotCanvasDock::buildToolBar() {
     plotTypeCombo_->addItem(QStringLiteral("Scatter"));
     plotTypeCombo_->addItem(QStringLiteral("Bar"));
     toolBar_->addWidget(plotTypeCombo_);
-    // Plot type combo affects NEW series only (stored per-entry at add time).
-    // Changing it does NOT rebuild existing series.
+    // When type combo changes, update ALL existing entries' plot type
+    // and rebuild. This lets the user switch the entire plot between
+    // Line/Scatter/Bar modes easily.
+    connect(plotTypeCombo_, &QComboBox::currentIndexChanged, this, [this]() {
+        QString newType = plotTypeCombo_->currentText();
+        for (auto& entry : yEntries_) {
+            entry.plotType = newType;
+        }
+        rebuildPlot();
+    });
 }
 
 void PlotCanvasDock::setPlotRegistry(core::PlotRegistry* registry) {
