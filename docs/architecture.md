@@ -650,3 +650,94 @@ loaders. Plugin-ready for Phase 16.
 - `core/io/` WorkspaceFile updated for new API
 - `plot/` PlotItem subclasses reference Rank1Dataset
 - `ui/` unchanged structurally
+
+## Phase 7 additions — Reactive Plot Engine + 2D Scalar Fields
+
+### core/reactive/ new submodule (ADR-038)
+
+Three-mode reactivity system, user-selectable per plot:
+
+```
+ReactiveMode::Static
+  → ReactiveBinding deep-copies Dataset into snapshot
+  → PlotItem reads snapshot (frozen)
+  → MemoryManager tracks 2× allocation
+  → invalidate() re-snapshots
+
+ReactiveMode::DAG
+  → Dataset::changed() → DependencyGraph::propagate()
+  → PlotItem::invalidate() → PlotCanvas::update()
+  → PlotItem reads live Dataset (no copy)
+
+ReactiveMode::Bidirectional
+  → DAG + write-back interceptor
+  → CommandBus edit → Dataset mutation
+  → Generation counter prevents feedback loop
+```
+
+Classes:
+- `DependencyGraph` — DAG of Dataset derivations, propagate,
+  cycle detection, generation counter
+- `ReactiveBinding` — per-plot binding, mode management,
+  snapshot lifecycle, MemoryManager integration
+
+### plot/ new types (ADR-028 extended)
+
+PlotItem Type enum extended:
+```
+Line, Scatter, Bar,           // Phase 5
+Heatmap, Contour,             // Phase 7.2/7.3
+Histogram, BoxPlot, Violin    // Phase 7.4
+```
+
+**Heatmap** (ADR-039): renders Grid2D via Colormap. Adaptive
+CPU/GPU with 1024×1024 threshold. CPU path: QImage pixel loop.
+GPU path: QOpenGLWidget texture + fragment shader.
+
+**Colormap** (ADR-040): 10 built-in maps with perceptual
+uniformity check (CIELAB ΔE₂₀₀₀ CV < 0.4) and CVD safety
+(Machado 2009 simulation).
+
+**ContourPlot** (ADR-041): CONREC-grade contour extraction from
+Grid2D. Triangular subdivision for saddle handling. Auto/manual
+levels. Labels.
+
+**HistogramSeries** (ADR-042): Scott/FD/Sturges binning,
+Count/Density/Probability normalization.
+
+**BoxPlotSeries**: Tukey/MinMax/Percentile whiskers, notched,
+outliers.
+
+**ViolinSeries**: Silverman KDE, split-violin for pairs.
+
+### PlotCanvas GPU layer (ADR-039)
+
+```
+PlotCanvas
+  ├── PlotRenderer (CPU items via QPainter)
+  ├── QOpenGLWidget (GPU layer, lazy creation)
+  │     └── Heatmap textures, colormap LUT
+  └── QPainter overlays (crosshair, zoom box, on top)
+```
+
+GPU widget: child of PlotCanvas, positioned at plotArea,
+transparent background. Created on first GPU-path Heatmap.
+Fallback to CPU if GL context unavailable.
+
+### Reactive data flow
+
+```
+Dataset::changed()
+  → ReactiveBinding (mode-filtered)
+    Static: no-op (snapshot isolated)
+    DAG: DependencyGraph::propagate() → downstream invalidation
+    Bidir: DAG + write-back interceptor
+  → PlotItem::invalidate()
+  → PlotCanvas::update()
+  → paintEvent → PlotRenderer → item->paint()
+```
+
+### ReactivityModeWidget
+
+Small 3-position toggle in property dialogs. Static / DAG / Bidir.
+Mode persisted in workspace files.
