@@ -291,3 +291,19 @@ SAME commit as this STATUS entry.
 ### Phase 3b/4 lesson applied
 This review (docs/reviews/phase-5-review.md) is committed in the
 SAME commit as this STATUS entry.
+
+## 2026-04-11 — Phase 6 opening (Architect session 8)
+- Wrote `docs/plans/phase-6-plan.md`: 27 tasks in 4 sub-phases.
+  - 6.1: Dataset core (Unit, Dimension, CoordinateArray, Dataset,
+    TabularBundle, Grid2D, Volume3D)
+  - 6.2: DataFrame migration + deletion (M6.2 HARD BLOCK)
+  - 6.3: 9 I/O loaders + MemoryManager
+  - 6.4: UI surface (file open, sample menu, memory status)
+  - T27: review+STATUS SAME commit (verbatim rule)
+- Tabular representation: chose Option B (TabularBundle)
+- Drafted ADRs 032-037: xarray model, hybrid memory, physical
+  units, reactive signals, DataFrame deletion, loader plugins.
+- Updated `docs/architecture.md` with Phase 6 section.
+- Hard rules: M6.2 blocks T13, byte-identical render test,
+  v1 workspace backward compat, "m" = meter grammar.
+- Awaiting human review and approval.

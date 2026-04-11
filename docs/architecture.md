@@ -584,3 +584,69 @@ bar has fillColor/outlineColor/barWidth.
 - `core/commands/` contains type-specific commands
 - `ui/` contains type-specific dialogs
 - No new cross-layer dependencies
+
+## Phase 6 additions — Universal Data Foundation
+
+### data/ module restructured (ADR-032)
+
+```
+data/
+  Dataset.h         — abstract base (QObject, reactive signals)
+  Dimension.h       — name + unit + length + CoordinateArray
+  Unit.h/.cpp       — SI dimensional analysis, parse("mV")
+  CoordinateArray.h — regular or irregular coordinate values
+  Rank1Dataset.h    — concrete rank-1 (replaces Column)
+  TabularBundle.h   — groups rank-1 Datasets (replaces DataFrame)
+  Grid2D.h          — rank-2 scalar field
+  Volume3D.h        — rank-3 scalar field
+  MemoryManager.h   — hybrid memory (ADR-033)
+  io/
+    DatasetLoader.h  — abstract loader interface (ADR-037)
+    LoaderRegistry.h — extension → loader mapping
+    CsvLoader.h      — wraps Phase 1 CsvReader
+    Hdf5Loader.h     — HDF5 via hdf5 C++ API
+    NetCDFLoader.h   — netcdf-c++
+    ParquetLoader.h  — Arrow C++
+    ZarrLoader.h     — chunked array access
+    TiffStackLoader.h — image stacks → Volume3D
+    JsonLoader.h     — structured JSON → TabularBundle
+    MatLoader.h      — MATLAB .mat files
+    NumpyLoader.h    — .npy binary format
+```
+
+### DataFrame deleted (ADR-036)
+
+DataFrame and Column classes fully removed. All callers migrated to
+TabularBundle (groups of Rank1Datasets sharing a row dimension).
+DocumentRegistry stores TabularBundle or Dataset.
+
+### Reactive signals (ADR-035)
+
+Dataset (QObject) emits changed() and coordinatesChanged(). Built
+in from Phase 6; Phase 7 plot engine connects for auto-refresh.
+
+### Physical units (ADR-034)
+
+Unit class: 7 SI base dimensions, parse/convert/arithmetic. Grammar:
+"m" = meter, "mV" = millivolt, "mm" = millimeter. Axis labels
+auto-generated from units.
+
+### Memory model (ADR-033)
+
+MemoryManager singleton: < 100 MB → InMemory, ≥ 100 MB → Chunked
+with LRU. Budget: default 4 GB, user-configurable. Status bar
+shows usage.
+
+### I/O architecture (ADR-037)
+
+DatasetLoader interface + LoaderRegistry singleton. 9 built-in
+loaders. Plugin-ready for Phase 16.
+
+### Layering
+
+- `data/` contains Dataset, all subclasses, Unit, MemoryManager
+- `data/io/` contains loaders + registry (depends on data/)
+- `core/` DocumentRegistry generalized to Dataset
+- `core/io/` WorkspaceFile updated for new API
+- `plot/` PlotItem subclasses reference Rank1Dataset
+- `ui/` unchanged structurally
