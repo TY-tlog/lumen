@@ -307,3 +307,32 @@ SAME commit as this STATUS entry.
 - Hard rules: M6.2 blocks T13, byte-identical render test,
   v1 workspace backward compat, "m" = meter grammar.
 - Awaiting human review and approval.
+
+## 2026-04-12 — Phase 6 close
+
+### Delivered
+- 6.1: Dataset core (Unit, Dimension, CoordinateArray, Dataset, Rank1Dataset, TabularBundle, Grid2D, Volume3D) — 88 new tests
+- 6.2: DataFrame migration (53 files changed, DataFrame DELETED) — 12 bugs fixed
+- 6.3: 7 I/O loaders (CSV/HDF5/NetCDF/TIFF/JSON/Mat/Numpy) + MemoryManager — 46 new tests
+- 6.4: UI surface (universal Open, sample menu, memory status, budget settings) — 4 new tests
+- ADRs 032-037
+
+### Sub-phase gates
+- M6.1: passed (363 tests, 275 unchanged)
+- M6.2: passed (360 tests, DataFrame deleted, CSV/workspace work)
+- M6.3: passed (406 tests, 7 loaders functional)
+- M6.4: passed (410 tests, samples + real CSV verified)
+
+### Test results
+- 410/410 tests pass, ASan+UBSan clean
+
+### Human verification
+- Real CSV: line/scatter/bar all work
+- Sample menu: Sine 1D (plot), Gaussian 2D/Mandelbrot/Volume Sphere (placeholders)
+- Memory status bar visible
+
+Human response: "yes."
+
+### Phase 3b/4/5 lesson applied
+This review (docs/reviews/phase-6-review.md) is committed in the
+SAME commit as this STATUS entry.
