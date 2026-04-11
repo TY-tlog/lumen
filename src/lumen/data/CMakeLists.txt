@@ -1,4 +1,4 @@
-# Lumen data module — CSV parser and data model.
+# Lumen data module — CSV parser, data model, and memory manager.
 
 add_library(lumen_data STATIC
     CoordinateArray.cpp
@@ -13,6 +13,8 @@ add_library(lumen_data STATIC
     FileLoader.h
     Grid2D.cpp
     Grid2D.h
+    MemoryManager.cpp
+    MemoryManager.h
     Rank1Dataset.cpp
     Rank1Dataset.h
     TabularBundle.cpp
@@ -34,3 +36,6 @@ target_link_libraries(lumen_data
     PRIVATE
         lumen::compile_options
 )
+
+# I/O loaders sub-module
+add_subdirectory(io)

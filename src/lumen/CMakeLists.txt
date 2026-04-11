@@ -73,6 +73,7 @@ target_link_libraries(lumen
         Qt6::Gui
         Qt6::Widgets
         lumen_data
+        lumen_data_io
         lumen_core
         lumen_io
         lumen::compile_options
