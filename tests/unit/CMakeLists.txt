@@ -50,6 +50,7 @@ add_executable(lumen_unit_tests
     test_loader_registry.cpp
     test_hdf5_loader.cpp
     test_netcdf_loader.cpp
+    test_data_table_dock_placeholders.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
 )
 

@@ -8,21 +8,41 @@
 #include <core/DocumentRegistry.h>
 #include <core/io/FigureExporter.h>
 #include <core/io/WorkspaceManager.h>
+#include <data/CoordinateArray.h>
+#include <data/Dimension.h>
 #include <data/FileLoader.h>
+#include <data/Grid2D.h>
+#include <data/MemoryManager.h>
+#include <data/Rank1Dataset.h>
+#include <data/TabularBundle.h>
+#include <data/Unit.h>
+#include <data/Volume3D.h>
+#include <data/io/DatasetLoader.h>
+#include <data/io/LoaderRegistry.h>
 
 #include <QAction>
 #include <QApplication>
 #include <QByteArray>
 #include <QCloseEvent>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFormLayout>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QSettings>
 #include <QStatusBar>
+#include <QTimer>
 #include <Qt>
+
+#include <cmath>
+#include <cstddef>
+#include <memory>
+#include <vector>
 
 namespace lumen {
 
@@ -32,6 +52,18 @@ constexpr int kDefaultHeight = 900;
 constexpr auto kGeometryKey = "MainWindow/geometry";
 constexpr auto kStateKey = "MainWindow/state";
 constexpr auto kRecentFilesKey = "recentFiles";
+constexpr int kMemoryUpdateIntervalMs = 2000;
+constexpr double kOneGB = 1024.0 * 1024.0 * 1024.0;
+constexpr double kOneMB = 1024.0 * 1024.0;
+
+QString formatBytes(std::size_t bytes) {
+    auto value = static_cast<double>(bytes);
+    if (value >= kOneGB) {
+        return QStringLiteral("%1 GB").arg(value / kOneGB, 0, 'f', 1);
+    }
+    return QStringLiteral("%1 MB").arg(
+        static_cast<int>(std::round(value / kOneMB)));
+}
 }  // namespace
 
 MainWindow::MainWindow(core::DocumentRegistry* registry,
@@ -47,7 +79,7 @@ MainWindow::MainWindow(core::DocumentRegistry* registry,
     resize(kDefaultWidth, kDefaultHeight);
 
     auto* placeholder = new QLabel(
-        "Lumen — Phase 1\n\nOpen a CSV file via File > Open CSV...",
+        "Lumen — Phase 6\n\nOpen a file via File > Open...",
         this);
     placeholder->setAlignment(Qt::AlignCenter);
     setCentralWidget(placeholder);
@@ -78,6 +110,7 @@ MainWindow::MainWindow(core::DocumentRegistry* registry,
     statusBar()->showMessage(tr("Ready"));
 
     buildMenus();
+    setupMemoryStatusBar();
     restoreGeometry();
 }
 
@@ -86,14 +119,17 @@ MainWindow::~MainWindow() = default;
 void MainWindow::buildMenus() {
     auto* fileMenu = menuBar()->addMenu(tr("&File"));
 
-    // Open CSV action
-    auto* openAction = fileMenu->addAction(tr("&Open CSV..."));
+    // Open action (universal — all registered formats)
+    auto* openAction = fileMenu->addAction(tr("&Open..."));
     openAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_O));
-    connect(openAction, &QAction::triggered, this, &MainWindow::openCsvFile);
+    connect(openAction, &QAction::triggered, this, &MainWindow::openFile);
 
     // Recent files submenu
     recentFilesMenu_ = fileMenu->addMenu(tr("Recent Files"));
     updateRecentFilesMenu();
+
+    // Sample data submenu
+    buildSampleMenu(fileMenu);
 
     fileMenu->addSeparator();
 
@@ -120,6 +156,11 @@ void MainWindow::buildMenus() {
     quitAction->setShortcut(QKeySequence::Quit);
     connect(quitAction, &QAction::triggered, this, &MainWindow::close);
 
+    // Edit menu with Preferences
+    auto* editMenu = menuBar()->addMenu(tr("&Edit"));
+    auto* prefsAction = editMenu->addAction(tr("&Preferences..."));
+    connect(prefsAction, &QAction::triggered, this, &MainWindow::showMemoryBudgetDialog);
+
     auto* viewMenu = menuBar()->addMenu(tr("&View"));
     viewMenu->addAction(dataTableDock_->toggleViewAction());
     viewMenu->addAction(plotCanvasDock_->toggleViewAction());
@@ -129,12 +170,57 @@ void MainWindow::buildMenus() {
     connect(aboutAction, &QAction::triggered, this, &MainWindow::showAbout);
 }
 
-void MainWindow::openCsvFile() {
+void MainWindow::buildSampleMenu(QMenu* fileMenu) {
+    auto* sampleMenu = fileMenu->addMenu(tr("Open Sample"));
+
+    auto* sine1DAction = sampleMenu->addAction(tr("Sine 1D"));
+    connect(sine1DAction, &QAction::triggered, this, &MainWindow::openSampleSine1D);
+
+    auto* gaussian2DAction = sampleMenu->addAction(tr("Gaussian 2D"));
+    connect(gaussian2DAction, &QAction::triggered, this, &MainWindow::openSampleGaussian2D);
+
+    auto* mandelbrotAction = sampleMenu->addAction(tr("Mandelbrot"));
+    connect(mandelbrotAction, &QAction::triggered, this, &MainWindow::openSampleMandelbrot);
+
+    auto* volumeSphereAction = sampleMenu->addAction(tr("Volume Sphere"));
+    connect(volumeSphereAction, &QAction::triggered, this, &MainWindow::openSampleVolumeSphere);
+}
+
+void MainWindow::setupMemoryStatusBar() {
+    memoryLabel_ = new QLabel(this);
+    memoryLabel_->setObjectName(QStringLiteral("MemoryStatusLabel"));
+    statusBar()->addPermanentWidget(memoryLabel_);
+
+    memoryTimer_ = new QTimer(this);
+    connect(memoryTimer_, &QTimer::timeout, this, &MainWindow::updateMemoryStatus);
+    memoryTimer_->start(kMemoryUpdateIntervalMs);
+
+    // Initial update
+    updateMemoryStatus();
+}
+
+void MainWindow::updateMemoryStatus() {
+    const auto& mm = data::MemoryManager::instance();
+    const auto used = mm.currentUsageBytes();
+    const auto budget = mm.memoryBudgetBytes();
+    memoryLabel_->setText(
+        QStringLiteral("Mem: %1 / %2").arg(formatBytes(used), formatBytes(budget)));
+}
+
+void MainWindow::openFile() {
+    // Use LoaderRegistry for file filter
+    QString filter = data::io::LoaderRegistry::instance().fileFilter();
+    if (filter.isEmpty()) {
+        filter = tr("All Files (*)");
+    } else {
+        filter += QStringLiteral(";;") + tr("All Files (*)");
+    }
+
     const QString filePath = QFileDialog::getOpenFileName(
         this,
-        tr("Open CSV File"),
+        tr("Open File"),
         QString(),
-        tr("CSV Files (*.csv);;All Files (*)"));
+        filter);
 
     if (filePath.isEmpty()) {
         return;  // User cancelled
@@ -144,24 +230,10 @@ void MainWindow::openCsvFile() {
 }
 
 void MainWindow::loadFile(const QString& filePath) {
-    // Check if already loaded in the registry
+    // Check if already loaded in the registry (tabular)
     const auto* existing = registry_->document(filePath);
     if (existing != nullptr) {
-        dataTableDock_->showDataFrame(existing);
-        dataTableDock_->show();
-        plotCanvasDock_->setDataFrame(existing, filePath);
-        plotCanvasDock_->show();
-        currentDocPath_ = filePath;
-        if (workspaceManager_ != nullptr) {
-            workspaceManager_->registerPlotScene(filePath, plotCanvasDock_->scene());
-        }
-        updateWindowTitle();
-        QFileInfo fi(filePath);
-        statusBar()->showMessage(
-            tr("Loaded %1 (%2 rows x %3 cols)")
-                .arg(fi.fileName())
-                .arg(existing->rowCount())
-                .arg(existing->columnCount()));
+        showTabular(existing, filePath);
         addRecentFile(filePath);
         return;
     }
@@ -169,35 +241,38 @@ void MainWindow::loadFile(const QString& filePath) {
     QFileInfo fi(filePath);
     statusBar()->showMessage(tr("Loading %1...").arg(fi.fileName()));
 
-    // FileLoader manages its own thread. We parent it to `this` so it
-    // is cleaned up if the window is destroyed during a load.
+    // Try LoaderRegistry first for all formats
+    auto* registryLoader = data::io::LoaderRegistry::instance().loaderForPath(filePath);
+    if (registryLoader != nullptr) {
+        // Try tabular first
+        auto tabular = registryLoader->loadTabular(filePath);
+        if (tabular) {
+            const auto* rawBundle = registry_->addDocument(filePath, std::move(tabular));
+            showTabular(rawBundle, filePath);
+            addRecentFile(filePath);
+            return;
+        }
+        // Try dataset (Grid2D/Volume3D)
+        auto dataset = registryLoader->loadDataset(filePath);
+        if (dataset) {
+            showDataset(dataset.get(), fi.fileName());
+            statusBar()->showMessage(
+                tr("Loaded %1 (dataset, rank %2)")
+                    .arg(fi.fileName())
+                    .arg(dataset->rank()));
+            addRecentFile(filePath);
+            return;
+        }
+    }
+
+    // Fallback: use FileLoader (async CSV loader) for .csv files
     auto* loader = new data::FileLoader(this);
 
     connect(loader, &data::FileLoader::finished, this,
             [this, loader](const QString& path,
                            std::shared_ptr<lumen::data::TabularBundle> bundle) {
                 const auto* rawBundle = registry_->addDocument(path, std::move(bundle));
-
-                dataTableDock_->showDataFrame(rawBundle);
-                dataTableDock_->show();
-
-                // Auto-plot.
-                plotCanvasDock_->setDataFrame(rawBundle, path);
-                plotCanvasDock_->show();
-
-                currentDocPath_ = path;
-                if (workspaceManager_ != nullptr) {
-                    workspaceManager_->registerPlotScene(path, plotCanvasDock_->scene());
-                }
-                updateWindowTitle();
-
-                QFileInfo info(path);
-                statusBar()->showMessage(
-                    tr("Loaded %1 (%2 rows x %3 cols)")
-                        .arg(info.fileName())
-                        .arg(rawBundle->rowCount())
-                        .arg(rawBundle->columnCount()));
-
+                showTabular(rawBundle, path);
                 addRecentFile(path);
                 loader->deleteLater();
             });
@@ -216,6 +291,33 @@ void MainWindow::loadFile(const QString& filePath) {
             });
 
     loader->load(filePath);
+}
+
+void MainWindow::showTabular(const data::TabularBundle* bundle, const QString& path) {
+    dataTableDock_->showDataFrame(bundle);
+    dataTableDock_->show();
+
+    plotCanvasDock_->setDataFrame(bundle, path);
+    plotCanvasDock_->show();
+
+    currentDocPath_ = path;
+    if (workspaceManager_ != nullptr) {
+        workspaceManager_->registerPlotScene(path, plotCanvasDock_->scene());
+    }
+    updateWindowTitle();
+
+    QFileInfo info(path);
+    statusBar()->showMessage(
+        tr("Loaded %1 (%2 rows x %3 cols)")
+            .arg(info.fileName())
+            .arg(bundle->rowCount())
+            .arg(bundle->columnCount()));
+}
+
+void MainWindow::showDataset(const data::Dataset* ds, const QString& /*label*/) {
+    dataTableDock_->showDatasetInfo(ds);
+    dataTableDock_->show();
+    updateWindowTitle();
 }
 
 void MainWindow::addRecentFile(const QString& filePath) {
@@ -267,6 +369,186 @@ void MainWindow::updateRecentFilesMenu() {
     });
 }
 
+// ---- Sample Data Generators ----
+
+void MainWindow::openSampleSine1D() {
+    constexpr int kNumPoints = 628;
+    constexpr double kStep = 2.0 * M_PI / kNumPoints;
+
+    std::vector<double> xData;
+    std::vector<double> yData;
+    xData.reserve(kNumPoints);
+    yData.reserve(kNumPoints);
+
+    for (int i = 0; i < kNumPoints; ++i) {
+        double x = i * kStep;
+        xData.push_back(x);
+        yData.push_back(std::sin(x));
+    }
+
+    auto xCol = std::make_shared<data::Rank1Dataset>(
+        QStringLiteral("x"), data::Unit::dimensionless(), std::move(xData));
+    auto yCol = std::make_shared<data::Rank1Dataset>(
+        QStringLiteral("y"), data::Unit::dimensionless(), std::move(yData));
+
+    auto bundle = std::make_shared<data::TabularBundle>();
+    bundle->addColumn(std::move(xCol));
+    bundle->addColumn(std::move(yCol));
+
+    const QString key = QStringLiteral("sample://sine-1d");
+    const auto* rawBundle = registry_->addDocument(key, std::move(bundle));
+    showTabular(rawBundle, key);
+
+    statusBar()->showMessage(tr("Sample: Sine 1D (%1 points)").arg(kNumPoints));
+}
+
+void MainWindow::openSampleGaussian2D() {
+    constexpr std::size_t kSize = 256;
+    constexpr double kSigma = 40.0;
+    constexpr double kCenter = 128.0;
+
+    std::vector<double> values(kSize * kSize);
+    for (std::size_t y = 0; y < kSize; ++y) {
+        for (std::size_t x = 0; x < kSize; ++x) {
+            double dx = static_cast<double>(x) - kCenter;
+            double dy = static_cast<double>(y) - kCenter;
+            values[y * kSize + x] = std::exp(-(dx * dx + dy * dy) / (2.0 * kSigma * kSigma));
+        }
+    }
+
+    data::Dimension dimX{QStringLiteral("x"), data::Unit::dimensionless(),
+                         kSize, data::CoordinateArray(0.0, 1.0, kSize)};
+    data::Dimension dimY{QStringLiteral("y"), data::Unit::dimensionless(),
+                         kSize, data::CoordinateArray(0.0, 1.0, kSize)};
+
+    auto grid = std::make_shared<data::Grid2D>(
+        QStringLiteral("Gaussian 2D"), data::Unit::dimensionless(),
+        std::move(dimX), std::move(dimY), std::move(values));
+
+    showDataset(grid.get(), QStringLiteral("Gaussian 2D"));
+
+    data::MemoryManager::instance().trackAllocation(grid->sizeBytes());
+    statusBar()->showMessage(tr("Sample: Gaussian 2D (256x256)"));
+    updateMemoryStatus();
+}
+
+void MainWindow::openSampleMandelbrot() {
+    constexpr std::size_t kSize = 512;
+    constexpr int kMaxIter = 256;
+    constexpr double kXMin = -2.0;
+    constexpr double kXMax = 1.0;
+    constexpr double kYMin = -1.5;
+    constexpr double kYMax = 1.5;
+
+    std::vector<double> values(kSize * kSize);
+    for (std::size_t py = 0; py < kSize; ++py) {
+        for (std::size_t px = 0; px < kSize; ++px) {
+            double cx = kXMin + (kXMax - kXMin) * static_cast<double>(px) / static_cast<double>(kSize - 1);
+            double cy = kYMin + (kYMax - kYMin) * static_cast<double>(py) / static_cast<double>(kSize - 1);
+            double zx = 0.0;
+            double zy = 0.0;
+            int iter = 0;
+            while (zx * zx + zy * zy <= 4.0 && iter < kMaxIter) {
+                double tmp = zx * zx - zy * zy + cx;
+                zy = 2.0 * zx * zy + cy;
+                zx = tmp;
+                ++iter;
+            }
+            values[py * kSize + px] = static_cast<double>(iter);
+        }
+    }
+
+    data::Dimension dimX{QStringLiteral("x"), data::Unit::dimensionless(),
+                         kSize, data::CoordinateArray(kXMin, (kXMax - kXMin) / static_cast<double>(kSize - 1), kSize)};
+    data::Dimension dimY{QStringLiteral("y"), data::Unit::dimensionless(),
+                         kSize, data::CoordinateArray(kYMin, (kYMax - kYMin) / static_cast<double>(kSize - 1), kSize)};
+
+    auto grid = std::make_shared<data::Grid2D>(
+        QStringLiteral("Mandelbrot"), data::Unit::dimensionless(),
+        std::move(dimX), std::move(dimY), std::move(values));
+
+    showDataset(grid.get(), QStringLiteral("Mandelbrot"));
+
+    data::MemoryManager::instance().trackAllocation(grid->sizeBytes());
+    statusBar()->showMessage(tr("Sample: Mandelbrot (512x512)"));
+    updateMemoryStatus();
+}
+
+void MainWindow::openSampleVolumeSphere() {
+    constexpr std::size_t kSize = 64;
+    constexpr double kRadius = 28.0;
+    constexpr double kCenter = 32.0;
+
+    std::vector<double> values(kSize * kSize * kSize);
+    for (std::size_t z = 0; z < kSize; ++z) {
+        for (std::size_t y = 0; y < kSize; ++y) {
+            for (std::size_t x = 0; x < kSize; ++x) {
+                double dx = static_cast<double>(x) - kCenter;
+                double dy = static_cast<double>(y) - kCenter;
+                double dz = static_cast<double>(z) - kCenter;
+                double dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+                values[(z * kSize + y) * kSize + x] = (dist <= kRadius) ? 1.0 : 0.0;
+            }
+        }
+    }
+
+    data::Dimension dimX{QStringLiteral("x"), data::Unit::dimensionless(),
+                         kSize, data::CoordinateArray(0.0, 1.0, kSize)};
+    data::Dimension dimY{QStringLiteral("y"), data::Unit::dimensionless(),
+                         kSize, data::CoordinateArray(0.0, 1.0, kSize)};
+    data::Dimension dimZ{QStringLiteral("z"), data::Unit::dimensionless(),
+                         kSize, data::CoordinateArray(0.0, 1.0, kSize)};
+
+    auto volume = std::make_shared<data::Volume3D>(
+        QStringLiteral("Volume Sphere"), data::Unit::dimensionless(),
+        std::move(dimX), std::move(dimY), std::move(dimZ), std::move(values));
+
+    showDataset(volume.get(), QStringLiteral("Volume Sphere"));
+
+    data::MemoryManager::instance().trackAllocation(volume->sizeBytes());
+    statusBar()->showMessage(tr("Sample: Volume Sphere (64x64x64)"));
+    updateMemoryStatus();
+}
+
+// ---- Memory Budget Dialog (T24) ----
+
+void MainWindow::showMemoryBudgetDialog() {
+    auto* dialog = new QDialog(this);
+    dialog->setWindowTitle(tr("Preferences"));
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+
+    auto* layout = new QFormLayout(dialog);
+
+    auto* spinBox = new QDoubleSpinBox(dialog);
+    spinBox->setRange(0.25, 64.0);
+    spinBox->setSingleStep(0.25);
+    spinBox->setDecimals(2);
+    spinBox->setSuffix(QStringLiteral(" GB"));
+
+    // Current budget in GB
+    double currentGB = static_cast<double>(data::MemoryManager::instance().memoryBudgetBytes()) / kOneGB;
+    spinBox->setValue(currentGB);
+
+    layout->addRow(tr("Memory Budget:"), spinBox);
+
+    auto* buttons = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, dialog);
+    layout->addRow(buttons);
+
+    connect(buttons, &QDialogButtonBox::accepted, dialog, [this, spinBox, dialog]() {
+        double gb = spinBox->value();
+        auto bytes = static_cast<std::size_t>(gb * kOneGB);
+        data::MemoryManager::instance().setBudget(bytes);
+        updateMemoryStatus();
+        dialog->accept();
+    });
+    connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
+
+    dialog->exec();
+}
+
+// ---- Geometry / Close / About / Save ----
+
 void MainWindow::restoreGeometry() {
     QSettings settings;
     const auto geometry = settings.value(kGeometryKey).toByteArray();
@@ -309,7 +591,7 @@ void MainWindow::showAbout() {
         tr("About Lumen"),
         tr("<h3>Lumen %1</h3>"
            "<p>Standalone interactive scientific plot viewer.</p>"
-           "<p>Phase 1 — Data Layer and First UI Shell.</p>")
+           "<p>Phase 6 — I/O Loaders, Memory Management, and Dataset Types.</p>")
             .arg(QApplication::applicationVersion()));
 }
 
