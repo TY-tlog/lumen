@@ -314,10 +314,15 @@ void MainWindow::showTabular(const data::TabularBundle* bundle, const QString& p
             .arg(bundle->columnCount()));
 }
 
-void MainWindow::showDataset(const data::Dataset* ds, const QString& /*label*/) {
+void MainWindow::showDataset(const data::Dataset* ds, const QString& label) {
     dataTableDock_->showDatasetInfo(ds);
     dataTableDock_->show();
-    updateWindowTitle();
+    dataTableDock_->raise();  // bring to front
+
+    // Hide plot dock for non-tabular data (no plot visualization yet).
+    plotCanvasDock_->hide();
+
+    setWindowTitle(QStringLiteral("Lumen — %1").arg(label));
 }
 
 void MainWindow::addRecentFile(const QString& filePath) {
