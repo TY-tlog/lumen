@@ -67,6 +67,9 @@ public:
     /// Only meaningful after autoRange() has been called. Keeps Auto mode.
     void extendAutoRange(double lo, double hi);
 
+    /// Set the auto-range values directly and switch to Auto mode.
+    void setAutoRangeValues(double lo, double hi);
+
     /// Current minimum value (auto or manual depending on range mode).
     [[nodiscard]] double min() const;
 

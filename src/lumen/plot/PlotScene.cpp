@@ -154,33 +154,60 @@ QRectF PlotScene::computePlotArea(QSizeF widgetSize) const {
 }
 
 void PlotScene::autoRange() {
-    // Start with LineSeries via Axis::autoRange (preserves original behavior).
-    std::vector<LineSeries> lineSeriesVec;
+    // Compute bounds from ALL visible items uniformly via dataBounds().
+    double xLo = std::numeric_limits<double>::max();
+    double xHi = std::numeric_limits<double>::lowest();
+    double yLo = std::numeric_limits<double>::max();
+    double yHi = std::numeric_limits<double>::lowest();
+    bool hasData = false;
+
     for (const auto& item : items_) {
         if (!item->isVisible()) {
             continue;
         }
+        QRectF bounds = item->dataBounds();
+        if (bounds.isNull()) {
+            continue;
+        }
+        hasData = true;
+        xLo = std::min(xLo, bounds.left());
+        xHi = std::max(xHi, bounds.right());
+        yLo = std::min(yLo, bounds.top());
+        yHi = std::max(yHi, bounds.bottom());
+    }
+
+    // Also collect LineSeries for Axis::autoRange (preserves existing behavior).
+    std::vector<LineSeries> lineSeriesVec;
+    for (const auto& item : items_) {
+        if (!item->isVisible()) continue;
         if (auto* ls = dynamic_cast<const LineSeries*>(item.get())) {
             lineSeriesVec.push_back(*ls);
         }
     }
-    xAxis_.autoRange(lineSeriesVec);
-    yAxis_.autoRange(lineSeriesVec);
 
-    // Extend auto range to include non-LineSeries items.
-    for (const auto& item : items_) {
-        if (!item->isVisible()) {
-            continue;
+    if (!hasData) {
+        std::vector<LineSeries> empty;
+        xAxis_.autoRange(empty);
+        yAxis_.autoRange(empty);
+    } else if (!lineSeriesVec.empty()) {
+        // Use Axis::autoRange for LineSeries (preserves old behavior).
+        xAxis_.autoRange(lineSeriesVec);
+        yAxis_.autoRange(lineSeriesVec);
+        // Then extend for non-LineSeries items.
+        for (const auto& item : items_) {
+            if (!item->isVisible()) continue;
+            if (dynamic_cast<const LineSeries*>(item.get())) continue;
+            QRectF b = item->dataBounds();
+            if (b.isEmpty()) continue;
+            xAxis_.extendAutoRange(b.left(), b.right());
+            yAxis_.extendAutoRange(b.top(), b.bottom());
         }
-        if (dynamic_cast<const LineSeries*>(item.get()) != nullptr) {
-            continue;  // Already handled above.
-        }
-        QRectF bounds = item->dataBounds();
-        if (bounds.isEmpty()) {
-            continue;
-        }
-        xAxis_.extendAutoRange(bounds.left(), bounds.right());
-        yAxis_.extendAutoRange(bounds.top(), bounds.bottom());
+    } else {
+        // No LineSeries at all — set range directly from bounds.
+        double xPad = (xHi > xLo) ? (xHi - xLo) * 0.05 : 0.5;
+        double yPad = (yHi > yLo) ? (yHi - yLo) * 0.05 : 0.5;
+        xAxis_.setAutoRangeValues(xLo - xPad, xHi + xPad);
+        yAxis_.setAutoRangeValues(yLo - yPad, yHi + yPad);
     }
 
     viewTransform_.setBaseRange(xAxis_.min(), xAxis_.max(),

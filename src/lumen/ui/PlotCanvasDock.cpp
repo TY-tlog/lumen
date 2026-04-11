@@ -114,23 +114,7 @@ void PlotCanvasDock::buildToolBar() {
 
     toolBar_->addSeparator();
 
-    // Plot type combo (T11).
-    toolBar_->addWidget(new QLabel(QStringLiteral(" Type: "), toolBar_));
-    plotTypeCombo_ = new QComboBox(toolBar_);
-    plotTypeCombo_->addItem(QStringLiteral("Line"));
-    plotTypeCombo_->addItem(QStringLiteral("Scatter"));
-    plotTypeCombo_->addItem(QStringLiteral("Bar"));
-    toolBar_->addWidget(plotTypeCombo_);
-    // When type combo changes, update ALL existing entries' plot type
-    // and rebuild. This lets the user switch the entire plot between
-    // Line/Scatter/Bar modes easily.
-    connect(plotTypeCombo_, &QComboBox::currentIndexChanged, this, [this]() {
-        QString newType = plotTypeCombo_->currentText();
-        for (auto& entry : yEntries_) {
-            entry.plotType = newType;
-        }
-        rebuildPlot();
-    });
+    // Global plot type combo removed. Each Y entry has its own type combo.
 }
 
 void PlotCanvasDock::setPlotRegistry(core::PlotRegistry* registry) {
@@ -402,6 +386,7 @@ void PlotCanvasDock::setDataFrame(const data::TabularBundle* bundle, const QStri
     // Clear existing Y entries.
     for (auto& entry : yEntries_) {
         delete entry.combo;
+        delete entry.typeCombo;
         delete entry.removeBtn;
     }
     yEntries_.clear();
@@ -441,6 +426,13 @@ void PlotCanvasDock::addYSeries() {
     }
     combo->blockSignals(false);
 
+    // Per-entry type combo (Line/Scatter/Bar).
+    auto* typeCombo = new QComboBox(yContainer_);
+    typeCombo->addItem(QStringLiteral("Line"));
+    typeCombo->addItem(QStringLiteral("Scatter"));
+    typeCombo->addItem(QStringLiteral("Bar"));
+    typeCombo->setFixedWidth(80);
+
     QPushButton* removeBtn = nullptr;
     // Only show remove button for non-first entries.
     if (!yEntries_.empty()) {
@@ -453,19 +445,19 @@ void PlotCanvasDock::addYSeries() {
         });
     }
 
+    yLayout_->addWidget(typeCombo);
     yLayout_->addWidget(combo);
     if (removeBtn != nullptr) {
         yLayout_->addWidget(removeBtn);
     }
 
-    // Store the entry with the CURRENT plot type combo value.
-    QString currentType = (plotTypeCombo_ != nullptr)
-                              ? plotTypeCombo_->currentText()
-                              : QStringLiteral("Line");
-    yEntries_.push_back({combo, removeBtn, currentType});
+    yEntries_.push_back({combo, typeCombo, removeBtn});
 
     // Connect AFTER push_back so the entry exists when rebuild runs.
     connect(combo, &QComboBox::currentIndexChanged, this, [this]() {
+        rebuildPlot();
+    });
+    connect(typeCombo, &QComboBox::currentIndexChanged, this, [this]() {
         rebuildPlot();
     });
 
@@ -480,6 +472,7 @@ void PlotCanvasDock::removeYSeries(int index) {
 
     auto& entry = yEntries_[static_cast<std::size_t>(index)];
     delete entry.combo;
+    delete entry.typeCombo;
     delete entry.removeBtn;
     yEntries_.erase(yEntries_.begin() + index);
 
@@ -537,9 +530,10 @@ void PlotCanvasDock::rebuildPlot() {
             continue;
         }
 
-        // Use the plot type stored per-entry (set at add time),
-        // not the combo's current value (which affects new additions only).
-        QString plotType = entry.plotType;
+        // Read plot type from per-entry type combo.
+        QString plotType = (entry.typeCombo != nullptr)
+                               ? entry.typeCombo->currentText()
+                               : QStringLiteral("Line");
 
         if (plotType == QStringLiteral("Scatter")) {
             auto scatter = std::make_unique<plot::ScatterSeries>(

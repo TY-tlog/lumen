@@ -30,25 +30,26 @@ std::optional<HitTester::HitResult> HitTester::hitTest(
 
     const auto& allItems = scene.items();
     for (std::size_t i = 0; i < allItems.size(); ++i) {
-        const auto* item = allItems[i].get();
-        if (!item->isVisible()) {
-            continue;
-        }
+        const auto& item = allItems[i];
 
         double minDistForItem = std::numeric_limits<double>::max();
 
-        if (const auto* ls = dynamic_cast<const LineSeries*>(item)) {
-            // Line: segment distance
+        if (const auto* ls = dynamic_cast<const LineSeries*>(item.get())) {
+            // Line: original segment-distance logic (preserved from Phase 3a).
             auto polylines = ls->buildPolylines();
             for (const auto& polyline : polylines) {
-                for (int j = 0; j + 1 < polyline.size(); ++j) {
-                    QPointF pixelA = mapper.dataToPixel(polyline[j].x(), polyline[j].y());
-                    QPointF pixelB = mapper.dataToPixel(polyline[j + 1].x(), polyline[j + 1].y());
+                for (qsizetype j = 0; j + 1 < polyline.size(); ++j) {
+                    const QPointF& dataA = polyline[j];
+                    const QPointF& dataB = polyline[j + 1];
+                    QPointF pixelA = mapper.dataToPixel(dataA.x(), dataA.y());
+                    QPointF pixelB = mapper.dataToPixel(dataB.x(), dataB.y());
                     double dist = pointToSegmentDistance(pixelPos, pixelA, pixelB);
-                    minDistForItem = std::min(minDistForItem, dist);
+                    if (dist < minDistForItem) {
+                        minDistForItem = dist;
+                    }
                 }
             }
-        } else if (const auto* ss = dynamic_cast<const ScatterSeries*>(item)) {
+        } else if (const auto* ss = dynamic_cast<const ScatterSeries*>(item.get())) {
             // Scatter: distance to nearest marker center
             const auto& xData = ss->xDataset()->doubleData();
             const auto& yData = ss->yDataset()->doubleData();
@@ -60,7 +61,7 @@ std::optional<HitTester::HitResult> HitTester::hitTest(
                 double dist = std::sqrt(dx * dx + dy * dy);
                 minDistForItem = std::min(minDistForItem, dist);
             }
-        } else if (const auto* bs = dynamic_cast<const BarSeries*>(item)) {
+        } else if (const auto* bs = dynamic_cast<const BarSeries*>(item.get())) {
             // Bar: distance to nearest bar rect center
             const auto& xData = bs->xDataset()->doubleData();
             const auto& yData = bs->yDataset()->doubleData();
