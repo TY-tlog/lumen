@@ -5,7 +5,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <data/Column.h>
+#include <data/Rank1Dataset.h>
+#include <data/Unit.h>
+#include <memory>
 #include <plot/LineSeries.h>
 #include <plot/PlotRenderer.h>
 #include <plot/PlotScene.h>
@@ -54,11 +56,11 @@ TEST_CASE("PlotRenderer renders background", "[plotrenderer]") {
 TEST_CASE("PlotRenderer renders non-empty image with series", "[plotrenderer]") {
     std::vector<double> x = {0.0, 1.0, 2.0, 3.0, 4.0};
     std::vector<double> y = {0.0, 10.0, 5.0, 15.0, 3.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol = std::make_shared<lumen::data::Rank1Dataset>("y", lumen::data::Unit::dimensionless(), y);
 
     PlotScene scene;
-    scene.addSeries(LineSeries(&xCol, &yCol, PlotStyle::fromPalette(0), "test"));
+    scene.addSeries(LineSeries(xCol, yCol, PlotStyle::fromPalette(0), "test"));
     scene.autoRange();
     scene.setTitle("Test Plot");
 

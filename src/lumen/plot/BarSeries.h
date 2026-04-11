@@ -4,22 +4,24 @@
 
 #include <QString>
 
+#include <memory>
+
 namespace lumen::data {
-class Column;
+class Rank1Dataset;
 } // namespace lumen::data
 
 namespace lumen::plot {
 
-/// A bar chart series referencing X and Y columns from a DataFrame.
+/// A bar chart series referencing X and Y Rank1Datasets.
 ///
 /// Draws vertical bars from the y=0 baseline to each data point.
-/// Bar width is relative to median X spacing. Both columns must be Double type.
+/// Bar width is relative to median X spacing. Both datasets must contain double data.
 class BarSeries : public PlotItem {
 public:
-    /// Construct a bar series from X and Y columns.
-    /// Both columns must be Double type.
-    /// @throws std::invalid_argument if columns are not Double type or have different row counts.
-    BarSeries(const data::Column* xCol, const data::Column* yCol,
+    /// Construct a bar series from X and Y Rank1Datasets.
+    /// Both datasets must contain double data.
+    /// @throws std::invalid_argument if datasets are null, not double type, or have different row counts.
+    BarSeries(std::shared_ptr<data::Rank1Dataset> xDs, std::shared_ptr<data::Rank1Dataset> yDs,
               QColor fillColor, QString name = {});
 
     // --- PlotItem overrides ---
@@ -42,14 +44,14 @@ public:
     [[nodiscard]] QColor fillColor() const { return fillColor_; }
     [[nodiscard]] QColor outlineColor() const { return outlineColor_; }
     [[nodiscard]] double barWidth() const { return barWidth_; }
-    [[nodiscard]] const data::Column* xColumn() const { return xCol_; }
-    [[nodiscard]] const data::Column* yColumn() const { return yCol_; }
+    [[nodiscard]] const std::shared_ptr<data::Rank1Dataset>& xDataset() const { return xDs_; }
+    [[nodiscard]] const std::shared_ptr<data::Rank1Dataset>& yDataset() const { return yDs_; }
 
 private:
     double computeMedianXSpacing() const;
 
-    const data::Column* xCol_;
-    const data::Column* yCol_;
+    std::shared_ptr<data::Rank1Dataset> xDs_;
+    std::shared_ptr<data::Rank1Dataset> yDs_;
     QColor fillColor_;
     QColor outlineColor_ = Qt::transparent;
     double barWidth_ = 0.8;

@@ -20,7 +20,7 @@ class PlotRegistry;
 }
 
 namespace lumen::data {
-class DataFrame;
+class TabularBundle;
 }
 
 namespace lumen::plot {
@@ -49,10 +49,10 @@ public:
     /// Set the CommandBus for undo-able property changes.
     void setCommandBus(core::CommandBus* bus);
 
-    /// Set the DataFrame to plot. Populates column pickers and creates
+    /// Set the TabularBundle to plot. Populates column pickers and creates
     /// default plot (first numeric col as X, second as Y).
     /// @p documentPath is used to register the canvas in PlotRegistry.
-    void setDataFrame(const data::DataFrame* df, const QString& documentPath = {});
+    void setDataFrame(const data::TabularBundle* bundle, const QString& documentPath = {});
 
     /// Access the canvas widget.
     [[nodiscard]] PlotCanvas* canvas() const { return canvas_; }
@@ -91,7 +91,7 @@ private:
 
     core::CommandBus* commandBus_ = nullptr;
     core::PlotRegistry* registry_ = nullptr;
-    const data::DataFrame* dataFrame_ = nullptr;
+    const data::TabularBundle* bundle_ = nullptr;
     QString documentPath_;
     std::unique_ptr<plot::PlotScene> scene_;
     QStringList numericColumns_;

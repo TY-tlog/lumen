@@ -175,14 +175,14 @@ void MainWindow::loadFile(const QString& filePath) {
 
     connect(loader, &data::FileLoader::finished, this,
             [this, loader](const QString& path,
-                           std::shared_ptr<lumen::data::DataFrame> df) {
-                const auto* rawDf = registry_->addDocument(path, std::move(df));
+                           std::shared_ptr<lumen::data::TabularBundle> bundle) {
+                const auto* rawBundle = registry_->addDocument(path, std::move(bundle));
 
-                dataTableDock_->showDataFrame(rawDf);
+                dataTableDock_->showDataFrame(rawBundle);
                 dataTableDock_->show();
 
                 // Auto-plot.
-                plotCanvasDock_->setDataFrame(rawDf, path);
+                plotCanvasDock_->setDataFrame(rawBundle, path);
                 plotCanvasDock_->show();
 
                 currentDocPath_ = path;
@@ -195,8 +195,8 @@ void MainWindow::loadFile(const QString& filePath) {
                 statusBar()->showMessage(
                     tr("Loaded %1 (%2 rows x %3 cols)")
                         .arg(info.fileName())
-                        .arg(rawDf->rowCount())
-                        .arg(rawDf->columnCount()));
+                        .arg(rawBundle->rowCount())
+                        .arg(rawBundle->columnCount()));
 
                 addRecentFile(path);
                 loader->deleteLater();

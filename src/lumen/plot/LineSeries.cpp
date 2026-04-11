@@ -1,7 +1,6 @@
 #include "plot/LineSeries.h"
 
-#include "data/Column.h"
-#include "data/ColumnType.h"
+#include "data/Rank1Dataset.h"
 #include "plot/CoordinateMapper.h"
 
 #include <QPen>
@@ -13,25 +12,31 @@
 
 namespace lumen::plot {
 
-LineSeries::LineSeries(const data::Column* xCol, const data::Column* yCol,
+LineSeries::LineSeries(std::shared_ptr<data::Rank1Dataset> xDs,
+                       std::shared_ptr<data::Rank1Dataset> yDs,
                        PlotStyle style, QString name)
-    : xCol_(xCol)
-    , yCol_(yCol)
+    : xDs_(std::move(xDs))
+    , yDs_(std::move(yDs))
     , style_(std::move(style))
     , name_(std::move(name))
 {
-    if (xCol_ == nullptr || yCol_ == nullptr) {
-        throw std::invalid_argument("LineSeries: columns must not be null");
+    if (xDs_ == nullptr || yDs_ == nullptr) {
+        throw std::invalid_argument("LineSeries: datasets must not be null");
     }
-    if (xCol_->type() != data::ColumnType::Double) {
-        throw std::invalid_argument("LineSeries: X column must be Double type");
+    // Verify double data by attempting access (will throw bad_variant_access if wrong type)
+    try {
+        (void)xDs_->doubleData();
+    } catch (...) {
+        throw std::invalid_argument("LineSeries: X dataset must be Double type");
     }
-    if (yCol_->type() != data::ColumnType::Double) {
-        throw std::invalid_argument("LineSeries: Y column must be Double type");
+    try {
+        (void)yDs_->doubleData();
+    } catch (...) {
+        throw std::invalid_argument("LineSeries: Y dataset must be Double type");
     }
-    if (xCol_->rowCount() != yCol_->rowCount()) {
+    if (xDs_->rowCount() != yDs_->rowCount()) {
         throw std::invalid_argument(
-            "LineSeries: X and Y columns must have the same row count");
+            "LineSeries: X and Y datasets must have the same row count");
     }
 }
 
@@ -39,8 +44,8 @@ std::vector<QPolygonF> LineSeries::buildPolylines() const
 {
     std::vector<QPolygonF> result;
 
-    const auto& xData = xCol_->doubleData();
-    const auto& yData = yCol_->doubleData();
+    const auto& xData = xDs_->doubleData();
+    const auto& yData = yDs_->doubleData();
     const auto count = xData.size();
 
     QPolygonF current;
@@ -70,8 +75,8 @@ std::vector<QPolygonF> LineSeries::buildPolylines() const
 
 DataRange LineSeries::dataRange() const
 {
-    const auto& xData = xCol_->doubleData();
-    const auto& yData = yCol_->doubleData();
+    const auto& xData = xDs_->doubleData();
+    const auto& yData = yDs_->doubleData();
     const auto count = xData.size();
 
     double xMin = std::numeric_limits<double>::max();

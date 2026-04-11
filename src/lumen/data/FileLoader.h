@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CsvError.h"
-#include "DataFrame.h"
+#include "TabularBundle.h"
 
 #include <QMetaType>
 #include <QObject>
@@ -16,13 +16,13 @@ namespace lumen::data {
 ///
 /// Usage:
 ///   auto* loader = new FileLoader(this);
-///   connect(loader, &FileLoader::finished, this, [&](auto path, auto df) {
-///       registry.addDocument(path, df);
+///   connect(loader, &FileLoader::finished, this, [&](auto path, auto bundle) {
+///       registry.addDocument(path, bundle);
 ///   });
 ///   loader->load("/path/to/file.csv");
 ///
 /// The loader creates a QThread per load and destroys it on completion.
-/// On success the finished signal carries a shared_ptr<DataFrame>.
+/// On success the finished signal carries a shared_ptr<TabularBundle>.
 /// The caller is responsible for registering the result in a
 /// DocumentRegistry if desired.
 class FileLoader : public QObject {
@@ -49,7 +49,7 @@ signals:
     void progress(int percent);
 
     /// Emitted on successful load.
-    void finished(const QString& path, std::shared_ptr<lumen::data::DataFrame> result);
+    void finished(const QString& path, std::shared_ptr<lumen::data::TabularBundle> result);
 
     /// Emitted on failure (parse error or file-not-found).
     void failed(const QString& path, const QString& errorMessage);
@@ -63,4 +63,4 @@ private:
 
 } // namespace lumen::data
 
-Q_DECLARE_METATYPE(std::shared_ptr<lumen::data::DataFrame>)
+Q_DECLARE_METATYPE(std::shared_ptr<lumen::data::TabularBundle>)

@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <data/Column.h>
+#include <data/Rank1Dataset.h>
+#include <data/Unit.h>
+#include <memory>
 #include <plot/CoordinateMapper.h>
 #include <plot/HitTester.h>
 #include <plot/LineSeries.h>
@@ -33,11 +35,11 @@ TEST_CASE("hitTestPoint: nearest sample on simple data", "[hittestpoint]") {
     // x = [0, 1, 2, 3, 4], y = [0, 10, 20, 30, 40]
     std::vector<double> x = {0.0, 1.0, 2.0, 3.0, 4.0};
     std::vector<double> y = {0.0, 10.0, 20.0, 30.0, 40.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol = std::make_shared<lumen::data::Rank1Dataset>("y", lumen::data::Unit::dimensionless(), y);
 
     PlotScene scene;
-    scene.addSeries(LineSeries(&xCol, &yCol, PlotStyle::fromPalette(0), "sig"));
+    scene.addSeries(LineSeries(xCol, yCol, PlotStyle::fromPalette(0), "sig"));
     scene.autoRange();
 
     CoordinateMapper mapper = makeMapper(scene);
@@ -59,11 +61,11 @@ TEST_CASE("hitTestPoint: between two samples returns closer one",
     // x = [0, 10, 20, 30], y = [0, 0, 0, 0] -- horizontal line, evenly spaced.
     std::vector<double> x = {0.0, 10.0, 20.0, 30.0};
     std::vector<double> y = {0.0, 0.0, 0.0, 0.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol = std::make_shared<lumen::data::Rank1Dataset>("y", lumen::data::Unit::dimensionless(), y);
 
     PlotScene scene;
-    scene.addSeries(LineSeries(&xCol, &yCol, PlotStyle::fromPalette(0), "flat"));
+    scene.addSeries(LineSeries(xCol, yCol, PlotStyle::fromPalette(0), "flat"));
     scene.autoRange();
 
     CoordinateMapper mapper = makeMapper(scene);
@@ -95,12 +97,12 @@ TEST_CASE("hitTestPoint: NaN sample is skipped", "[hittestpoint]") {
     std::vector<double> x = {0.0, 1.0, 2.0, 3.0};
     std::vector<double> y = {0.0, std::numeric_limits<double>::quiet_NaN(),
                              20.0, 30.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol = std::make_shared<lumen::data::Rank1Dataset>("y", lumen::data::Unit::dimensionless(), y);
 
     PlotScene scene;
     scene.addSeries(
-        LineSeries(&xCol, &yCol, PlotStyle::fromPalette(0), "nan_test"));
+        LineSeries(xCol, yCol, PlotStyle::fromPalette(0), "nan_test"));
     scene.autoRange();
 
     CoordinateMapper mapper = makeMapper(scene);
@@ -122,11 +124,11 @@ TEST_CASE("hitTestPoint: outside max distance returns nullopt",
           "[hittestpoint]") {
     std::vector<double> x = {0.0, 1.0};
     std::vector<double> y = {0.0, 0.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol = std::make_shared<lumen::data::Rank1Dataset>("y", lumen::data::Unit::dimensionless(), y);
 
     PlotScene scene;
-    scene.addSeries(LineSeries(&xCol, &yCol, PlotStyle::fromPalette(0)));
+    scene.addSeries(LineSeries(xCol, yCol, PlotStyle::fromPalette(0)));
     scene.autoRange();
 
     CoordinateMapper mapper = makeMapper(scene);
@@ -149,15 +151,15 @@ TEST_CASE("hitTestPoint: multiple series returns nearest series",
     std::vector<double> x = {0.0, 5.0, 10.0};
     std::vector<double> y0 = {0.0, 0.0, 0.0};
     std::vector<double> y1 = {100.0, 100.0, 100.0};
-    Column xCol("x", x);
-    Column yCol0("y0", y0);
-    Column yCol1("y1", y1);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol0 = std::make_shared<lumen::data::Rank1Dataset>("y0", lumen::data::Unit::dimensionless(), y0);
+    auto yCol1 = std::make_shared<lumen::data::Rank1Dataset>("y1", lumen::data::Unit::dimensionless(), y1);
 
     PlotScene scene;
     scene.addSeries(
-        LineSeries(&xCol, &yCol0, PlotStyle::fromPalette(0), "bottom"));
+        LineSeries(xCol, yCol0, PlotStyle::fromPalette(0), "bottom"));
     scene.addSeries(
-        LineSeries(&xCol, &yCol1, PlotStyle::fromPalette(1), "top"));
+        LineSeries(xCol, yCol1, PlotStyle::fromPalette(1), "top"));
     scene.autoRange();
 
     CoordinateMapper mapper = makeMapper(scene);
@@ -198,15 +200,15 @@ TEST_CASE("hitTestPoint: invisible series is skipped", "[hittestpoint]") {
     std::vector<double> x = {0.0, 5.0, 10.0};
     std::vector<double> y0 = {50.0, 50.0, 50.0};
     std::vector<double> y1 = {48.0, 48.0, 48.0};
-    Column xCol("x", x);
-    Column yCol0("y0", y0);
-    Column yCol1("y1", y1);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol0 = std::make_shared<lumen::data::Rank1Dataset>("y0", lumen::data::Unit::dimensionless(), y0);
+    auto yCol1 = std::make_shared<lumen::data::Rank1Dataset>("y1", lumen::data::Unit::dimensionless(), y1);
 
     PlotScene scene;
     scene.addSeries(
-        LineSeries(&xCol, &yCol0, PlotStyle::fromPalette(0), "hidden"));
+        LineSeries(xCol, yCol0, PlotStyle::fromPalette(0), "hidden"));
     scene.addSeries(
-        LineSeries(&xCol, &yCol1, PlotStyle::fromPalette(1), "visible"));
+        LineSeries(xCol, yCol1, PlotStyle::fromPalette(1), "visible"));
     scene.autoRange();
 
     // Hide series 0.

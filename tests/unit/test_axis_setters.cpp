@@ -5,7 +5,9 @@
 #include <plot/Axis.h>
 #include <plot/LineSeries.h>
 #include <plot/PlotStyle.h>
-#include <data/Column.h>
+#include <data/Rank1Dataset.h>
+#include <data/Unit.h>
+#include <memory>
 
 using namespace lumen::plot;
 using namespace lumen::data;
@@ -58,9 +60,9 @@ TEST_CASE("Axis Manual range mode uses manualMin/manualMax for ticks", "[axis][s
     // Set auto range first.
     std::vector<double> xData = {0.0, 100.0};
     std::vector<double> yData = {0.0, 100.0};
-    Column xCol("x", xData);
-    Column yCol("y", yData);
-    LineSeries series(&xCol, &yCol, PlotStyle::fromPalette(0));
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), xData);
+    auto yCol = std::make_shared<lumen::data::Rank1Dataset>("y", lumen::data::Unit::dimensionless(), yData);
+    LineSeries series(xCol, yCol, PlotStyle::fromPalette(0));
     axis.autoRange({series});
 
     double autoMin = axis.min();

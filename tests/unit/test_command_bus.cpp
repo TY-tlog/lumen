@@ -3,7 +3,9 @@
 #include "core/Command.h"
 #include "core/CommandBus.h"
 #include "core/commands/ChangeLineStyleCommand.h"
-#include "data/Column.h"
+#include "data/Rank1Dataset.h"
+#include "data/Unit.h"
+#include <memory>
 #include "plot/LineSeries.h"
 #include "plot/PlotScene.h"
 #include "plot/PlotStyle.h"
@@ -16,7 +18,8 @@
 using lumen::core::Command;
 using lumen::core::CommandBus;
 using lumen::core::commands::ChangeLineStyleCommand;
-using lumen::data::Column;
+using lumen::data::Rank1Dataset;
+using lumen::data::Unit;
 using lumen::plot::LineSeries;
 using lumen::plot::PlotScene;
 using lumen::plot::PlotStyle;
@@ -169,8 +172,8 @@ TEST_CASE("CommandBus: undo/redo on empty stacks is safe",
 TEST_CASE("ChangeLineStyleCommand: execute changes style, undo restores",
           "[core][command_bus][change_line_style]") {
     // Build a PlotScene with one series.
-    Column xCol("x", std::vector<double>{1.0, 2.0, 3.0});
-    Column yCol("y", std::vector<double>{10.0, 20.0, 30.0});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{1.0, 2.0, 3.0});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{10.0, 20.0, 30.0});
 
     PlotStyle originalStyle;
     originalStyle.color = QColor(Qt::red);
@@ -178,7 +181,7 @@ TEST_CASE("ChangeLineStyleCommand: execute changes style, undo restores",
     originalStyle.penStyle = Qt::SolidLine;
 
     PlotScene scene;
-    scene.addSeries(LineSeries(&xCol, &yCol, originalStyle, "Original"));
+    scene.addSeries(LineSeries(xCol, yCol, originalStyle, "Original"));
 
     // Verify initial state.
     CHECK(scene.seriesAt(0).style().color == QColor(Qt::red));
@@ -214,11 +217,11 @@ TEST_CASE("ChangeLineStyleCommand: execute changes style, undo restores",
 
 TEST_CASE("ChangeLineStyleCommand: round-trip through CommandBus",
           "[core][command_bus][change_line_style]") {
-    Column xCol("x", std::vector<double>{1.0, 2.0});
-    Column yCol("y", std::vector<double>{10.0, 20.0});
+    auto xCol = std::make_shared<Rank1Dataset>("x", Unit::dimensionless(), std::vector<double>{1.0, 2.0});
+    auto yCol = std::make_shared<Rank1Dataset>("y", Unit::dimensionless(), std::vector<double>{10.0, 20.0});
 
     PlotScene scene;
-    scene.addSeries(LineSeries(&xCol, &yCol,
+    scene.addSeries(LineSeries(xCol, yCol,
                                PlotStyle::fromPalette(0), "SeriesA"));
 
     CommandBus bus;

@@ -31,9 +31,9 @@ DataTableDock::DataTableDock(QWidget* parent)
     setWidget(tableView_);
 }
 
-void DataTableDock::showDataFrame(const data::DataFrame* df) {
-    model_->setDataFrame(df);
-    if (df != nullptr) {
+void DataTableDock::showDataFrame(const data::TabularBundle* bundle) {
+    model_->setDataFrame(bundle);
+    if (bundle != nullptr) {
         tableView_->resizeColumnsToContents();
     }
 }

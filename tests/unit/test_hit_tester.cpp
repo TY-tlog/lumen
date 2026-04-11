@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <data/Column.h>
+#include <data/Rank1Dataset.h>
+#include <data/Unit.h>
+#include <memory>
 #include <plot/CoordinateMapper.h>
 #include <plot/HitTester.h>
 #include <plot/LineSeries.h>
@@ -26,11 +28,11 @@ TEST_CASE("HitTester: point on a diagonal line returns correct series", "[hittes
     // Series 0: diagonal from (0,0) to (10,10).
     std::vector<double> x = {0.0, 10.0};
     std::vector<double> y = {0.0, 10.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol = std::make_shared<lumen::data::Rank1Dataset>("y", lumen::data::Unit::dimensionless(), y);
 
     PlotScene scene;
-    scene.addSeries(LineSeries(&xCol, &yCol, PlotStyle::fromPalette(0), "diag"));
+    scene.addSeries(LineSeries(xCol, yCol, PlotStyle::fromPalette(0), "diag"));
     scene.autoRange();
 
     CoordinateMapper mapper = makeMapper(scene);
@@ -51,13 +53,13 @@ TEST_CASE("HitTester: point between two series returns nearest", "[hittester]") 
     // Series 1: horizontal line at y=10.
     std::vector<double> y1 = {10.0, 10.0};
 
-    Column xCol("x", x);
-    Column yCol0("y0", y0);
-    Column yCol1("y1", y1);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol0 = std::make_shared<lumen::data::Rank1Dataset>("y0", lumen::data::Unit::dimensionless(), y0);
+    auto yCol1 = std::make_shared<lumen::data::Rank1Dataset>("y1", lumen::data::Unit::dimensionless(), y1);
 
     PlotScene scene;
-    scene.addSeries(LineSeries(&xCol, &yCol0, PlotStyle::fromPalette(0), "low"));
-    scene.addSeries(LineSeries(&xCol, &yCol1, PlotStyle::fromPalette(1), "high"));
+    scene.addSeries(LineSeries(xCol, yCol0, PlotStyle::fromPalette(0), "low"));
+    scene.addSeries(LineSeries(xCol, yCol1, PlotStyle::fromPalette(1), "high"));
     scene.autoRange();
 
     CoordinateMapper mapper = makeMapper(scene);
@@ -78,11 +80,11 @@ TEST_CASE("HitTester: point between two series returns nearest", "[hittester]") 
 TEST_CASE("HitTester: point far from all series returns nullopt", "[hittester]") {
     std::vector<double> x = {0.0, 10.0};
     std::vector<double> y = {0.0, 10.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol = std::make_shared<lumen::data::Rank1Dataset>("y", lumen::data::Unit::dimensionless(), y);
 
     PlotScene scene;
-    scene.addSeries(LineSeries(&xCol, &yCol, PlotStyle::fromPalette(0)));
+    scene.addSeries(LineSeries(xCol, yCol, PlotStyle::fromPalette(0)));
     scene.autoRange();
 
     CoordinateMapper mapper = makeMapper(scene);
@@ -110,15 +112,15 @@ TEST_CASE("HitTester: three series, correct disambiguation", "[hittester]") {
     std::vector<double> y1 = {50.0, 50.0};
     std::vector<double> y2 = {100.0, 100.0};
 
-    Column xCol("x", x);
-    Column yCol0("y0", y0);
-    Column yCol1("y1", y1);
-    Column yCol2("y2", y2);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol0 = std::make_shared<lumen::data::Rank1Dataset>("y0", lumen::data::Unit::dimensionless(), y0);
+    auto yCol1 = std::make_shared<lumen::data::Rank1Dataset>("y1", lumen::data::Unit::dimensionless(), y1);
+    auto yCol2 = std::make_shared<lumen::data::Rank1Dataset>("y2", lumen::data::Unit::dimensionless(), y2);
 
     PlotScene scene;
-    scene.addSeries(LineSeries(&xCol, &yCol0, PlotStyle::fromPalette(0), "bottom"));
-    scene.addSeries(LineSeries(&xCol, &yCol1, PlotStyle::fromPalette(1), "middle"));
-    scene.addSeries(LineSeries(&xCol, &yCol2, PlotStyle::fromPalette(2), "top"));
+    scene.addSeries(LineSeries(xCol, yCol0, PlotStyle::fromPalette(0), "bottom"));
+    scene.addSeries(LineSeries(xCol, yCol1, PlotStyle::fromPalette(1), "middle"));
+    scene.addSeries(LineSeries(xCol, yCol2, PlotStyle::fromPalette(2), "top"));
     scene.autoRange();
 
     CoordinateMapper mapper = makeMapper(scene);
@@ -144,11 +146,11 @@ TEST_CASE("HitTester: tolerance boundary", "[hittester]") {
     // Horizontal line at y=5 from x=0 to x=10.
     std::vector<double> x = {0.0, 10.0};
     std::vector<double> y = {5.0, 5.0};
-    Column xCol("x", x);
-    Column yCol("y", y);
+    auto xCol = std::make_shared<lumen::data::Rank1Dataset>("x", lumen::data::Unit::dimensionless(), x);
+    auto yCol = std::make_shared<lumen::data::Rank1Dataset>("y", lumen::data::Unit::dimensionless(), y);
 
     PlotScene scene;
-    scene.addSeries(LineSeries(&xCol, &yCol, PlotStyle::fromPalette(0)));
+    scene.addSeries(LineSeries(xCol, yCol, PlotStyle::fromPalette(0)));
     scene.autoRange();
 
     CoordinateMapper mapper = makeMapper(scene);

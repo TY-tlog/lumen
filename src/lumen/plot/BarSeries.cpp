@@ -1,7 +1,6 @@
 #include "plot/BarSeries.h"
 
-#include "data/Column.h"
-#include "data/ColumnType.h"
+#include "data/Rank1Dataset.h"
 #include "plot/CoordinateMapper.h"
 
 #include <QPen>
@@ -15,32 +14,37 @@
 
 namespace lumen::plot {
 
-BarSeries::BarSeries(const data::Column* xCol, const data::Column* yCol,
+BarSeries::BarSeries(std::shared_ptr<data::Rank1Dataset> xDs,
+                     std::shared_ptr<data::Rank1Dataset> yDs,
                      QColor fillColor, QString name)
-    : xCol_(xCol)
-    , yCol_(yCol)
+    : xDs_(std::move(xDs))
+    , yDs_(std::move(yDs))
     , fillColor_(std::move(fillColor))
     , name_(std::move(name))
 {
-    if (xCol_ == nullptr || yCol_ == nullptr) {
-        throw std::invalid_argument("BarSeries: columns must not be null");
+    if (xDs_ == nullptr || yDs_ == nullptr) {
+        throw std::invalid_argument("BarSeries: datasets must not be null");
     }
-    if (xCol_->type() != data::ColumnType::Double) {
-        throw std::invalid_argument("BarSeries: X column must be Double type");
+    try {
+        (void)xDs_->doubleData();
+    } catch (...) {
+        throw std::invalid_argument("BarSeries: X dataset must be Double type");
     }
-    if (yCol_->type() != data::ColumnType::Double) {
-        throw std::invalid_argument("BarSeries: Y column must be Double type");
+    try {
+        (void)yDs_->doubleData();
+    } catch (...) {
+        throw std::invalid_argument("BarSeries: Y dataset must be Double type");
     }
-    if (xCol_->rowCount() != yCol_->rowCount()) {
+    if (xDs_->rowCount() != yDs_->rowCount()) {
         throw std::invalid_argument(
-            "BarSeries: X and Y columns must have the same row count");
+            "BarSeries: X and Y datasets must have the same row count");
     }
 }
 
 QRectF BarSeries::dataBounds() const
 {
-    const auto& xData = xCol_->doubleData();
-    const auto& yData = yCol_->doubleData();
+    const auto& xData = xDs_->doubleData();
+    const auto& yData = yDs_->doubleData();
     const auto count = xData.size();
 
     double xMin = std::numeric_limits<double>::max();
@@ -78,7 +82,7 @@ double BarSeries::computeMedianXSpacing() const
         return cachedMedianSpacing_;
     }
 
-    const auto& xData = xCol_->doubleData();
+    const auto& xData = xDs_->doubleData();
 
     // Collect valid (non-NaN) X values and sort them.
     std::vector<double> validX;
@@ -127,8 +131,8 @@ void BarSeries::paint(QPainter* painter, const CoordinateMapper& mapper,
     painter->save();
     painter->setClipRect(plotArea);
 
-    const auto& xData = xCol_->doubleData();
-    const auto& yData = yCol_->doubleData();
+    const auto& xData = xDs_->doubleData();
+    const auto& yData = yDs_->doubleData();
     const auto count = xData.size();
 
     const double medianSpacing = computeMedianXSpacing();

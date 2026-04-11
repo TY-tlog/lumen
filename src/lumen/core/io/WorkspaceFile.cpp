@@ -1,6 +1,7 @@
 #include "WorkspaceFile.h"
 
-#include "data/DataFrame.h"
+#include "data/Rank1Dataset.h"
+#include "data/TabularBundle.h"
 #include "plot/Axis.h"
 #include "plot/Legend.h"
 #include "plot/LineSeries.h"
@@ -17,7 +18,7 @@ namespace lumen::core::io {
 
 namespace {
 
-// --- Enum ↔ string helpers ---
+// --- Enum <-> string helpers ---
 
 QString rangeModeToString(plot::RangeMode mode)
 {
@@ -219,8 +220,8 @@ WorkspaceFile WorkspaceFile::captureFromScene(const plot::PlotScene* scene)
 
         QJsonObject sObj;
         sObj[QLatin1String("type")]      = QStringLiteral("line");
-        sObj[QLatin1String("xColumn")]   = ls->xColumn() ? ls->xColumn()->name() : QString();
-        sObj[QLatin1String("yColumn")]   = ls->yColumn() ? ls->yColumn()->name() : QString();
+        sObj[QLatin1String("xColumn")]   = ls->xDataset() ? ls->xDataset()->name() : QString();
+        sObj[QLatin1String("yColumn")]   = ls->yDataset() ? ls->yDataset()->name() : QString();
         sObj[QLatin1String("color")]     = ls->style().color.name(QColor::HexRgb);
         sObj[QLatin1String("lineWidth")] = ls->style().lineWidth;
         sObj[QLatin1String("lineStyle")] = penStyleToString(ls->style().penStyle);
@@ -237,7 +238,7 @@ WorkspaceFile WorkspaceFile::captureFromScene(const plot::PlotScene* scene)
 }
 
 void WorkspaceFile::applyToScene(plot::PlotScene* scene,
-                                 const data::DataFrame* df) const
+                                 const data::TabularBundle* bundle) const
 {
     if (!valid_ || !scene) return;
 
@@ -283,8 +284,8 @@ void WorkspaceFile::applyToScene(plot::PlotScene* scene,
             scene->legend().setVisible(lg[QLatin1String("visible")].toBool(true));
     }
 
-    // Series — resolve column names against the DataFrame.
-    if (plotObj.contains(QLatin1String("series")) && df) {
+    // Series — resolve column names against the TabularBundle.
+    if (plotObj.contains(QLatin1String("series")) && bundle) {
         scene->clearItems();
         const QJsonArray seriesArr = plotObj[QLatin1String("series")].toArray();
         for (const auto& val : seriesArr) {
@@ -294,13 +295,27 @@ void WorkspaceFile::applyToScene(plot::PlotScene* scene,
             const QString typeStr = sObj[QLatin1String("type")].toString(QStringLiteral("line"));
 
             if (typeStr == QLatin1String("line")) {
-                const QString xColName = sObj[QLatin1String("xColumn")].toString();
-                const QString yColName = sObj[QLatin1String("yColumn")].toString();
+                // v1 backward compat: support both string name and integer index
+                std::shared_ptr<data::Rank1Dataset> xDs;
+                std::shared_ptr<data::Rank1Dataset> yDs;
 
-                const data::Column* xCol = df->columnByName(xColName);
-                const data::Column* yCol = df->columnByName(yColName);
+                const QJsonValue xVal = sObj[QLatin1String("xColumn")];
+                const QJsonValue yVal = sObj[QLatin1String("yColumn")];
 
-                if (!xCol || !yCol) continue;  // skip unresolvable series
+                if (xVal.isDouble()) {
+                    // Integer column index (v1 format)
+                    xDs = bundle->column(xVal.toInt());
+                } else {
+                    xDs = bundle->columnByName(xVal.toString());
+                }
+
+                if (yVal.isDouble()) {
+                    yDs = bundle->column(yVal.toInt());
+                } else {
+                    yDs = bundle->columnByName(yVal.toString());
+                }
+
+                if (!xDs || !yDs) continue;  // skip unresolvable series
 
                 plot::PlotStyle style;
                 style.color    = QColor(sObj[QLatin1String("color")].toString(QStringLiteral("#0a84ff")));
@@ -310,7 +325,7 @@ void WorkspaceFile::applyToScene(plot::PlotScene* scene,
                 const QString name    = sObj[QLatin1String("name")].toString();
                 const bool    visible = sObj[QLatin1String("visible")].toBool(true);
 
-                auto series = std::make_unique<plot::LineSeries>(xCol, yCol, style, name);
+                auto series = std::make_unique<plot::LineSeries>(xDs, yDs, style, name);
                 series->setVisible(visible);
                 scene->addItem(std::move(series));
             }
