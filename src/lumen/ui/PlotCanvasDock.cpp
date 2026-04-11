@@ -420,6 +420,10 @@ void PlotCanvasDock::setDataFrame(const data::TabularBundle* bundle, const QStri
 void PlotCanvasDock::addYSeries() {
     auto* combo = new QComboBox(yContainer_);
     combo->setMinimumWidth(120);
+
+    // Block signals while setting up so currentIndexChanged doesn't
+    // trigger rebuildPlot() before the entry is stored in yEntries_.
+    combo->blockSignals(true);
     combo->addItems(numericColumns_);
 
     // Default to next unused column.
@@ -427,10 +431,7 @@ void PlotCanvasDock::addYSeries() {
     if (defaultIdx < combo->count()) {
         combo->setCurrentIndex(defaultIdx);
     }
-
-    connect(combo, &QComboBox::currentIndexChanged, this, [this]() {
-        rebuildPlot();
-    });
+    combo->blockSignals(false);
 
     QPushButton* removeBtn = nullptr;
     // Only show remove button for non-first entries.
@@ -449,10 +450,19 @@ void PlotCanvasDock::addYSeries() {
         yLayout_->addWidget(removeBtn);
     }
 
+    // Store the entry with the CURRENT plot type combo value.
     QString currentType = (plotTypeCombo_ != nullptr)
                               ? plotTypeCombo_->currentText()
                               : QStringLiteral("Line");
     yEntries_.push_back({combo, removeBtn, currentType});
+
+    // Connect AFTER push_back so the entry exists when rebuild runs.
+    connect(combo, &QComboBox::currentIndexChanged, this, [this]() {
+        rebuildPlot();
+    });
+
+    // Rebuild to show the new series immediately.
+    rebuildPlot();
 }
 
 void PlotCanvasDock::removeYSeries(int index) {
