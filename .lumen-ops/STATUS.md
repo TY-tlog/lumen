@@ -336,3 +336,19 @@ Human response: "yes."
 ### Phase 3b/4/5 lesson applied
 This review (docs/reviews/phase-6-review.md) is committed in the
 SAME commit as this STATUS entry.
+
+## 2026-04-12 — Phase 7 opening (Architect session 9)
+- Wrote `docs/plans/phase-7-plan.md`: 23 tasks in 4 sub-phases.
+  - 7.1: Reactive core (3-mode system, DependencyGraph, snapshot)
+  - 7.2: Heatmap + Colormap (CPU/GPU adaptive, perceptual uniformity)
+  - 7.3: Contour (CONREC from scratch)
+  - 7.4: Statistical plots (Histogram, BoxPlot, Violin)
+- Drafted ADRs 038-042: 3-mode reactivity (Static=snapshot),
+  adaptive GPU layer in PlotCanvas, perceptual uniformity (CIELAB
+  ΔE₂₀₀₀ CV<0.4, Machado 2009 CVD), CONREC contour, stat plots
+  as PlotItem.
+- Updated `docs/architecture.md` with Phase 7 section.
+- Key decisions: Static mode deep-copies Dataset (MemoryManager
+  tracked). PlotCanvas hosts GPU layer (generalizes to Phase 8).
+- 410-test regression gate. Review-in-same-commit rule.
+- Awaiting human review and approval.
