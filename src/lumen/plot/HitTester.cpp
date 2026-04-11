@@ -141,16 +141,20 @@ std::optional<PointHitResult> HitTester::hitTestPoint(
             continue;
         }
 
-        // Binary search for approximate position of cursorDataX.
-        auto it = std::lower_bound(xData.begin(), xData.end(), cursorDataX);
-        auto approxIdx = std::distance(xData.begin(), it);
+        // For LineSeries with sorted X, binary search + small window.
+        // For Scatter/Bar, linear scan (robust for any ordering).
+        std::ptrdiff_t lo = 0;
+        std::ptrdiff_t hi = static_cast<std::ptrdiff_t>(count);
 
-        // Check a window of +/-5 samples around the binary search position
-        // for robustness against non-perfectly-sorted data.
-        constexpr std::ptrdiff_t kWindow = 5;
-        std::ptrdiff_t lo = std::max(std::ptrdiff_t{0}, approxIdx - kWindow);
-        std::ptrdiff_t hi = std::min(static_cast<std::ptrdiff_t>(count),
-                                     approxIdx + kWindow + 1);
+        if (dynamic_cast<const LineSeries*>(item)) {
+            // Binary search optimization for sorted line data.
+            auto it = std::lower_bound(xData.begin(), xData.end(), cursorDataX);
+            auto approxIdx = std::distance(xData.begin(), it);
+            constexpr std::ptrdiff_t kWindow = 5;
+            lo = std::max(std::ptrdiff_t{0}, approxIdx - kWindow);
+            hi = std::min(static_cast<std::ptrdiff_t>(count),
+                          approxIdx + kWindow + 1);
+        }
 
         for (std::ptrdiff_t j = lo; j < hi; ++j) {
             const double dx = xData[static_cast<std::size_t>(j)];
