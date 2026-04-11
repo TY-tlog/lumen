@@ -131,12 +131,16 @@ QString FigureExporter::exportPdf(const plot::PlotScene* scene,
     }
 
     plot::PlotRenderer renderer;
-    // QPdfWriter coordinates are in device units; use the paint rect
-    // to get the actual rendering size.
+    // QPdfWriter coordinates are in device pixels at the writer's DPI.
+    // Scale the painter so PlotRenderer draws at the logical (point) size,
+    // which keeps text and margins proportional to the output page.
     const QRectF paintRect =
         writer.pageLayout().paintRectPixels(writer.resolution());
+    double scaleX = paintRect.width() / opts.widthPx;
+    double scaleY = paintRect.height() / opts.heightPx;
+    painter.scale(scaleX, scaleY);
     renderer.render(painter, *scene,
-                    QSizeF(paintRect.width(), paintRect.height()));
+                    QSizeF(opts.widthPx, opts.heightPx));
     painter.end();
 
     return {};

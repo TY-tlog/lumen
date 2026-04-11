@@ -2,8 +2,10 @@
 
 #include "data/Rank1Dataset.h"
 #include "plot/CoordinateMapper.h"
+#include "plot/BarSeries.h"
 #include "plot/LineSeries.h"
 #include "plot/PlotItem.h"
+#include "plot/ScatterSeries.h"
 #include "plot/PlotScene.h"
 #include "style/DesignTokens.h"
 
@@ -28,31 +30,60 @@ std::optional<HitTester::HitResult> HitTester::hitTest(
 
     const auto& allItems = scene.items();
     for (std::size_t i = 0; i < allItems.size(); ++i) {
-        const auto* ls = dynamic_cast<const LineSeries*>(allItems[i].get());
-        if (!ls) {
-            continue;  // Phase 5.2 will add scatter/bar hit-test paths.
+        const auto* item = allItems[i].get();
+        if (!item->isVisible()) {
+            continue;
         }
 
-        auto polylines = ls->buildPolylines();
-        double minDistForSeries = std::numeric_limits<double>::max();
+        double minDistForItem = std::numeric_limits<double>::max();
 
-        for (const auto& polyline : polylines) {
-            for (int j = 0; j + 1 < polyline.size(); ++j) {
-                const QPointF& dataA = polyline[j];
-                const QPointF& dataB = polyline[j + 1];
-
-                QPointF pixelA = mapper.dataToPixel(dataA.x(), dataA.y());
-                QPointF pixelB = mapper.dataToPixel(dataB.x(), dataB.y());
-
-                double dist = pointToSegmentDistance(pixelPos, pixelA, pixelB);
-                if (dist < minDistForSeries) {
-                    minDistForSeries = dist;
+        if (const auto* ls = dynamic_cast<const LineSeries*>(item)) {
+            // Line: segment distance
+            auto polylines = ls->buildPolylines();
+            for (const auto& polyline : polylines) {
+                for (int j = 0; j + 1 < polyline.size(); ++j) {
+                    QPointF pixelA = mapper.dataToPixel(polyline[j].x(), polyline[j].y());
+                    QPointF pixelB = mapper.dataToPixel(polyline[j + 1].x(), polyline[j + 1].y());
+                    double dist = pointToSegmentDistance(pixelPos, pixelA, pixelB);
+                    minDistForItem = std::min(minDistForItem, dist);
                 }
+            }
+        } else if (const auto* ss = dynamic_cast<const ScatterSeries*>(item)) {
+            // Scatter: distance to nearest marker center
+            const auto& xData = ss->xDataset()->doubleData();
+            const auto& yData = ss->yDataset()->doubleData();
+            for (std::size_t j = 0; j < xData.size(); ++j) {
+                if (std::isnan(xData[j]) || std::isnan(yData[j])) continue;
+                QPointF px = mapper.dataToPixel(xData[j], yData[j]);
+                double dx = pixelPos.x() - px.x();
+                double dy = pixelPos.y() - px.y();
+                double dist = std::sqrt(dx * dx + dy * dy);
+                minDistForItem = std::min(minDistForItem, dist);
+            }
+        } else if (const auto* bs = dynamic_cast<const BarSeries*>(item)) {
+            // Bar: distance to nearest bar rect center
+            const auto& xData = bs->xDataset()->doubleData();
+            const auto& yData = bs->yDataset()->doubleData();
+            for (std::size_t j = 0; j < xData.size(); ++j) {
+                if (std::isnan(xData[j]) || std::isnan(yData[j])) continue;
+                QPointF px = mapper.dataToPixel(xData[j], yData[j]);
+                QPointF base = mapper.dataToPixel(xData[j], 0.0);
+                // Check if pixel is within bar rect
+                double barHalfW = 5.0; // approximate
+                if (pixelPos.x() >= px.x() - barHalfW && pixelPos.x() <= px.x() + barHalfW &&
+                    pixelPos.y() >= std::min(px.y(), base.y()) && pixelPos.y() <= std::max(px.y(), base.y())) {
+                    minDistForItem = 0.0; // inside bar
+                    break;
+                }
+                double dx = pixelPos.x() - px.x();
+                double dy = pixelPos.y() - px.y();
+                double dist = std::sqrt(dx * dx + dy * dy);
+                minDistForItem = std::min(minDistForItem, dist);
             }
         }
 
-        if (minDistForSeries < bestDistance) {
-            bestDistance = minDistForSeries;
+        if (minDistForItem < bestDistance) {
+            bestDistance = minDistForItem;
             bestIndex = static_cast<int>(i);
         }
     }
