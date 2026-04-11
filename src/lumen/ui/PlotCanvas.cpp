@@ -104,13 +104,14 @@ void PlotCanvas::drawCrosshair(QPainter& painter) {
                      QPointF(plotArea.right(), snappedPixel.y()));
 
     // Small marker circle at the snapped point in the series color.
-    const auto& allSeries = scene_->series();
+    const auto& allItems = scene_->items();
     QColor seriesColor = lumen::tokens::color::accent::primary;
     QString seriesName;
     if (hit->seriesIndex >= 0
-        && static_cast<std::size_t>(hit->seriesIndex) < allSeries.size()) {
-        seriesColor = allSeries[static_cast<std::size_t>(hit->seriesIndex)].style().color;
-        seriesName = allSeries[static_cast<std::size_t>(hit->seriesIndex)].name();
+        && static_cast<std::size_t>(hit->seriesIndex) < allItems.size()) {
+        const auto* item = allItems[static_cast<std::size_t>(hit->seriesIndex)].get();
+        seriesColor = item->primaryColor();
+        seriesName = item->name();
     }
 
     painter.setPen(Qt::NoPen);
