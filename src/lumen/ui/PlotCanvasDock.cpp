@@ -121,9 +121,8 @@ void PlotCanvasDock::buildToolBar() {
     plotTypeCombo_->addItem(QStringLiteral("Scatter"));
     plotTypeCombo_->addItem(QStringLiteral("Bar"));
     toolBar_->addWidget(plotTypeCombo_);
-    connect(plotTypeCombo_, &QComboBox::currentIndexChanged, this, [this]() {
-        rebuildPlot();
-    });
+    // Plot type combo affects NEW series only (stored per-entry at add time).
+    // Changing it does NOT rebuild existing series.
 }
 
 void PlotCanvasDock::setPlotRegistry(core::PlotRegistry* registry) {
@@ -450,7 +449,10 @@ void PlotCanvasDock::addYSeries() {
         yLayout_->addWidget(removeBtn);
     }
 
-    yEntries_.push_back({combo, removeBtn});
+    QString currentType = (plotTypeCombo_ != nullptr)
+                              ? plotTypeCombo_->currentText()
+                              : QStringLiteral("Line");
+    yEntries_.push_back({combo, removeBtn, currentType});
 }
 
 void PlotCanvasDock::removeYSeries(int index) {
@@ -517,10 +519,9 @@ void PlotCanvasDock::rebuildPlot() {
             continue;
         }
 
-        // Create series based on plot type combo (T11).
-        QString plotType = plotTypeCombo_ != nullptr
-                               ? plotTypeCombo_->currentText()
-                               : QStringLiteral("Line");
+        // Use the plot type stored per-entry (set at add time),
+        // not the combo's current value (which affects new additions only).
+        QString plotType = entry.plotType;
 
         if (plotType == QStringLiteral("Scatter")) {
             auto scatter = std::make_unique<plot::ScatterSeries>(

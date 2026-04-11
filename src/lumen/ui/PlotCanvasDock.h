@@ -82,6 +82,7 @@ private:
     struct YSeriesEntry {
         QComboBox* combo = nullptr;
         QPushButton* removeBtn = nullptr;
+        QString plotType = QStringLiteral("Line");  // stored per entry
     };
     std::vector<YSeriesEntry> yEntries_;
     QPushButton* addSeriesBtn_ = nullptr;
