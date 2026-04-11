@@ -3,6 +3,9 @@
 #include <QMainWindow>
 #include <QStringList>
 
+#include <memory>
+#include <vector>
+
 class QLabel;
 class QMenu;
 class QTimer;
@@ -12,6 +15,10 @@ class CommandBus;
 class DocumentRegistry;
 class PlotRegistry;
 }  // namespace lumen::core
+
+namespace lumen::data {
+class Dataset;
+}  // namespace lumen::data
 
 namespace lumen::core::io {
 class WorkspaceManager;
@@ -107,6 +114,9 @@ private:
     QString currentDocPath_;
     QLabel* memoryLabel_ = nullptr;
     QTimer* memoryTimer_ = nullptr;
+
+    // Keep sample datasets alive (they're not in DocumentRegistry).
+    std::vector<std::shared_ptr<data::Dataset>> sampleDatasets_;
 
     static constexpr int kMaxRecentFiles = 10;
 };

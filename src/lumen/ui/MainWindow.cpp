@@ -425,6 +425,7 @@ void MainWindow::openSampleGaussian2D() {
         QStringLiteral("Gaussian 2D"), data::Unit::dimensionless(),
         std::move(dimX), std::move(dimY), std::move(values));
 
+    sampleDatasets_.push_back(grid);
     showDataset(grid.get(), QStringLiteral("Gaussian 2D"));
 
     data::MemoryManager::instance().trackAllocation(grid->sizeBytes());
@@ -467,6 +468,7 @@ void MainWindow::openSampleMandelbrot() {
         QStringLiteral("Mandelbrot"), data::Unit::dimensionless(),
         std::move(dimX), std::move(dimY), std::move(values));
 
+    sampleDatasets_.push_back(grid);
     showDataset(grid.get(), QStringLiteral("Mandelbrot"));
 
     data::MemoryManager::instance().trackAllocation(grid->sizeBytes());
@@ -503,6 +505,7 @@ void MainWindow::openSampleVolumeSphere() {
         QStringLiteral("Volume Sphere"), data::Unit::dimensionless(),
         std::move(dimX), std::move(dimY), std::move(dimZ), std::move(values));
 
+    sampleDatasets_.push_back(volume);
     showDataset(volume.get(), QStringLiteral("Volume Sphere"));
 
     data::MemoryManager::instance().trackAllocation(volume->sizeBytes());
