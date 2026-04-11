@@ -43,6 +43,13 @@ add_executable(lumen_unit_tests
     test_tabular_bundle.cpp
     test_grid2d.cpp
     test_volume3d.cpp
+    test_csv_loader.cpp
+    test_json_loader.cpp
+    test_numpy_loader.cpp
+    test_memory_manager.cpp
+    test_loader_registry.cpp
+    test_hdf5_loader.cpp
+    test_netcdf_loader.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
 )
 
@@ -50,6 +57,29 @@ target_compile_definitions(lumen_unit_tests
     PRIVATE
         LUMEN_TEST_FIXTURES_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures"
 )
+
+# I/O loader tests need library include paths for creating test fixtures
+find_package(HDF5 COMPONENTS C QUIET)
+if(HDF5_FOUND)
+    target_include_directories(lumen_unit_tests PRIVATE ${HDF5_INCLUDE_DIRS})
+    target_link_libraries(lumen_unit_tests PRIVATE ${HDF5_C_LIBRARIES})
+endif()
+
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(NETCDF QUIET netcdf)
+endif()
+if(NOT NETCDF_FOUND)
+    find_library(NETCDF_LIBRARIES NAMES netcdf)
+    find_path(NETCDF_INCLUDE_DIRS NAMES netcdf.h)
+    if(NETCDF_LIBRARIES AND NETCDF_INCLUDE_DIRS)
+        set(NETCDF_FOUND TRUE)
+    endif()
+endif()
+if(NETCDF_FOUND)
+    target_include_directories(lumen_unit_tests PRIVATE ${NETCDF_INCLUDE_DIRS})
+    target_link_libraries(lumen_unit_tests PRIVATE ${NETCDF_LIBRARIES})
+endif()
 
 target_link_libraries(lumen_unit_tests
     PRIVATE
@@ -59,6 +89,7 @@ target_link_libraries(lumen_unit_tests
         Qt6::Widgets
         Qt6::Test
         lumen_data
+        lumen_data_io
         lumen_core
         lumen_io
         lumen::compile_options
