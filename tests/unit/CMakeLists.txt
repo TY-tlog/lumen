@@ -33,6 +33,16 @@ add_executable(lumen_unit_tests
     test_workspace_file.cpp
     test_workspace_manager.cpp
     test_figure_exporter.cpp
+    test_unit_parsing.cpp
+    test_unit_arithmetic.cpp
+    test_unit_conversion.cpp
+    test_dimension.cpp
+    test_coordinate_array.cpp
+    test_dataset_base.cpp
+    test_rank1_dataset.cpp
+    test_tabular_bundle.cpp
+    test_grid2d.cpp
+    test_volume3d.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.h
 )
