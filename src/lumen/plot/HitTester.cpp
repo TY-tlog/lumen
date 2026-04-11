@@ -111,16 +111,25 @@ std::optional<PointHitResult> HitTester::hitTestPoint(
 
     const auto& allItems = scene.items();
     for (std::size_t si = 0; si < allItems.size(); ++si) {
-        const auto* ls = dynamic_cast<const LineSeries*>(allItems[si].get());
-        if (!ls) {
-            continue;  // Phase 5.2 will add scatter/bar hit-test paths.
-        }
-        if (!ls->isVisible()) {
+        const auto* item = allItems[si].get();
+        if (!item->isVisible()) {
             continue;
         }
 
-        const auto& xDs = ls->xDataset();
-        const auto& yDs = ls->yDataset();
+        // Get X/Y data from any PlotItem type.
+        std::shared_ptr<data::Rank1Dataset> xDs, yDs;
+        if (const auto* ls = dynamic_cast<const LineSeries*>(item)) {
+            xDs = ls->xDataset();
+            yDs = ls->yDataset();
+        } else if (const auto* ss = dynamic_cast<const ScatterSeries*>(item)) {
+            xDs = ss->xDataset();
+            yDs = ss->yDataset();
+        } else if (const auto* bs = dynamic_cast<const BarSeries*>(item)) {
+            xDs = bs->xDataset();
+            yDs = bs->yDataset();
+        } else {
+            continue;
+        }
         if (!xDs || !yDs) {
             continue;
         }

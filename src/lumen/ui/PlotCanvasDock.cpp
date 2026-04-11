@@ -30,6 +30,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QToolBar>
 #include <QVBoxLayout>
 
@@ -93,14 +94,22 @@ void PlotCanvasDock::buildToolBar() {
 
     toolBar_->addSeparator();
 
-    // Y column area.
+    // Y column area (scrollable to handle many series).
     toolBar_->addWidget(new QLabel(QStringLiteral(" Y: "), toolBar_));
 
     yContainer_ = new QWidget(toolBar_);
     yLayout_ = new QHBoxLayout(yContainer_);
     yLayout_->setContentsMargins(0, 0, 0, 0);
     yLayout_->setSpacing(4);
-    toolBar_->addWidget(yContainer_);
+
+    auto* scrollArea = new QScrollArea(toolBar_);
+    scrollArea->setWidget(yContainer_);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setMaximumHeight(32);
+    toolBar_->addWidget(scrollArea);
 
     toolBar_->addSeparator();
 
