@@ -741,3 +741,129 @@ Dataset::changed()
 
 Small 3-position toggle in property dialogs. Static / DAG / Bidir.
 Mode persisted in workspace files.
+
+## Phase 8 additions — Modern 3D Engine
+
+### New plot3d/ submodule (ADR-045: separate from 2D plot/)
+
+```
+plot3d/
+  PlotItem3D.h        — abstract base (Type, render, hitTestRay, dataBounds)
+  PlotCanvas3D.h      — QOpenGLWidget + QOpenGLFunctions_4_5_Core
+  Scene3D.h           — vector<PlotItem3D>, lights, bounds
+  Camera.h            — Trackball + Orbit modes (ADR-044)
+  Light.h             — Directional, Point, Ambient
+  Renderer3D.h        — GL state, shader dispatch, per-item render
+  ShaderProgram.h     — GLSL compilation + uniform management
+  Ray.h               — fromScreenPixel for 3D picking
+  BoundingBox3D.h     — AABB for scene bounds
+  RenderContext.h     — viewport, matrices, lights for render call
+  Scatter3D.h         — instanced rendering, spatial grid hit-test
+  SpatialGrid3D.h     — uniform grid for ray-cast acceleration
+  Surface3D.h         — Grid2D → mesh, normals, Phong/PBR
+  VolumeItem.h        — ray marching shader, transfer function LUT
+  TransferFunction.h  — control points → 1D RGBA texture
+  Streamlines.h       — RK4 integration, line strip rendering
+  Isosurface.h        — Marching Cubes mesh extraction
+  MarchingCubes.h     — Lorensen & Cline 1987 algorithm
+  PbrMaterial.h       — metallic/roughness/IOR/emissive
+  shaders/
+    phong.vert/.frag  — Phong lighting (8.1 default)
+    pbr.vert/.frag    — Cook-Torrance PBR (8.6)
+    volume.vert/.frag — ray marching (8.4)
+```
+
+### Hierarchy: PlotItem (2D) ∥ PlotItem3D (3D) (ADR-045)
+
+Two fully separate hierarchies. No shared base class.
+
+| Aspect | 2D (PlotItem) | 3D (PlotItem3D) |
+|--------|---------------|-----------------|
+| Render | QPainter + CoordinateMapper | ShaderProgram + RenderContext |
+| Hit-test | pixel distance | ray cast |
+| Bounds | QRectF | BoundingBox3D |
+| Canvas | PlotCanvas | PlotCanvas3D |
+| Workspace | "plot" block | "plot3d" block |
+
+CommandBus, ReactiveBinding, WorkspaceFile handle both via
+per-type dispatch (no unification needed).
+
+### Render flow
+
+```
+PlotCanvas3D::paintGL()
+  → Renderer3D::render(scene, camera, viewport)
+    → for each PlotItem3D:
+        → select shader (Phong or PBR per item's material)
+        → bind shader, set uniforms (MVP, lights, material)
+        → item->render(shader, context)
+```
+
+### Reactive flow for 3D items
+
+Same pattern as 2D (ADR-038): Dataset::changed() →
+ReactiveBinding (mode-filtered) → PlotItem3D::invalidate() →
+PlotCanvas3D::update().
+
+**Debounce for expensive items**: Surface3D and Isosurface set a
+dirty flag on invalidate(); actual mesh regeneration is debounced
+to 200ms via QTimer.
+
+**Volume3D Static mode**: lazy snapshot (reference + generation
+stamp) instead of deep copy. No 2× memory cost for GB-scale
+volumes.
+
+### Camera system (ADR-044)
+
+```
+Left-drag → Camera::handleDrag(delta)
+  Trackball: arcball quaternion rotation (free 6-DOF)
+  Orbit: azimuth + elevation around target (constrained)
+
+Wheel → Camera::handleWheel(delta)
+  Both: dolly zoom toward/away from target
+
+Middle-drag → Camera::handlePan(delta)
+  Both: translate target in screen plane
+```
+
+### Hit-testing (ADR-048)
+
+```
+Double-click pixel → Ray::fromScreenPixel(pixel, camera, viewport)
+  → for each PlotItem3D: hitTestRay(ray, maxDist)
+    Scatter3D: SpatialGrid3D DDA traversal → ray-sphere
+    Surface3D: ray-triangle on mesh
+    VolumeItem: bounds check → dialog
+    Streamlines: ray-cylinder
+    Isosurface: ray-triangle
+  → closest hit → open type-specific dialog
+```
+
+### Lighting (ADR-047)
+
+Phong default + PBR opt-in per PlotItem3D.
+
+### Workspace format extension
+
+```json
+{
+  "plot": { /* 2D, unchanged */ },
+  "plot3d": {
+    "camera": { "mode": "trackball", "position": [...], "target": [...] },
+    "lights": [...],
+    "items": [
+      { "type": "scatter3d", /* properties */ },
+      { "type": "surface3d", "material": { "type": "pbr", ... } },
+      { "type": "volume", "transferFunction": { "points": [...] } }
+    ]
+  }
+}
+```
+
+### Layering
+
+- `plot3d/` depends on `data/`, `plot/Colormap`, `core/`
+- `ui/` depends on `plot3d/` for 3D dialogs
+- `plot/` unchanged — 2D code untouched
+- `core/reactive/` unchanged — ReactiveBinding works for both

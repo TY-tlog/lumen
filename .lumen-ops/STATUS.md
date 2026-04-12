@@ -368,3 +368,21 @@ SAME commit as this STATUS entry.
 ### Phase 3b/4/5/6 lesson applied
 This review (docs/reviews/phase-7-review.md) is committed in the
 SAME commit as this STATUS entry.
+
+## 2026-04-13 — Phase 8 opening (Architect session 10)
+- Wrote `docs/plans/phase-8-plan.md`: 27 tasks in 6 sub-phases.
+  - 8.1: 3D foundation (PlotCanvas3D, Camera, Renderer3D, Phong)
+  - 8.2: Scatter3D (instanced, spatial grid hit-test)
+  - 8.3: Surface3D (Grid2D mesh, reactive remesh)
+  - 8.4: Volume (ray marching, transfer function)
+  - 8.5: Streamlines (RK4) + Isosurfaces (Marching Cubes)
+  - 8.6: PBR (Cook-Torrance, material system, IBL)
+- Three load-bearing decisions:
+  1. PlotItem3D fully separate from PlotItem (ADR-045)
+  2. Reactive: per-item binding + debounced mesh + lazy volume snapshot
+  3. Parallelism: 8.2/8.3/8.4/8.6 run in parallel after M8.1
+- Drafted ADRs 043-048: GL 4.5, camera modes, separate 3D hierarchy,
+  volume ray marching, dual lighting, ray-cast hit-test.
+- Updated architecture.md with Phase 8 section.
+- 545-test regression gate. CI green on 4 platforms. Review-in-same-commit.
+- Awaiting human review and approval.
