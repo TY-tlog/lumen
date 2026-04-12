@@ -22,6 +22,16 @@ add_library(lumen_core STATIC
     commands/ChangeScatterPropertiesCommand.h
     commands/ChangeBarPropertiesCommand.cpp
     commands/ChangeBarPropertiesCommand.h
+    commands/ChangeHeatmapPropertiesCommand.cpp
+    commands/ChangeHeatmapPropertiesCommand.h
+    commands/ChangeContourPropertiesCommand.cpp
+    commands/ChangeContourPropertiesCommand.h
+    commands/ChangeHistogramPropertiesCommand.cpp
+    commands/ChangeHistogramPropertiesCommand.h
+    commands/ChangeBoxPlotPropertiesCommand.cpp
+    commands/ChangeBoxPlotPropertiesCommand.h
+    commands/ChangeViolinPropertiesCommand.cpp
+    commands/ChangeViolinPropertiesCommand.h
 )
 
 target_include_directories(lumen_core
