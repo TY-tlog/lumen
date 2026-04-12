@@ -2,6 +2,10 @@
 
 #include "AxisDialog.h"
 #include "BarPropertyDialog.h"
+#include "BoxPlotPropertyDialog.h"
+#include "ContourPropertyDialog.h"
+#include "HeatmapPropertyDialog.h"
+#include "HistogramPropertyDialog.h"
 #include "InteractionController.h"
 #include "LegendDialog.h"
 #include "LinePropertyDialog.h"
@@ -9,24 +13,35 @@
 #include "ReactivityModeWidget.h"
 #include "ScatterPropertyDialog.h"
 #include "TitleDialog.h"
+#include "ViolinPropertyDialog.h"
 
 #include <core/CommandBus.h>
 #include <core/reactive/ReactiveBinding.h>
 #include <core/PlotRegistry.h>
 #include <core/commands/ChangeAxisPropertiesCommand.h>
 #include <core/commands/ChangeBarPropertiesCommand.h>
+#include <core/commands/ChangeBoxPlotPropertiesCommand.h>
+#include <core/commands/ChangeContourPropertiesCommand.h>
+#include <core/commands/ChangeHeatmapPropertiesCommand.h>
+#include <core/commands/ChangeHistogramPropertiesCommand.h>
 #include <core/commands/ChangeLegendCommand.h>
 #include <core/commands/ChangeLineStyleCommand.h>
 #include <core/commands/ChangeScatterPropertiesCommand.h>
 #include <core/commands/ChangeTitleCommand.h>
+#include <core/commands/ChangeViolinPropertiesCommand.h>
 #include <data/Rank1Dataset.h>
 #include <data/TabularBundle.h>
 #include <plot/BarSeries.h>
+#include <plot/BoxPlotSeries.h>
+#include <plot/ContourPlot.h>
+#include <plot/Heatmap.h>
+#include <plot/HistogramSeries.h>
 #include <plot/LineSeries.h>
 #include <plot/PlotItem.h>
 #include <plot/PlotScene.h>
 #include <plot/PlotStyle.h>
 #include <plot/ScatterSeries.h>
+#include <plot/ViolinSeries.h>
 
 #include <QComboBox>
 #include <QHBoxLayout>
@@ -214,6 +229,172 @@ void PlotCanvasDock::onSeriesDoubleClicked(int seriesIndex) {
                 bar->setBarWidth(dialog.resultBarWidth());
                 bar->setName(dialog.resultName());
                 bar->setVisible(dialog.resultVisible());
+            }
+            canvas_->update();
+        }
+        break;
+    }
+    case plot::PlotItem::Type::Heatmap: {
+        auto* heatmap = dynamic_cast<plot::Heatmap*>(item);
+        if (heatmap == nullptr) { return; }
+        HeatmapPropertyDialog dialog(this);
+        dialog.setProperties(heatmap->colormap(), heatmap->valueMin(),
+                             heatmap->valueMax(), false,
+                             heatmap->interpolation(), heatmap->opacity(),
+                             heatmap->name(), heatmap->isVisible());
+        if (dialog.exec() == QDialog::Accepted) {
+            customVisibility_[heatmap->name()] = dialog.resultVisible();
+            customNames_[heatmap->name()] = dialog.resultName();
+            if (commandBus_ != nullptr) {
+                auto cmd = std::make_unique<core::commands::ChangeHeatmapPropertiesCommand>(
+                    scene_.get(), idx, dialog.resultColormap(),
+                    dialog.resultValueMin(), dialog.resultValueMax(),
+                    dialog.resultAutoRange(), dialog.resultInterpolation(),
+                    dialog.resultOpacity(), dialog.resultName(),
+                    dialog.resultVisible());
+                commandBus_->execute(std::move(cmd));
+            } else {
+                heatmap->setColormap(dialog.resultColormap());
+                if (dialog.resultAutoRange()) {
+                    heatmap->setAutoValueRange();
+                } else {
+                    heatmap->setValueRange(dialog.resultValueMin(),
+                                           dialog.resultValueMax());
+                }
+                heatmap->setInterpolation(dialog.resultInterpolation());
+                heatmap->setOpacity(dialog.resultOpacity());
+                heatmap->setName(dialog.resultName());
+                heatmap->setVisible(dialog.resultVisible());
+            }
+            canvas_->update();
+        }
+        break;
+    }
+    case plot::PlotItem::Type::Contour: {
+        auto* contour = dynamic_cast<plot::ContourPlot*>(item);
+        if (contour == nullptr) { return; }
+        ContourPropertyDialog dialog(this);
+        // Detect auto mode: autoLevelCount_ is private, but we can infer
+        // from levels being non-empty (manual) vs providing a count.
+        // We pass 0 for auto level count when levels are set manually.
+        int autoCount = contour->levels().empty() ? 10 : 0;
+        dialog.setProperties(contour->levels(), autoCount,
+                             contour->lineColor(), contour->lineWidth(),
+                             contour->labelsVisible(), contour->name(),
+                             contour->isVisible());
+        if (dialog.exec() == QDialog::Accepted) {
+            customVisibility_[contour->name()] = dialog.resultVisible();
+            customNames_[contour->name()] = dialog.resultName();
+            if (commandBus_ != nullptr) {
+                auto cmd = std::make_unique<core::commands::ChangeContourPropertiesCommand>(
+                    scene_.get(), idx, dialog.resultLevels(),
+                    dialog.resultAutoLevelCount(), dialog.resultLineColor(),
+                    dialog.resultLineWidth(), dialog.resultLabelsVisible(),
+                    dialog.resultName(), dialog.resultVisible());
+                commandBus_->execute(std::move(cmd));
+            } else {
+                if (dialog.resultAutoLevelCount() > 0) {
+                    contour->setAutoLevels(dialog.resultAutoLevelCount());
+                } else {
+                    contour->setLevels(dialog.resultLevels());
+                }
+                contour->setLineColor(dialog.resultLineColor());
+                contour->setLineWidth(dialog.resultLineWidth());
+                contour->setLabelsVisible(dialog.resultLabelsVisible());
+                contour->setName(dialog.resultName());
+                contour->setVisible(dialog.resultVisible());
+            }
+            canvas_->update();
+        }
+        break;
+    }
+    case plot::PlotItem::Type::Histogram: {
+        auto* hist = dynamic_cast<plot::HistogramSeries*>(item);
+        if (hist == nullptr) { return; }
+        HistogramPropertyDialog dialog(this);
+        dialog.setProperties(hist->binCount(), hist->binRule(),
+                             hist->normalization(), hist->fillColor(),
+                             hist->name(), hist->isVisible());
+        if (dialog.exec() == QDialog::Accepted) {
+            customVisibility_[hist->name()] = dialog.resultVisible();
+            customNames_[hist->name()] = dialog.resultName();
+            if (commandBus_ != nullptr) {
+                auto cmd = std::make_unique<core::commands::ChangeHistogramPropertiesCommand>(
+                    scene_.get(), idx, dialog.resultBinCount(),
+                    dialog.resultBinRule(), dialog.resultNormalization(),
+                    dialog.resultFillColor(), dialog.resultName(),
+                    dialog.resultVisible());
+                commandBus_->execute(std::move(cmd));
+            } else {
+                if (dialog.resultBinCount() > 0) {
+                    hist->setBinCount(dialog.resultBinCount());
+                } else {
+                    hist->setAutoBinning(dialog.resultBinRule());
+                }
+                hist->setNormalization(dialog.resultNormalization());
+                hist->setFillColor(dialog.resultFillColor());
+                hist->setName(dialog.resultName());
+                hist->setVisible(dialog.resultVisible());
+            }
+            canvas_->update();
+        }
+        break;
+    }
+    case plot::PlotItem::Type::BoxPlot: {
+        auto* box = dynamic_cast<plot::BoxPlotSeries*>(item);
+        if (box == nullptr) { return; }
+        BoxPlotPropertyDialog dialog(this);
+        dialog.setProperties(box->whiskerRule(), box->notched(),
+                             box->outliersVisible(), box->fillColor(),
+                             box->name(), box->isVisible());
+        if (dialog.exec() == QDialog::Accepted) {
+            customVisibility_[box->name()] = dialog.resultVisible();
+            customNames_[box->name()] = dialog.resultName();
+            if (commandBus_ != nullptr) {
+                auto cmd = std::make_unique<core::commands::ChangeBoxPlotPropertiesCommand>(
+                    scene_.get(), idx, dialog.resultWhiskerRule(),
+                    dialog.resultNotched(), dialog.resultOutliersVisible(),
+                    dialog.resultFillColor(), dialog.resultName(),
+                    dialog.resultVisible());
+                commandBus_->execute(std::move(cmd));
+            } else {
+                box->setWhiskerRule(dialog.resultWhiskerRule());
+                box->setNotched(dialog.resultNotched());
+                box->setOutliersVisible(dialog.resultOutliersVisible());
+                box->setFillColor(dialog.resultFillColor());
+                box->setName(dialog.resultName());
+                box->setVisible(dialog.resultVisible());
+            }
+            canvas_->update();
+        }
+        break;
+    }
+    case plot::PlotItem::Type::Violin: {
+        auto* violin = dynamic_cast<plot::ViolinSeries*>(item);
+        if (violin == nullptr) { return; }
+        ViolinPropertyDialog dialog(this);
+        dialog.setProperties(violin->kdeBandwidth(), violin->kdeBandwidthAuto(),
+                             violin->split(), violin->fillColor(),
+                             violin->name(), violin->isVisible());
+        if (dialog.exec() == QDialog::Accepted) {
+            customVisibility_[violin->name()] = dialog.resultVisible();
+            customNames_[violin->name()] = dialog.resultName();
+            if (commandBus_ != nullptr) {
+                auto cmd = std::make_unique<core::commands::ChangeViolinPropertiesCommand>(
+                    scene_.get(), idx, dialog.resultBandwidth(),
+                    dialog.resultAutoKde(), dialog.resultSplit(),
+                    dialog.resultFillColor(), dialog.resultName(),
+                    dialog.resultVisible());
+                commandBus_->execute(std::move(cmd));
+            } else {
+                violin->setKdeBandwidthAuto(dialog.resultAutoKde());
+                if (!dialog.resultAutoKde()) {
+                    violin->setKdeBandwidth(dialog.resultBandwidth());
+                }
+                violin->setSplit(dialog.resultSplit());
+                violin->setFillColor(dialog.resultFillColor());
+                violin->setName(dialog.resultName());
+                violin->setVisible(dialog.resultVisible());
             }
             canvas_->update();
         }

@@ -61,6 +61,16 @@ qt_add_executable(lumen
     ui/ScatterPropertyDialog.h
     ui/BarPropertyDialog.cpp
     ui/BarPropertyDialog.h
+    ui/HeatmapPropertyDialog.cpp
+    ui/HeatmapPropertyDialog.h
+    ui/ContourPropertyDialog.cpp
+    ui/ContourPropertyDialog.h
+    ui/HistogramPropertyDialog.cpp
+    ui/HistogramPropertyDialog.h
+    ui/BoxPlotPropertyDialog.cpp
+    ui/BoxPlotPropertyDialog.h
+    ui/ViolinPropertyDialog.cpp
+    ui/ViolinPropertyDialog.h
     ui/PlotCanvas.cpp
     ui/PlotCanvas.h
     ui/PlotCanvasDock.cpp
