@@ -61,6 +61,11 @@ add_executable(lumen_unit_tests
     test_colormap_interpolation.cpp
     test_colormap_edge_cases.cpp
     test_heatmap.cpp
+    test_contour_algorithm.cpp
+    test_contour_plot.cpp
+    test_histogram.cpp
+    test_boxplot.cpp
+    test_violin.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
 )
 

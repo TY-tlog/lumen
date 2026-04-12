@@ -18,6 +18,11 @@ target_sources(lumen_plot PRIVATE
     HitTester.cpp HitTester.h
     Colormap.cpp Colormap.h
     Heatmap.cpp Heatmap.h
+    ContourAlgorithm.cpp ContourAlgorithm.h
+    ContourPlot.cpp ContourPlot.h
+    HistogramSeries.cpp HistogramSeries.h
+    BoxPlotSeries.cpp BoxPlotSeries.h
+    ViolinSeries.cpp ViolinSeries.h
 )
 
 target_include_directories(lumen_plot
