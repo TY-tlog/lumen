@@ -154,13 +154,15 @@ bool CsvReader::isNumeric(const std::string& s)
         }
     }
 
-    // Try double
+    // Try double (use stod — from_chars(double) not available on macOS libc++)
     {
-        double val{};
-        auto result = std::from_chars(s.data(), s.data() + s.size(), val);
-        if (result.ec == std::errc{} && result.ptr == s.data() + s.size()) {
-            return true;
-        }
+        try {
+            std::size_t pos = 0;
+            std::stod(s, &pos);
+            if (pos == s.size()) {
+                return true;
+            }
+        } catch (...) {}
     }
 
     return false;
@@ -217,11 +219,13 @@ std::vector<InferredType> CsvReader::inferTypes(
             }
 
             if (types[c] == InferredType::Double) {
-                double dval{};
-                auto result = std::from_chars(val.data(), val.data() + val.size(), dval);
-                if (result.ec == std::errc{} && result.ptr == val.data() + val.size()) {
-                    continue; // Still Double
-                }
+                try {
+                    std::size_t pos = 0;
+                    std::stod(val, &pos);
+                    if (pos == val.size()) {
+                        continue; // Still Double
+                    }
+                } catch (...) {}
                 // Not numeric
                 types[c] = InferredType::String;
             }
@@ -286,8 +290,7 @@ TabularBundle CsvReader::buildBundle(const std::vector<std::string>& headers,
                 if (isNaN(val)) {
                     dblCols[c].push_back(std::numeric_limits<double>::quiet_NaN());
                 } else {
-                    double dval{};
-                    std::from_chars(val.data(), val.data() + val.size(), dval);
+                    double dval = std::stod(val);
                     dblCols[c].push_back(dval);
                 }
                 break;

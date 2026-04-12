@@ -22,7 +22,7 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.7.3'
+          version: '6.8.2'
           host: ${{ runner.os == 'macOS' && 'mac' || 'linux' }}
           target: 'desktop'
           arch: ${{ runner.os == 'macOS' && 'clang_64' || 'gcc_64' }}
@@ -40,7 +40,12 @@ jobs:
             libxkbcommon-dev \
             libfontconfig1-dev \
             libxcb-cursor-dev \
-            xvfb
+            xvfb \
+            libhdf5-dev \
+            libnetcdf-dev \
+            libtiff-dev \
+            libmatio-dev \
+            qt6-svg-dev
 
       - name: Install macOS deps
         if: runner.os == 'macOS'
