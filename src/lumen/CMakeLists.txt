@@ -55,6 +55,8 @@ qt_add_executable(lumen
     ui/PlotCanvas.h
     ui/PlotCanvasDock.cpp
     ui/PlotCanvasDock.h
+    ui/ReactivityModeWidget.cpp
+    ui/ReactivityModeWidget.h
     ui/TitleDialog.cpp
     ui/TitleDialog.h
     "${CMAKE_SOURCE_DIR}/resources/styles/styles.qrc"

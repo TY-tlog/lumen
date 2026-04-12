@@ -6,10 +6,12 @@
 #include "LegendDialog.h"
 #include "LinePropertyDialog.h"
 #include "PlotCanvas.h"
+#include "ReactivityModeWidget.h"
 #include "ScatterPropertyDialog.h"
 #include "TitleDialog.h"
 
 #include <core/CommandBus.h>
+#include <core/reactive/ReactiveBinding.h>
 #include <core/PlotRegistry.h>
 #include <core/commands/ChangeAxisPropertiesCommand.h>
 #include <core/commands/ChangeBarPropertiesCommand.h>
@@ -123,7 +125,11 @@ void PlotCanvasDock::buildToolBar() {
 
     toolBar_->addSeparator();
 
-    // Global plot type combo removed. Each Y entry has its own type combo.
+    // Reactivity mode selector (Phase 7 / T3).
+    reactivityWidget_ = new ReactivityModeWidget(toolBar_);
+    toolBar_->addWidget(reactivityWidget_);
+    connect(reactivityWidget_, &ReactivityModeWidget::modeChanged,
+            this, &PlotCanvasDock::onReactivityModeChanged);
 }
 
 void PlotCanvasDock::setPlotRegistry(core::PlotRegistry* registry) {
@@ -132,6 +138,19 @@ void PlotCanvasDock::setPlotRegistry(core::PlotRegistry* registry) {
 
 void PlotCanvasDock::setCommandBus(core::CommandBus* bus) {
     commandBus_ = bus;
+}
+
+void PlotCanvasDock::setReactiveBinding(reactive::ReactiveBinding* binding) {
+    reactiveBinding_ = binding;
+    if (reactiveBinding_ != nullptr && reactivityWidget_ != nullptr) {
+        reactivityWidget_->setMode(reactiveBinding_->mode());
+    }
+}
+
+void PlotCanvasDock::onReactivityModeChanged(reactive::Mode m) {
+    if (reactiveBinding_ != nullptr) {
+        reactiveBinding_->setMode(m);
+    }
 }
 
 void PlotCanvasDock::onSeriesDoubleClicked(int seriesIndex) {
