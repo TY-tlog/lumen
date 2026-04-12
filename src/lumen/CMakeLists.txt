@@ -16,6 +16,9 @@ add_subdirectory(data)
 add_subdirectory(core)
 add_subdirectory(style)
 add_subdirectory(plot)
+if(LUMEN_HAS_OPENGL_WIDGETS)
+    add_subdirectory(plot3d)
+endif()
 
 # ---------- Embedded resources: fonts (conditional) ----------
 set(_font_dir "${CMAKE_SOURCE_DIR}/resources/fonts")

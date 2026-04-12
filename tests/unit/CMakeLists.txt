@@ -68,6 +68,14 @@ add_executable(lumen_unit_tests
     test_histogram.cpp
     test_boxplot.cpp
     test_violin.cpp
+    test_camera_trackball.cpp
+    test_camera_orbit.cpp
+    test_camera_json.cpp
+    test_ray_unprojection.cpp
+    test_scene3d.cpp
+    test_bounding_box3d.cpp
+    test_shader_program.cpp
+    test_renderer3d.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
 )
 
@@ -115,5 +123,11 @@ target_link_libraries(lumen_unit_tests
         lumen_style
         lumen_plot
 )
+
+# Link lumen_plot3d when OpenGL widgets are available.
+if(TARGET lumen_plot3d)
+    target_link_libraries(lumen_unit_tests PRIVATE lumen_plot3d)
+    target_compile_definitions(lumen_unit_tests PRIVATE LUMEN_HAS_OPENGL_WIDGETS=1)
+endif()
 
 catch_discover_tests(lumen_unit_tests)
