@@ -20,7 +20,9 @@ if(LUMEN_ENABLE_WARNINGS)
             -Woverloaded-virtual
             -Wconversion
             -Wsign-conversion
-            -Wnull-dereference
+            # -Wnull-dereference disabled: GCC -O3 produces false positives
+            # with shared_ptr inline member access (e.g. scatter->xDataset()->...)
+            # Re-enable when GCC fixes this or when we add explicit asserts everywhere.
             -Wdouble-promotion
             -Wformat=2
             -Wimplicit-fallthrough

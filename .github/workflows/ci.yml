@@ -52,6 +52,9 @@ jobs:
         run: brew install ninja ccache
 
       - name: Configure
+        env:
+          QT_QPA_PLATFORM: offscreen
+          ASAN_OPTIONS: detect_leaks=0
         run: |
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
@@ -59,6 +62,9 @@ jobs:
             -DLUMEN_WARNINGS_AS_ERRORS=ON
 
       - name: Build
+        env:
+          QT_QPA_PLATFORM: offscreen
+          ASAN_OPTIONS: detect_leaks=0
         run: cmake --build build --parallel
 
       - name: Run tests (Linux)
