@@ -60,6 +60,7 @@ add_executable(lumen_unit_tests
     test_colormap_json_roundtrip.cpp
     test_colormap_interpolation.cpp
     test_colormap_edge_cases.cpp
+    test_heatmap.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
 )
 
