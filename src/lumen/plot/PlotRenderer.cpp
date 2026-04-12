@@ -18,7 +18,6 @@ namespace {
 
 constexpr int kTickLength = 4;
 constexpr int kTickLabelPadding = 4;
-constexpr int kAxisLabelPadding = 8;
 constexpr int kLegendPadding = 8;
 constexpr int kLegendLineLength = 20;
 constexpr int kLegendSpacing = 4;

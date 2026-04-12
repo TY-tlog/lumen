@@ -25,7 +25,7 @@ jobs:
           version: '6.8.2'
           host: ${{ runner.os == 'macOS' && 'mac' || 'linux' }}
           target: 'desktop'
-          arch: ${{ runner.os == 'macOS' && 'clang_64' || 'gcc_64' }}
+          arch: ${{ runner.os == 'macOS' && 'clang_64' || 'linux_gcc_64' }}
           modules: ''
           cache: true
 
