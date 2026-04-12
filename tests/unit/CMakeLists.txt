@@ -54,6 +54,12 @@ add_executable(lumen_unit_tests
     test_reactive_mode.cpp
     test_dependency_graph.cpp
     test_reactive_binding.cpp
+    test_colormap_builtin.cpp
+    test_colormap_perceptual.cpp
+    test_colormap_colorblind.cpp
+    test_colormap_json_roundtrip.cpp
+    test_colormap_interpolation.cpp
+    test_colormap_edge_cases.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
 )
 
