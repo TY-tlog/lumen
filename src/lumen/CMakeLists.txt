@@ -1,6 +1,16 @@
 # Lumen executable target.
 # Phase 0: minimal main window. Modules added in later phases.
 
+# ---------- OpenGL (optional — ADR-039 GPU layer) ----------
+find_package(Qt6 6.4 QUIET OPTIONAL_COMPONENTS OpenGLWidgets)
+if(TARGET Qt6::OpenGLWidgets)
+    set(LUMEN_HAS_OPENGL_WIDGETS TRUE)
+    message(STATUS "Qt6::OpenGLWidgets found — GPU layer enabled")
+else()
+    set(LUMEN_HAS_OPENGL_WIDGETS FALSE)
+    message(STATUS "Qt6::OpenGLWidgets not found — GPU layer disabled (CPU fallback)")
+endif()
+
 # ---------- Sub-modules ----------
 add_subdirectory(data)
 add_subdirectory(core)
@@ -83,6 +93,12 @@ target_link_libraries(lumen
         lumen_style
         lumen_plot
 )
+
+# GPU layer (ADR-039): link Qt6::OpenGLWidgets when available.
+if(LUMEN_HAS_OPENGL_WIDGETS)
+    target_link_libraries(lumen PRIVATE Qt6::OpenGLWidgets)
+    target_compile_definitions(lumen PRIVATE LUMEN_HAS_OPENGL_WIDGETS=1)
+endif()
 
 set_target_properties(lumen PROPERTIES
     WIN32_EXECUTABLE ON

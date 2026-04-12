@@ -11,6 +11,8 @@
 
 #include <memory>
 
+class QOpenGLWidget;
+
 namespace lumen::data {
 class Grid2D;
 } // namespace lumen::data
@@ -25,6 +27,11 @@ class CoordinateMapper;
 /// Supports nearest-neighbor and bilinear interpolation modes.
 /// Uses CPU rendering for grids up to 1M cells; will fall back to
 /// GPU path (T9) for larger grids.
+///
+/// The rasterised QImage is cached and only rebuilt when the data,
+/// colormap, value-range, or opacity changes. Repeated paint() calls
+/// (pan, zoom, resize) blit the cached image without re-sampling
+/// every pixel through the colormap.
 class Heatmap : public PlotItem {
 public:
     enum class Interpolation { Nearest, Bilinear };
@@ -42,6 +49,13 @@ public:
     bool isVisible() const override { return visible_; }
     QString name() const override { return name_; }
     QColor primaryColor() const override;
+
+    // --- GPU rendering (T9 / ADR-039) ---
+    /// Render the heatmap via an OpenGL widget (GL-accelerated blit
+    /// of the cached QImage). Falls back to CPU paint if glWidget
+    /// is null or has no valid context.
+    void renderGpu(QOpenGLWidget* glWidget, const CoordinateMapper& mapper,
+                   const QRectF& plotArea) const;
 
     // Setters
     void setColormap(Colormap cmap);
@@ -61,9 +75,18 @@ public:
     [[nodiscard]] RenderPath activeRenderPath() const;
     [[nodiscard]] std::shared_ptr<data::Grid2D> grid() const { return grid_; }
 
+    /// True when the cached QImage is valid (no rebuild needed on next paint).
+    [[nodiscard]] bool isImageCacheClean() const { return !imageDirty_; }
+
 private:
     void renderCpu(QPainter* painter, const CoordinateMapper& mapper,
                    const QRectF& plotArea) const;
+
+    /// Rebuild cachedImage_ from grid data and colormap.
+    void rebuildCachedImage() const;
+
+    /// Mark the cached image as stale.
+    void markImageDirty();
 
     std::shared_ptr<data::Grid2D> grid_;
     Colormap colormap_;
@@ -74,6 +97,12 @@ private:
     double opacity_ = 1.0;
     QString name_;
     bool visible_ = true;
+
+    // --- Image cache (T8) ---
+    mutable QImage cachedImage_;       ///< Rebuilt only when imageDirty_ is set.
+    mutable bool   imageDirty_ = true; ///< Set by any setter that changes raster.
+    mutable double cachedVMin_ = 0.0;  ///< Value range used for cached image.
+    mutable double cachedVMax_ = 1.0;
 };
 
 } // namespace lumen::plot
