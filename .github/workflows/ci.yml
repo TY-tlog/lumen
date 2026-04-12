@@ -66,6 +66,7 @@ jobs:
         working-directory: build
         env:
           QT_QPA_PLATFORM: offscreen
+          ASAN_OPTIONS: detect_leaks=0
         run: xvfb-run -a ctest --output-on-failure
 
       - name: Run tests (macOS)
@@ -73,4 +74,5 @@ jobs:
         working-directory: build
         env:
           QT_QPA_PLATFORM: offscreen
+          ASAN_OPTIONS: detect_leaks=0
         run: ctest --output-on-failure

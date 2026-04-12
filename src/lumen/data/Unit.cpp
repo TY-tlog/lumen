@@ -213,7 +213,7 @@ Unit parseSingleUnit(const QString& str, qsizetype& pos)
     // Bare "m" = meter. "mV" = milli + V. "mm" = milli + m.
     // If both bare and prefixed match, prefer prefixed (longer match),
     // UNLESS bare match is longer.
-    if (prefixedLen > baseLen) {
+    if (prefixedLen > baseLen && prefixedBase != nullptr) {
         pos += prefixedLen;
         double scale = prefixedBase->scale * prefixScale;
         QString sym = str.mid(pos - prefixedLen, prefixedLen);
