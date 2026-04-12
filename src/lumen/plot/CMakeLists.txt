@@ -16,6 +16,7 @@ target_sources(lumen_plot PRIVATE
     PlotScene.cpp PlotScene.h
     PlotRenderer.cpp PlotRenderer.h
     HitTester.cpp HitTester.h
+    Colormap.cpp Colormap.h
 )
 
 target_include_directories(lumen_plot
