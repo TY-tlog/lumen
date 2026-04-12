@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -43,6 +44,7 @@ public:
     [[nodiscard]] std::vector<std::size_t> shape() const override;
     [[nodiscard]] std::size_t sizeBytes() const override;
     [[nodiscard]] double valueAt(const std::vector<std::size_t>& index) const override;
+    [[nodiscard]] std::unique_ptr<Dataset> clone() const override;
 
     /// Direct access to double data. Throws std::bad_variant_access if wrong type.
     [[nodiscard]] const std::vector<double>& doubleData() const;

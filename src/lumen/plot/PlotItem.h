@@ -20,5 +20,8 @@ public:
     virtual bool isVisible() const = 0;
     virtual QString name() const = 0;
     virtual QColor primaryColor() const = 0;
+
+    /// Triggers a repaint; subclasses override if needed.
+    virtual void invalidate() {}
 };
 }  // namespace lumen::plot

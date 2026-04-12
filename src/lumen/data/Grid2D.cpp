@@ -78,4 +78,14 @@ double Grid2D::valueAt(const std::vector<std::size_t>& index) const
     return data_[j * dimX_.length + i];
 }
 
+std::unique_ptr<Dataset> Grid2D::clone() const
+{
+    Dimension clonedX = dimX_;
+    Dimension clonedY = dimY_;
+    std::vector<double> clonedData = data_;
+    return std::make_unique<Grid2D>(
+        name_, unit_, std::move(clonedX), std::move(clonedY),
+        std::move(clonedData));
+}
+
 } // namespace lumen::data

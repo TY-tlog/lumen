@@ -45,6 +45,11 @@ public:
         return static_cast<double>(index[0]) * 10.0;
     }
 
+    [[nodiscard]] std::unique_ptr<Dataset> clone() const override
+    {
+        return std::make_unique<MockDataset>();
+    }
+
     void triggerChanged() { emit changed(); }
     void triggerCoordinatesChanged() { emit coordinatesChanged(); }
 };

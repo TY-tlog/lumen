@@ -7,6 +7,7 @@
 #include <QString>
 
 #include <cstddef>
+#include <memory>
 #include <vector>
 
 namespace lumen::data {
@@ -37,6 +38,7 @@ public:
     [[nodiscard]] std::vector<std::size_t> shape() const override;
     [[nodiscard]] std::size_t sizeBytes() const override;
     [[nodiscard]] double valueAt(const std::vector<std::size_t>& index) const override;
+    [[nodiscard]] std::unique_ptr<Dataset> clone() const override;
 
     /// Number of rows (dimY length).
     [[nodiscard]] std::size_t rows() const { return dimY_.length; }
