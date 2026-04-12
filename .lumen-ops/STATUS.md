@@ -352,3 +352,19 @@ SAME commit as this STATUS entry.
   tracked). PlotCanvas hosts GPU layer (generalizes to Phase 8).
 - 410-test regression gate. Review-in-same-commit rule.
 - Awaiting human review and approval.
+
+## 2026-04-12 — Phase 7 close
+
+### Delivered
+- 7.1: Reactive core (DependencyGraph, ReactiveBinding, 3-mode, ReactivityModeWidget)
+- 7.2: Colormap (11 built-ins, CIELAB uniformity, Machado CVD) + Heatmap (CPU cached + GPU layer)
+- 7.3: CONREC ContourAlgorithm + ContourPlot
+- 7.4: HistogramSeries + BoxPlotSeries + ViolinSeries + 5 commands + 5 dialogs
+- ADRs 038-042
+
+### Test results
+- 545/545 tests pass, ASan+UBSan clean
+
+### Phase 3b/4/5/6 lesson applied
+This review (docs/reviews/phase-7-review.md) is committed in the
+SAME commit as this STATUS entry.
