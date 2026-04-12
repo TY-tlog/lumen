@@ -10,7 +10,7 @@ class CoordinateMapper;
 
 class PlotItem {
 public:
-    enum class Type { Line, Scatter, Bar };
+    enum class Type { Line, Scatter, Bar, Heatmap, Contour, Histogram, BoxPlot, Violin };
     virtual ~PlotItem() = default;
     virtual Type type() const = 0;
     virtual QRectF dataBounds() const = 0;
