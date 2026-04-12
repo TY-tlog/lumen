@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/reactive/ReactiveMode.h>
 #include <plot/PlotStyle.h>
 
 #include <QDockWidget>
@@ -27,9 +28,14 @@ namespace lumen::plot {
 class PlotScene;
 }
 
+namespace lumen::reactive {
+class ReactiveBinding;
+}
+
 namespace lumen::ui {
 
 class PlotCanvas;
+class ReactivityModeWidget;
 
 /// Dock widget containing a PlotCanvas and column-picker controls.
 ///
@@ -60,7 +66,14 @@ public:
     /// Access the underlying PlotScene (for workspace serialization).
     [[nodiscard]] plot::PlotScene* scene() const { return scene_.get(); }
 
+    /// Set the ReactiveBinding used by this dock's plot.
+    void setReactiveBinding(reactive::ReactiveBinding* binding);
+
+    /// Access the reactivity mode widget.
+    [[nodiscard]] ReactivityModeWidget* reactivityWidget() const { return reactivityWidget_; }
+
 private slots:
+    void onReactivityModeChanged(reactive::Mode m);
     void onSeriesDoubleClicked(int seriesIndex);
     void onEmptyAreaDoubleClicked();
     void onXAxisDoubleClicked();
@@ -101,6 +114,10 @@ private:
     QHash<QString, plot::PlotStyle> customStyles_;
     QHash<QString, bool> customVisibility_;
     QHash<QString, QString> customNames_;
+
+    // Reactivity mode (Phase 7).
+    ReactivityModeWidget* reactivityWidget_ = nullptr;
+    reactive::ReactiveBinding* reactiveBinding_ = nullptr;
 };
 
 }  // namespace lumen::ui
