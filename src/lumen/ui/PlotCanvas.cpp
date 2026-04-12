@@ -16,6 +16,13 @@
 #include <QPainter>
 #include <QWheelEvent>
 
+#ifdef LUMEN_HAS_OPENGL_WIDGETS
+#include <QOpenGLContext>
+#include <QOpenGLWidget>
+#endif
+
+#include <qlogging.h>
+
 namespace lumen::ui {
 
 PlotCanvas::PlotCanvas(QWidget* parent)
@@ -261,6 +268,51 @@ void PlotCanvas::wheelEvent(QWheelEvent* event) {
 
 void PlotCanvas::mouseDoubleClickEvent(QMouseEvent* event) {
     controller_->handleDoubleClick(event);
+}
+
+// ---------------------------------------------------------------------------
+// GPU layer (ADR-039)
+// ---------------------------------------------------------------------------
+
+QOpenGLWidget* PlotCanvas::gpuLayer()
+{
+#ifdef LUMEN_HAS_OPENGL_WIDGETS
+    if (gpuWidget_ != nullptr) {
+        return gpuWidget_;
+    }
+
+    if (gpuLayerAttempted_) {
+        // Already tried and failed — do not retry.
+        return nullptr;
+    }
+
+    gpuLayerAttempted_ = true;
+
+    // Try to create a QOpenGLWidget as a child of this canvas.
+    auto* gl = new QOpenGLWidget(this);
+
+    // The widget must be shown briefly to trigger context creation,
+    // but we keep it hidden until the caller actually needs it.
+    gl->setAttribute(Qt::WA_TranslucentBackground);
+    gl->setGeometry(0, 0, 1, 1);
+    gl->show();
+
+    // Check whether a valid GL context was created.
+    QOpenGLContext* ctx = gl->context();
+    if (ctx == nullptr || !ctx->isValid()) {
+        qWarning("PlotCanvas: QOpenGLWidget creation failed "
+                 "(no GL context). Falling back to CPU rendering.");
+        delete gl;
+        return nullptr;
+    }
+
+    gl->hide();
+    gpuWidget_ = gl;
+    return gpuWidget_;
+#else
+    // Qt6::OpenGLWidgets not available at compile time.
+    return nullptr;
+#endif
 }
 
 }  // namespace lumen::ui

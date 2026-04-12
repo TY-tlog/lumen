@@ -61,6 +61,8 @@ add_executable(lumen_unit_tests
     test_colormap_interpolation.cpp
     test_colormap_edge_cases.cpp
     test_heatmap.cpp
+    test_heatmap_cache.cpp
+    test_heatmap_gpu_fallback.cpp
     test_contour_algorithm.cpp
     test_contour_plot.cpp
     test_histogram.cpp

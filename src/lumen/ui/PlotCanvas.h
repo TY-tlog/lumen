@@ -3,6 +3,7 @@
 #include <QWidget>
 
 class QLineEdit;
+class QOpenGLWidget;
 
 namespace lumen::plot {
 class PlotScene;
@@ -19,6 +20,13 @@ class InteractionController;
 /// PlotRenderer and draws overlays (zoom box, crosshair) using
 /// state from InteractionController.  All mouse/wheel logic lives
 /// in InteractionController (see ADR-020).
+///
+/// GPU layer infrastructure (ADR-039):
+/// A QOpenGLWidget child is created lazily on the first call to
+/// gpuLayer(). If OpenGL is unavailable (e.g. QT_QPA_PLATFORM=offscreen),
+/// gpuLayer() returns nullptr and all rendering falls back to the
+/// cached-CPU path. Phase 7 uses cached-CPU optimisation with the
+/// infrastructure ready for full GPU shaders in Phase 8+.
 class PlotCanvas : public QWidget {
     Q_OBJECT
 
@@ -29,6 +37,15 @@ public:
     [[nodiscard]] plot::PlotScene* plotScene() const { return scene_; }
 
     [[nodiscard]] InteractionController* controller() const { return controller_; }
+
+    // --- GPU layer (ADR-039) ---
+
+    /// True if the GPU layer widget has been created successfully.
+    [[nodiscard]] bool hasGpuLayer() const { return gpuWidget_ != nullptr; }
+
+    /// Lazily create and return the QOpenGLWidget overlay.
+    /// Returns nullptr if OpenGL is not available on this platform.
+    [[nodiscard]] QOpenGLWidget* gpuLayer();
 
     /// Start inline title editing (positions a QLineEdit over the title).
     void startTitleEdit();
@@ -58,6 +75,10 @@ private:
     plot::PlotScene* scene_ = nullptr;
     InteractionController* controller_ = nullptr;
     QLineEdit* titleEditor_ = nullptr;
+
+    // GPU layer (ADR-039). Null until gpuLayer() is called and GL succeeds.
+    QOpenGLWidget* gpuWidget_ = nullptr;
+    bool gpuLayerAttempted_ = false;  ///< True after first gpuLayer() call.
 };
 
 }  // namespace lumen::ui

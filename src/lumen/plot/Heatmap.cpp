@@ -59,19 +59,29 @@ void Heatmap::paint(QPainter* painter, const CoordinateMapper& mapper,
         return;
     }
 
-    // GPU path deferred to T9. For now, always use CPU.
+    // GPU path deferred to full shader pipeline in Phase 8+.
+    // For now, always use cached-CPU path (T8 image caching).
     renderCpu(painter, mapper, plotArea);
 }
 
-void Heatmap::renderCpu(QPainter* painter, const CoordinateMapper& mapper,
-                        const QRectF& plotArea) const
+// ---------------------------------------------------------------------------
+// Image cache management
+// ---------------------------------------------------------------------------
+
+void Heatmap::markImageDirty()
+{
+    imageDirty_ = true;
+}
+
+void Heatmap::rebuildCachedImage() const
 {
     auto shape = grid_->shape();
-    // shape[0] = dimX.length (cols), shape[1] = dimY.length (rows)
     std::size_t cols = shape[0];
     std::size_t rows = shape[1];
 
     if (cols == 0 || rows == 0) {
+        cachedImage_ = QImage();
+        imageDirty_ = false;
         return;
     }
 
@@ -97,12 +107,8 @@ void Heatmap::renderCpu(QPainter* painter, const CoordinateMapper& mapper,
         }
     }
 
-    // Get grid coordinate ranges from dimensions
-    auto dims = grid_->dimensions();
-    double xStart = dims[0].coordinates.valueAt(0);
-    double xEnd = dims[0].coordinates.valueAt(cols - 1);
-    double yStart = dims[1].coordinates.valueAt(0);
-    double yEnd = dims[1].coordinates.valueAt(rows - 1);
+    cachedVMin_ = vMin;
+    cachedVMax_ = vMax;
 
     // Create QImage at grid resolution.
     // Image pixel (c, r) maps to grid value at column c, row r.
@@ -125,20 +131,72 @@ void Heatmap::renderCpu(QPainter* painter, const CoordinateMapper& mapper,
         }
     }
 
+    cachedImage_ = std::move(image);
+    imageDirty_ = false;
+}
+
+// ---------------------------------------------------------------------------
+// CPU render path (with image caching)
+// ---------------------------------------------------------------------------
+
+void Heatmap::renderCpu(QPainter* painter, const CoordinateMapper& mapper,
+                        const QRectF& plotArea) const
+{
+    auto shape = grid_->shape();
+    std::size_t cols = shape[0];
+    std::size_t rows = shape[1];
+
+    if (cols == 0 || rows == 0) {
+        return;
+    }
+
+    // Rebuild the cached image only if dirty.
+    if (imageDirty_) {
+        rebuildCachedImage();
+    }
+
+    if (cachedImage_.isNull()) {
+        return;
+    }
+
+    // Get grid coordinate ranges from dimensions
+    auto dims = grid_->dimensions();
+    double xStart = dims[0].coordinates.valueAt(0);
+    double xEnd = dims[0].coordinates.valueAt(cols - 1);
+    double yStart = dims[1].coordinates.valueAt(0);
+    double yEnd = dims[1].coordinates.valueAt(rows - 1);
+
     // Map grid corners to pixel space
     QPointF topLeft = mapper.dataToPixel(xStart, yEnd);
     QPointF bottomRight = mapper.dataToPixel(xEnd, yStart);
     QRectF targetRect(topLeft, bottomRight);
 
-    // Draw the image scaled to the target rect
+    // Draw the cached image scaled to the target rect
     painter->save();
     painter->setClipRect(plotArea);
     if (interp_ == Interpolation::Bilinear) {
         painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
     }
-    painter->drawImage(targetRect, image);
+    painter->drawImage(targetRect, cachedImage_);
     painter->restore();
 }
+
+// ---------------------------------------------------------------------------
+// GPU render path (T9 — GL-accelerated blit of cached QImage)
+// ---------------------------------------------------------------------------
+
+void Heatmap::renderGpu(QOpenGLWidget* /*glWidget*/,
+                        const CoordinateMapper& /*mapper*/,
+                        const QRectF& /*plotArea*/) const
+{
+    // Phase 7 stub: full GL shader pipeline deferred to Phase 8+.
+    // The cached CPU image is blitted by PlotCanvas when a GPU layer
+    // is available (via QOpenGLWidget::paintGL using QPainter on GL).
+    // For now this is a no-op; callers should use paint() which
+    // uses the cached-CPU path.
+}
+
+// ---------------------------------------------------------------------------
 
 QColor Heatmap::primaryColor() const
 {
@@ -154,6 +212,7 @@ Heatmap::RenderPath Heatmap::activeRenderPath() const
 void Heatmap::setColormap(Colormap cmap)
 {
     colormap_ = std::move(cmap);
+    markImageDirty();
 }
 
 void Heatmap::setValueRange(double min, double max)
@@ -161,21 +220,26 @@ void Heatmap::setValueRange(double min, double max)
     valueMin_ = min;
     valueMax_ = max;
     autoRange_ = false;
+    markImageDirty();
 }
 
 void Heatmap::setAutoValueRange()
 {
     autoRange_ = true;
+    markImageDirty();
 }
 
 void Heatmap::setInterpolation(Interpolation interp)
 {
     interp_ = interp;
+    // Interpolation only affects QPainter render hint, not the cached
+    // image contents, so we do NOT mark dirty here.
 }
 
 void Heatmap::setOpacity(double opacity)
 {
     opacity_ = std::clamp(opacity, 0.0, 1.0);
+    markImageDirty();
 }
 
 void Heatmap::setName(QString name)
