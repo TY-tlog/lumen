@@ -23,6 +23,14 @@ target_sources(lumen_plot PRIVATE
     HistogramSeries.cpp HistogramSeries.h
     BoxPlotSeries.cpp BoxPlotSeries.h
     ViolinSeries.cpp ViolinSeries.h
+    Annotation.cpp Annotation.h
+    AnnotationLayer.cpp AnnotationLayer.h
+    annotations/ArrowAnnotation.cpp annotations/ArrowAnnotation.h
+    annotations/BoxAnnotation.cpp annotations/BoxAnnotation.h
+    annotations/CalloutAnnotation.cpp annotations/CalloutAnnotation.h
+    annotations/TextAnnotation.cpp annotations/TextAnnotation.h
+    annotations/ScaleBar.cpp annotations/ScaleBar.h
+    annotations/ColorBar.cpp annotations/ColorBar.h
 )
 
 target_include_directories(lumen_plot
