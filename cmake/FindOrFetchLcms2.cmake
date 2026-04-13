@@ -1,32 +1,23 @@
 # Find system lcms2, or fetch via FetchContent as fallback.
 #
-# Sets: LCMS2_FOUND, LCMS2_INCLUDE_DIRS, LCMS2_LIBRARIES
-# Or defines a lcms2 target via FetchContent.
+# Defines target: lcms2::lcms2
 
 include(FetchContent)
 
-# Try system package first (faster, no build overhead).
-find_package(PkgConfig QUIET)
-if(PkgConfig_FOUND)
-    pkg_check_modules(LCMS2 QUIET lcms2)
-endif()
+# Try to find the library directly (works on both Linux and macOS/Homebrew).
+find_path(LCMS2_INCLUDE_DIR NAMES lcms2.h
+    HINTS /opt/homebrew/include /usr/local/include)
+find_library(LCMS2_LIBRARY NAMES lcms2
+    HINTS /opt/homebrew/lib /usr/local/lib)
 
-if(NOT LCMS2_FOUND)
-    find_path(LCMS2_INCLUDE_DIRS NAMES lcms2.h)
-    find_library(LCMS2_LIBRARIES NAMES lcms2)
-    if(LCMS2_INCLUDE_DIRS AND LCMS2_LIBRARIES)
-        set(LCMS2_FOUND TRUE)
-    endif()
-endif()
-
-if(LCMS2_FOUND)
-    message(STATUS "lcms2 found (system): ${LCMS2_LIBRARIES}")
-    # Create an imported target for uniform usage.
+if(LCMS2_INCLUDE_DIR AND LCMS2_LIBRARY)
+    set(LCMS2_FOUND TRUE)
+    message(STATUS "lcms2 found (system): ${LCMS2_LIBRARY}")
     if(NOT TARGET lcms2::lcms2)
-        add_library(lcms2::lcms2 INTERFACE IMPORTED)
+        add_library(lcms2::lcms2 UNKNOWN IMPORTED)
         set_target_properties(lcms2::lcms2 PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${LCMS2_INCLUDE_DIRS}"
-            INTERFACE_LINK_LIBRARIES "${LCMS2_LIBRARIES}"
+            IMPORTED_LOCATION "${LCMS2_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${LCMS2_INCLUDE_DIR}"
         )
     endif()
 else()
