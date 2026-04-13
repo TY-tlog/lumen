@@ -78,6 +78,8 @@ qt_add_executable(lumen
     ui/PlotCanvas.h
     ui/PlotCanvas3D.cpp
     ui/PlotCanvas3D.h
+    ui/PlotCanvas3DDock.cpp
+    ui/PlotCanvas3DDock.h
     ui/PlotCanvasDock.cpp
     ui/PlotCanvasDock.h
     ui/ReactivityModeWidget.cpp

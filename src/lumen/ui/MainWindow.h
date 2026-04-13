@@ -31,6 +31,7 @@ class TabularBundle;
 
 namespace lumen::ui {
 class DataTableDock;
+class PlotCanvas3DDock;
 class PlotCanvasDock;
 }  // namespace lumen::ui
 
@@ -58,6 +59,7 @@ public:
     /// Access the data table dock (for integration with file loading).
     [[nodiscard]] ui::DataTableDock* dataTableDock() const { return dataTableDock_; }
     [[nodiscard]] ui::PlotCanvasDock* plotCanvasDock() const { return plotCanvasDock_; }
+    [[nodiscard]] ui::PlotCanvas3DDock* plotCanvas3DDock() const { return plotCanvas3DDock_; }
 
 protected:
     void closeEvent(QCloseEvent* event) override;
@@ -120,6 +122,7 @@ private:
     core::io::WorkspaceManager* workspaceManager_ = nullptr;
     ui::DataTableDock* dataTableDock_ = nullptr;
     ui::PlotCanvasDock* plotCanvasDock_ = nullptr;
+    ui::PlotCanvas3DDock* plotCanvas3DDock_ = nullptr;
     QMenu* recentFilesMenu_ = nullptr;
     QString currentDocPath_;
     QLabel* memoryLabel_ = nullptr;

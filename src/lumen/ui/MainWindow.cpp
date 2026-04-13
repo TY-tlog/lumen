@@ -3,6 +3,8 @@
 #include "DataTableDock.h"
 #include "ExportDialog.h"
 #include "PlotCanvas.h"
+#include "PlotCanvas3D.h"
+#include "PlotCanvas3DDock.h"
 #include "PlotCanvasDock.h"
 
 #include <core/DocumentRegistry.h>
@@ -19,6 +21,12 @@
 #include <data/Volume3D.h>
 #include <data/io/DatasetLoader.h>
 #include <data/io/LoaderRegistry.h>
+#include <plot/Colormap.h>
+#include <plot/Heatmap.h>
+#include <plot/PlotScene.h>
+#include <plot3d/Scatter3D.h>
+#include <plot3d/Surface3D.h>
+#include <plot3d/VolumeItem.h>
 
 #include <QAction>
 #include <QApplication>
@@ -96,6 +104,11 @@ MainWindow::MainWindow(core::DocumentRegistry* registry,
     addDockWidget(Qt::RightDockWidgetArea, plotCanvasDock_);
     plotCanvasDock_->hide();
 
+    // 3D plot canvas dock — starts hidden, shown when 3D data is loaded
+    plotCanvas3DDock_ = new ui::PlotCanvas3DDock(this);
+    addDockWidget(Qt::RightDockWidgetArea, plotCanvas3DDock_);
+    plotCanvas3DDock_->hide();
+
     // Connect workspace modification tracking.
     if (workspaceManager_ != nullptr) {
         connect(workspaceManager_, &core::io::WorkspaceManager::modifiedChanged,
@@ -164,6 +177,7 @@ void MainWindow::buildMenus() {
     auto* viewMenu = menuBar()->addMenu(tr("&View"));
     viewMenu->addAction(dataTableDock_->toggleViewAction());
     viewMenu->addAction(plotCanvasDock_->toggleViewAction());
+    viewMenu->addAction(plotCanvas3DDock_->toggleViewAction());
 
     auto* helpMenu = menuBar()->addMenu(tr("&Help"));
     auto* aboutAction = helpMenu->addAction(tr("&About Lumen"));
@@ -324,10 +338,35 @@ void MainWindow::showTabular(const data::TabularBundle* bundle, const QString& p
 void MainWindow::showDataset(const data::Dataset* ds, const QString& label) {
     dataTableDock_->showDatasetInfo(ds);
     dataTableDock_->show();
-    dataTableDock_->raise();  // bring to front
 
-    // Hide plot dock for non-tabular data (no plot visualization yet).
-    plotCanvasDock_->hide();
+    // If Grid2D, create a Heatmap and show in PlotCanvasDock.
+    if (ds->rank() == 2) {
+        auto* grid = dynamic_cast<const data::Grid2D*>(ds);
+        if (grid) {
+            // Find the shared_ptr in sampleDatasets_ to pass to Heatmap.
+            std::shared_ptr<data::Grid2D> gridPtr;
+            for (const auto& sample : sampleDatasets_) {
+                if (sample.get() == ds) {
+                    gridPtr = std::dynamic_pointer_cast<data::Grid2D>(sample);
+                    break;
+                }
+            }
+            if (gridPtr) {
+                plotCanvasDock_->scene()->clearItems();
+                auto heatmap = std::make_unique<plot::Heatmap>(
+                    gridPtr,
+                    plot::Colormap::builtin(plot::Colormap::Builtin::Viridis));
+                heatmap->setName(label);
+                plotCanvasDock_->scene()->addItem(std::move(heatmap));
+                plotCanvasDock_->scene()->autoRange();
+                plotCanvasDock_->canvas()->update();
+                plotCanvasDock_->show();
+            }
+        }
+    } else {
+        // Hide plot dock for non-Grid2D datasets without visualization.
+        plotCanvasDock_->hide();
+    }
 
     setWindowTitle(QStringLiteral("Lumen — %1").arg(label));
 }
@@ -520,6 +559,13 @@ void MainWindow::openSampleVolumeSphere() {
     sampleDatasets_.push_back(volume);
     showDataset(volume.get(), QStringLiteral("Volume Sphere"));
 
+    // Also show as VolumeItem in PlotCanvas3DDock.
+    auto volItem = std::make_unique<plot3d::VolumeItem>(
+        volume, QStringLiteral("Volume Sphere"));
+    plotCanvas3DDock_->canvas()->scene()->clearItems();
+    plotCanvas3DDock_->canvas()->addItem(std::move(volItem));
+    plotCanvas3DDock_->show();
+
     data::MemoryManager::instance().trackAllocation(volume->sizeBytes());
     statusBar()->showMessage(tr("Sample: Volume Sphere (64x64x64)"));
     updateMemoryStatus();
@@ -633,23 +679,62 @@ void MainWindow::openSampleScatter3D() {
     auto yCol = std::make_shared<data::Rank1Dataset>("y", data::Unit::dimensionless(), std::move(yd));
     auto zCol = std::make_shared<data::Rank1Dataset>("z", data::Unit::dimensionless(), std::move(zd));
 
-    // Show as placeholder for now (PlotCanvas3D integration requires separate dock)
-    statusBar()->showMessage(tr("Sample: Scatter3D (%1 points on sphere shell) — 3D view requires PlotCanvas3D dock (Phase 8 UI)").arg(kN));
+    auto scatter = std::make_unique<plot3d::Scatter3D>(
+        xCol, yCol, zCol, Qt::blue, QStringLiteral("Scatter3D"));
+    plotCanvas3DDock_->canvas()->scene()->clearItems();
+    plotCanvas3DDock_->canvas()->addItem(std::move(scatter));
+    plotCanvas3DDock_->show();
+
+    setWindowTitle(QStringLiteral("Lumen — Scatter 3D"));
+    statusBar()->showMessage(tr("Sample: Scatter3D (%1 points on sphere shell)").arg(kN));
 }
 
 void MainWindow::openSampleSurface3D() {
-    // Reuse Gaussian 2D as a Surface3D candidate
-    openSampleGaussian2D();
-    statusBar()->showMessage(tr("Sample: Surface3D — Gaussian 2D loaded. 3D surface view requires PlotCanvas3D dock (Phase 8 UI)"));
+    // Generate Gaussian 2D grid for the surface.
+    constexpr std::size_t kSize = 64;
+    constexpr double kSigma = 20.0;
+    constexpr double kCenter = 32.0;
+
+    std::vector<double> values(kSize * kSize);
+    for (std::size_t y = 0; y < kSize; ++y) {
+        for (std::size_t x = 0; x < kSize; ++x) {
+            double dx = static_cast<double>(x) - kCenter;
+            double dy = static_cast<double>(y) - kCenter;
+            values[y * kSize + x] = std::exp(-(dx * dx + dy * dy) / (2.0 * kSigma * kSigma));
+        }
+    }
+
+    data::Dimension dimX{QStringLiteral("x"), data::Unit::dimensionless(),
+                         kSize, data::CoordinateArray(0.0, 1.0, kSize)};
+    data::Dimension dimY{QStringLiteral("y"), data::Unit::dimensionless(),
+                         kSize, data::CoordinateArray(0.0, 1.0, kSize)};
+
+    auto grid = std::make_shared<data::Grid2D>(
+        QStringLiteral("Surface Gaussian"), data::Unit::dimensionless(),
+        std::move(dimX), std::move(dimY), std::move(values));
+
+    sampleDatasets_.push_back(grid);
+
+    auto surface = std::make_unique<plot3d::Surface3D>(
+        grid, QColor(100, 149, 237), QStringLiteral("Surface3D"));
+    plotCanvas3DDock_->canvas()->scene()->clearItems();
+    plotCanvas3DDock_->canvas()->addItem(std::move(surface));
+    plotCanvas3DDock_->show();
+
+    setWindowTitle(QStringLiteral("Lumen — Surface 3D"));
+    statusBar()->showMessage(tr("Sample: Surface3D (Gaussian 64x64)"));
 }
 
 void MainWindow::openSampleStreamlines() {
-    statusBar()->showMessage(tr("Sample: Streamlines — requires 3D vector field data + PlotCanvas3D dock (Phase 8 UI)"));
+    // Streamlines require a vector field; show placeholder message for now.
+    plotCanvas3DDock_->show();
+    statusBar()->showMessage(tr("Sample: Streamlines — requires 3D vector field data (not yet generated)"));
 }
 
 void MainWindow::openSampleIsosurface() {
+    // Load Volume Sphere and show it as a VolumeItem in the 3D dock.
     openSampleVolumeSphere();
-    statusBar()->showMessage(tr("Sample: Isosurface — Volume Sphere loaded. Marching Cubes extraction requires PlotCanvas3D dock (Phase 8 UI)"));
+    statusBar()->showMessage(tr("Sample: Isosurface — Volume Sphere loaded in 3D View"));
 }
 
 // ---- Memory Budget Dialog (T24) ----
