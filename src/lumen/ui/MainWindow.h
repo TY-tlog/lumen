@@ -96,11 +96,21 @@ private:
     /// Rebuild the recent-files submenu from QSettings.
     void updateRecentFilesMenu();
 
-    // Sample data generators
+    // Sample data generators — 2D
     void openSampleSine1D();
+    void openSampleScatter2D();
+    void openSampleBarChart();
+    void openSampleHistogram();
+    void openSampleBoxPlot();
+    void openSampleViolin();
     void openSampleGaussian2D();
     void openSampleMandelbrot();
+    // Sample data generators — 3D
     void openSampleVolumeSphere();
+    void openSampleScatter3D();
+    void openSampleSurface3D();
+    void openSampleStreamlines();
+    void openSampleIsosurface();
 
     /// Show memory budget settings dialog.
     void showMemoryBudgetDialog();

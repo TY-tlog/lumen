@@ -173,17 +173,24 @@ void MainWindow::buildMenus() {
 void MainWindow::buildSampleMenu(QMenu* fileMenu) {
     auto* sampleMenu = fileMenu->addMenu(tr("Open Sample"));
 
-    auto* sine1DAction = sampleMenu->addAction(tr("Sine 1D"));
-    connect(sine1DAction, &QAction::triggered, this, &MainWindow::openSampleSine1D);
+    // 2D plot samples
+    auto* sub2d = sampleMenu->addMenu(tr("2D Plots"));
+    connect(sub2d->addAction(tr("Sine 1D (Line)")), &QAction::triggered, this, &MainWindow::openSampleSine1D);
+    connect(sub2d->addAction(tr("Scatter 2D")), &QAction::triggered, this, &MainWindow::openSampleScatter2D);
+    connect(sub2d->addAction(tr("Bar Chart")), &QAction::triggered, this, &MainWindow::openSampleBarChart);
+    connect(sub2d->addAction(tr("Histogram")), &QAction::triggered, this, &MainWindow::openSampleHistogram);
+    connect(sub2d->addAction(tr("Box Plot")), &QAction::triggered, this, &MainWindow::openSampleBoxPlot);
+    connect(sub2d->addAction(tr("Violin Plot")), &QAction::triggered, this, &MainWindow::openSampleViolin);
+    connect(sub2d->addAction(tr("Gaussian 2D (Heatmap)")), &QAction::triggered, this, &MainWindow::openSampleGaussian2D);
+    connect(sub2d->addAction(tr("Mandelbrot (Heatmap)")), &QAction::triggered, this, &MainWindow::openSampleMandelbrot);
 
-    auto* gaussian2DAction = sampleMenu->addAction(tr("Gaussian 2D"));
-    connect(gaussian2DAction, &QAction::triggered, this, &MainWindow::openSampleGaussian2D);
-
-    auto* mandelbrotAction = sampleMenu->addAction(tr("Mandelbrot"));
-    connect(mandelbrotAction, &QAction::triggered, this, &MainWindow::openSampleMandelbrot);
-
-    auto* volumeSphereAction = sampleMenu->addAction(tr("Volume Sphere"));
-    connect(volumeSphereAction, &QAction::triggered, this, &MainWindow::openSampleVolumeSphere);
+    // 3D plot samples
+    auto* sub3d = sampleMenu->addMenu(tr("3D Plots"));
+    connect(sub3d->addAction(tr("Scatter 3D")), &QAction::triggered, this, &MainWindow::openSampleScatter3D);
+    connect(sub3d->addAction(tr("Surface 3D")), &QAction::triggered, this, &MainWindow::openSampleSurface3D);
+    connect(sub3d->addAction(tr("Volume Sphere")), &QAction::triggered, this, &MainWindow::openSampleVolumeSphere);
+    connect(sub3d->addAction(tr("Streamlines")), &QAction::triggered, this, &MainWindow::openSampleStreamlines);
+    connect(sub3d->addAction(tr("Isosurface")), &QAction::triggered, this, &MainWindow::openSampleIsosurface);
 }
 
 void MainWindow::setupMemoryStatusBar() {
@@ -516,6 +523,133 @@ void MainWindow::openSampleVolumeSphere() {
     data::MemoryManager::instance().trackAllocation(volume->sizeBytes());
     statusBar()->showMessage(tr("Sample: Volume Sphere (64x64x64)"));
     updateMemoryStatus();
+}
+
+// ---- Additional 2D samples ----
+
+void MainWindow::openSampleScatter2D() {
+    constexpr int kN = 200;
+    std::vector<double> xData, yData;
+    xData.reserve(kN); yData.reserve(kN);
+    std::srand(42);
+    for (int i = 0; i < kN; ++i) {
+        double x = static_cast<double>(std::rand()) / RAND_MAX * 10.0;
+        double y = 2.0 * x + 1.0 + (static_cast<double>(std::rand()) / RAND_MAX - 0.5) * 4.0;
+        xData.push_back(x); yData.push_back(y);
+    }
+    auto xCol = std::make_shared<data::Rank1Dataset>("x", data::Unit::dimensionless(), std::move(xData));
+    auto yCol = std::make_shared<data::Rank1Dataset>("y", data::Unit::dimensionless(), std::move(yData));
+    auto bundle = std::make_shared<data::TabularBundle>();
+    bundle->addColumn(std::move(xCol)); bundle->addColumn(std::move(yCol));
+    const QString key = QStringLiteral("sample://scatter-2d");
+    const auto* raw = registry_->addDocument(key, std::move(bundle));
+    showTabular(raw, key);
+    statusBar()->showMessage(tr("Sample: Scatter 2D (%1 points) — select Scatter type in Plot Type combo").arg(kN));
+}
+
+void MainWindow::openSampleBarChart() {
+    std::vector<double> categories = {1, 2, 3, 4, 5, 6};
+    std::vector<double> values = {23, 45, 12, 67, 34, 56};
+    auto xCol = std::make_shared<data::Rank1Dataset>("category", data::Unit::dimensionless(), std::move(categories));
+    auto yCol = std::make_shared<data::Rank1Dataset>("value", data::Unit::dimensionless(), std::move(values));
+    auto bundle = std::make_shared<data::TabularBundle>();
+    bundle->addColumn(std::move(xCol)); bundle->addColumn(std::move(yCol));
+    const QString key = QStringLiteral("sample://bar-chart");
+    const auto* raw = registry_->addDocument(key, std::move(bundle));
+    showTabular(raw, key);
+    statusBar()->showMessage(tr("Sample: Bar Chart — select Bar type in Plot Type combo"));
+}
+
+void MainWindow::openSampleHistogram() {
+    constexpr int kN = 1000;
+    std::vector<double> values;
+    values.reserve(kN);
+    std::srand(123);
+    for (int i = 0; i < kN; ++i) {
+        // Box-Muller for normal distribution
+        double u1 = (static_cast<double>(std::rand()) + 1.0) / (RAND_MAX + 1.0);
+        double u2 = static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX);
+        double z = std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * M_PI * u2);
+        values.push_back(z * 15.0 + 50.0); // mean=50, std=15
+    }
+    auto col = std::make_shared<data::Rank1Dataset>("measurement", data::Unit::dimensionless(), std::move(values));
+    auto bundle = std::make_shared<data::TabularBundle>();
+    bundle->addColumn(std::move(col));
+    const QString key = QStringLiteral("sample://histogram");
+    const auto* raw = registry_->addDocument(key, std::move(bundle));
+    showTabular(raw, key);
+    statusBar()->showMessage(tr("Sample: Histogram (normal dist, N=1000) — select Histogram type"));
+}
+
+void MainWindow::openSampleBoxPlot() {
+    std::vector<double> groupA = {2, 3, 5, 7, 8, 9, 10, 11, 12, 15, 20};
+    std::vector<double> groupB = {5, 8, 10, 12, 13, 14, 15, 16, 18, 22, 25};
+    auto colA = std::make_shared<data::Rank1Dataset>("Group A", data::Unit::dimensionless(), std::move(groupA));
+    auto colB = std::make_shared<data::Rank1Dataset>("Group B", data::Unit::dimensionless(), std::move(groupB));
+    auto bundle = std::make_shared<data::TabularBundle>();
+    bundle->addColumn(std::move(colA)); bundle->addColumn(std::move(colB));
+    const QString key = QStringLiteral("sample://boxplot");
+    const auto* raw = registry_->addDocument(key, std::move(bundle));
+    showTabular(raw, key);
+    statusBar()->showMessage(tr("Sample: Box Plot — select BoxPlot type"));
+}
+
+void MainWindow::openSampleViolin() {
+    constexpr int kN = 500;
+    std::vector<double> bimodal;
+    bimodal.reserve(kN);
+    std::srand(456);
+    for (int i = 0; i < kN; ++i) {
+        double u1 = (static_cast<double>(std::rand()) + 1.0) / (RAND_MAX + 1.0);
+        double u2 = static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX);
+        double z = std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * M_PI * u2);
+        bimodal.push_back(i < kN / 2 ? z * 5.0 + 30.0 : z * 8.0 + 60.0);
+    }
+    auto col = std::make_shared<data::Rank1Dataset>("bimodal", data::Unit::dimensionless(), std::move(bimodal));
+    auto bundle = std::make_shared<data::TabularBundle>();
+    bundle->addColumn(std::move(col));
+    const QString key = QStringLiteral("sample://violin");
+    const auto* raw = registry_->addDocument(key, std::move(bundle));
+    showTabular(raw, key);
+    statusBar()->showMessage(tr("Sample: Violin Plot (bimodal dist) — select Violin type"));
+}
+
+// ---- 3D samples ----
+
+void MainWindow::openSampleScatter3D() {
+    constexpr int kN = 500;
+    std::vector<double> xd, yd, zd;
+    xd.reserve(kN); yd.reserve(kN); zd.reserve(kN);
+    std::srand(789);
+    for (int i = 0; i < kN; ++i) {
+        double theta = static_cast<double>(std::rand()) / RAND_MAX * 2.0 * M_PI;
+        double phi = std::acos(2.0 * static_cast<double>(std::rand()) / RAND_MAX - 1.0);
+        double r = 1.0 + 0.3 * static_cast<double>(std::rand()) / RAND_MAX;
+        xd.push_back(r * std::sin(phi) * std::cos(theta));
+        yd.push_back(r * std::sin(phi) * std::sin(theta));
+        zd.push_back(r * std::cos(phi));
+    }
+    auto xCol = std::make_shared<data::Rank1Dataset>("x", data::Unit::dimensionless(), std::move(xd));
+    auto yCol = std::make_shared<data::Rank1Dataset>("y", data::Unit::dimensionless(), std::move(yd));
+    auto zCol = std::make_shared<data::Rank1Dataset>("z", data::Unit::dimensionless(), std::move(zd));
+
+    // Show as placeholder for now (PlotCanvas3D integration requires separate dock)
+    statusBar()->showMessage(tr("Sample: Scatter3D (%1 points on sphere shell) — 3D view requires PlotCanvas3D dock (Phase 8 UI)").arg(kN));
+}
+
+void MainWindow::openSampleSurface3D() {
+    // Reuse Gaussian 2D as a Surface3D candidate
+    openSampleGaussian2D();
+    statusBar()->showMessage(tr("Sample: Surface3D — Gaussian 2D loaded. 3D surface view requires PlotCanvas3D dock (Phase 8 UI)"));
+}
+
+void MainWindow::openSampleStreamlines() {
+    statusBar()->showMessage(tr("Sample: Streamlines — requires 3D vector field data + PlotCanvas3D dock (Phase 8 UI)"));
+}
+
+void MainWindow::openSampleIsosurface() {
+    openSampleVolumeSphere();
+    statusBar()->showMessage(tr("Sample: Isosurface — Volume Sphere loaded. Marching Cubes extraction requires PlotCanvas3D dock (Phase 8 UI)"));
 }
 
 // ---- Memory Budget Dialog (T24) ----
