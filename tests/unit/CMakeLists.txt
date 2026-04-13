@@ -86,9 +86,19 @@ add_executable(lumen_unit_tests
     test_streamlines.cpp
     test_isosurface.cpp
     test_pbr_material.cpp
+    test_histogram_commands.cpp
+    test_boxplot_commands.cpp
+    test_violin_commands.cpp
+    test_heatmap_commands.cpp
+    test_contour_commands.cpp
+    test_camera_mode_switch.cpp
+    test_plotcanvas3d_dock.cpp
+    test_3d_edge_cases.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.h
+    ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3DDock.cpp
+    ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3DDock.h
 )
 
 target_compile_definitions(lumen_unit_tests
