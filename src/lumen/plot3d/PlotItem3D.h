@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BoundingBox3D.h"
+#include "PbrMaterial.h"
 #include "RenderContext.h"
 
 #include <QString>
@@ -25,6 +26,18 @@ public:
                                                    double maxDist) const = 0;
     virtual bool isVisible() const = 0;
     virtual void invalidate() {}
+
+    /// Optional PBR material. When set, Renderer3D uses the PBR shader.
+    void setPbrMaterial(const PbrMaterial& mat) { pbrMaterial_ = mat; }
+    void clearPbrMaterial() { pbrMaterial_.reset(); }
+    [[nodiscard]] const std::optional<PbrMaterial>& pbrMaterial() const
+    {
+        return pbrMaterial_;
+    }
+    [[nodiscard]] bool hasPbrMaterial() const { return pbrMaterial_.has_value(); }
+
+private:
+    std::optional<PbrMaterial> pbrMaterial_;
 };
 
 }  // namespace lumen::plot3d

@@ -80,6 +80,12 @@ add_executable(lumen_unit_tests
     test_spatial_grid3d.cpp
     test_plotcanvas3d.cpp
     test_scatter3d_command.cpp
+    test_surface3d.cpp
+    test_transfer_function.cpp
+    test_volume_item.cpp
+    test_streamlines.cpp
+    test_isosurface.cpp
+    test_pbr_material.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.h
