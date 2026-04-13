@@ -1,7 +1,6 @@
 #pragma once
 
 #include <core/io/FigureExporter.h>
-#include <export/ColorProfile.h>
 
 #include <QObject>
 #include <QString>
@@ -36,7 +35,6 @@ class ExportTask : public QObject {
 public:
     struct Options {
         core::io::FigureExporter::Options exportOpts;
-        ColorProfile colorProfile;
         const plot::PlotScene* scene = nullptr;
     };
 

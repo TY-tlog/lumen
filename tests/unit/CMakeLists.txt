@@ -103,6 +103,12 @@ add_executable(lumen_unit_tests
     test_arrow_annotation.cpp
     test_text_annotation.cpp
     test_annotation_workspace.cpp
+    test_font_embedder_subset.cpp
+    test_academic_fonts_loaded.cpp
+    test_microtex_basic.cpp
+    test_microtex_complex.cpp
+    test_microtex_invalid.cpp
+    test_export_task_cancel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.h

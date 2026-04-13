@@ -12,6 +12,10 @@ add_library(lumen_export STATIC
     ColorPipeline.h
     ExportTask.cpp
     ExportTask.h
+    FontEmbedder.cpp
+    FontEmbedder.h
+    MathRenderer.cpp
+    MathRenderer.h
 )
 
 target_include_directories(lumen_export
