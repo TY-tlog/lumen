@@ -23,7 +23,9 @@ if(LUMEN_ENABLE_WARNINGS)
             # -Wnull-dereference disabled: GCC -O3 produces false positives
             # with shared_ptr inline member access (e.g. scatter->xDataset()->...)
             # Re-enable when GCC fixes this or when we add explicit asserts everywhere.
-            -Wdouble-promotion
+            # -Wdouble-promotion disabled: float→double promotion in OpenGL
+            # math, QJsonArray, and Catch2 matchers causes errors on Clang
+            # that GCC doesn't flag. Too many cross-platform false positives.
             -Wformat=2
             -Wimplicit-fallthrough
         )
