@@ -48,5 +48,15 @@ target_link_libraries(lumen_core
         lumen::compile_options
 )
 
+# 3D commands depend on lumen_plot3d (requires OpenGL).
+if(TARGET lumen_plot3d)
+    target_sources(lumen_core PRIVATE
+        commands/ChangeScatter3DPropertiesCommand.cpp
+        commands/ChangeScatter3DPropertiesCommand.h
+    )
+    target_link_libraries(lumen_core PUBLIC lumen_plot3d)
+    target_compile_definitions(lumen_core PUBLIC LUMEN_HAS_OPENGL_WIDGETS=1)
+endif()
+
 add_subdirectory(io)
 add_subdirectory(reactive)

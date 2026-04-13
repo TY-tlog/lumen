@@ -9,7 +9,9 @@ add_library(lumen_plot3d STATIC
     Ray.cpp Ray.h
     RenderContext.h
     Renderer3D.cpp Renderer3D.h
+    Scatter3D.cpp Scatter3D.h
     ShaderProgram.cpp ShaderProgram.h
+    SpatialGrid3D.cpp SpatialGrid3D.h
 )
 
 target_include_directories(lumen_plot3d
