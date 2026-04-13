@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AnnotationLayer.h"
 #include "Axis.h"
 #include "Legend.h"
 #include "LineSeries.h"
@@ -130,6 +131,10 @@ public:
     [[nodiscard]] Legend& legend() { return legend_; }
     [[nodiscard]] const Legend& legend() const { return legend_; }
 
+    // --- Annotation layer (Phase 9) ---
+    [[nodiscard]] AnnotationLayer* annotationLayer() { return &annotationLayer_; }
+    [[nodiscard]] const AnnotationLayer* annotationLayer() const { return &annotationLayer_; }
+
     /// Compute the data plotting area given the total widget size.
     /// Accounts for margins: left (Y ticks+label), bottom (X ticks+label),
     /// top (title), right (padding).
@@ -153,6 +158,7 @@ private:
     int titleFontPx_ = 17;  // tokens::typography::title3.sizePx
     QFont::Weight titleWeight_ = QFont::DemiBold;
     Legend legend_;
+    AnnotationLayer annotationLayer_;
 
     /// Cached margins for 1-pixel debounce (prevents jiggle during live edits).
     mutable PlotMargins cachedMargins_{};

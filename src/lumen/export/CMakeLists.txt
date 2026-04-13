@@ -8,6 +8,8 @@ include(FindOrFetchLcms2)
 add_library(lumen_export STATIC
     ColorProfile.cpp
     ColorProfile.h
+    ColorPipeline.cpp
+    ColorPipeline.h
     ExportTask.cpp
     ExportTask.h
 )

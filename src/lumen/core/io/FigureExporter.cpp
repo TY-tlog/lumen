@@ -3,6 +3,7 @@
 #include "plot/PlotRenderer.h"
 #include "plot/PlotScene.h"
 
+#include <QColorSpace>
 #include <QImage>
 #include <QPainter>
 #include <QPdfWriter>
@@ -44,6 +45,13 @@ QString FigureExporter::exportPng(const plot::PlotScene* scene,
     const double dotsPerMeter = opts.dpi / 0.0254;
     image.setDotsPerMeterX(static_cast<int>(dotsPerMeter));
     image.setDotsPerMeterY(static_cast<int>(dotsPerMeter));
+
+    // Embed ICC profile if provided (Phase 9 color management).
+    if (!opts.iccProfileData.isEmpty()) {
+        QColorSpace cs = QColorSpace::fromIccProfile(opts.iccProfileData);
+        if (cs.isValid())
+            image.setColorSpace(cs);
+    }
 
     QPainter painter(&image);
     if (!painter.isActive()) {

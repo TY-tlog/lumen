@@ -32,6 +32,8 @@ add_library(lumen_core STATIC
     commands/ChangeBoxPlotPropertiesCommand.h
     commands/ChangeViolinPropertiesCommand.cpp
     commands/ChangeViolinPropertiesCommand.h
+    commands/ChangeAnnotationCommand.cpp
+    commands/ChangeAnnotationCommand.h
 )
 
 target_include_directories(lumen_core
