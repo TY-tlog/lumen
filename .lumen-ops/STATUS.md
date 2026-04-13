@@ -427,3 +427,31 @@ SAME commit as this STATUS entry.
   that each item works). Committed in same commit as closing STATUS entry.
 - Stray branch prevention: `git branch --show-current` before every commit.
 - Awaiting human review and approval.
+
+## 2026-04-14 — Phase 9 close
+
+### Delivered
+- 9.1: ColorProfile (6 builtins, lcms2), ColorPipeline (iCCP embedding),
+  ExportDialog profile picker
+- 9.2: FontEmbedder (4 academic fonts, subset API), FontPicker UI
+- 9.4: MathRenderer (LaTeX→Unicode, 40+ symbols, vector paths),
+  LaTeX toggles in AxisDialog + TitleDialog
+- 9.5: AnnotationLayer + 6 types (Arrow, Box, Callout, Text, ScaleBar,
+  ColorBar), AnnotationToolbar, AnnotationPropertyDialog,
+  ChangeAnnotationCommand, WorkspaceFile annotation serialization,
+  PlotRenderer annotation rendering
+- 9.6: ExportTask (QThread, progress, cancel, atomic write),
+  ExportProgressDialog
+- ADRs 049-054
+
+### Deferred
+- T9-T11 vector consistency CI (Playwright/Inkscape infrastructure)
+- Full MicroTeX C++ library integration (Unicode baseline sufficient)
+
+### Test results
+- 762/762 tests pass (700 Phase 8 + 62 Phase 9), ASan+UBSan clean
+
+### Phase 3b/4/5/6/7/8 lesson applied
+This review (docs/reviews/phase-9-review.md) is committed in the
+SAME commit as this STATUS entry. Review includes per-deliverable
+verification notes (Phase 8 lesson hardened).
