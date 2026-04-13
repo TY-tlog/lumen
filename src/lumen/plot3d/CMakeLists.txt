@@ -6,10 +6,17 @@ add_library(lumen_plot3d STATIC
     Scene3D.cpp Scene3D.h
     PlotItem3D.h
     BoundingBox3D.h
+    PbrMaterial.h
     Ray.cpp Ray.h
     RenderContext.h
     Renderer3D.cpp Renderer3D.h
     Scatter3D.cpp Scatter3D.h
+    Surface3D.cpp Surface3D.h
+    TransferFunction.cpp TransferFunction.h
+    VolumeItem.cpp VolumeItem.h
+    Streamlines.cpp Streamlines.h
+    MarchingCubes.cpp MarchingCubes.h
+    Isosurface.cpp Isosurface.h
     ShaderProgram.cpp ShaderProgram.h
     SpatialGrid3D.cpp SpatialGrid3D.h
 )
@@ -26,5 +33,6 @@ target_link_libraries(lumen_plot3d
         Qt6::OpenGLWidgets
     PRIVATE
         lumen_data
+        lumen_plot
         lumen::compile_options
 )
