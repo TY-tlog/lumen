@@ -2,6 +2,7 @@
 
 #include "data/Rank1Dataset.h"
 #include "data/TabularBundle.h"
+#include "plot/AnnotationLayer.h"
 #include "plot/Axis.h"
 #include "plot/Legend.h"
 #include "plot/LineSeries.h"
@@ -231,6 +232,12 @@ WorkspaceFile WorkspaceFile::captureFromScene(const plot::PlotScene* scene)
     }
     plotObj[QLatin1String("series")] = seriesArr;
 
+    // Annotations (Phase 9)
+    const auto* annLayer = scene->annotationLayer();
+    if (annLayer && annLayer->count() > 0) {
+        plotObj[QLatin1String("annotations")] = annLayer->toJsonArray();
+    }
+
     root[QLatin1String("plot")] = plotObj;
     ws.data_  = root;
     ws.valid_ = true;
@@ -330,6 +337,14 @@ void WorkspaceFile::applyToScene(plot::PlotScene* scene,
                 scene->addItem(std::move(series));
             }
             // Phase 5.2 will add "scatter" and "bar" dispatch here.
+        }
+    }
+
+    // Annotations (Phase 9)
+    if (plotObj.contains(QLatin1String("annotations"))) {
+        auto* annLayer = scene->annotationLayer();
+        if (annLayer) {
+            annLayer->fromJsonArray(plotObj[QLatin1String("annotations")].toArray());
         }
     }
 }

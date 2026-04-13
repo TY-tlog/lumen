@@ -32,6 +32,7 @@ public:
         int dpi = 300;
         bool transparentBackground = false;
         QString outputPath;
+        int colorProfileIndex = 0;  ///< 0=sRGB, 1=AdobeRGB, 2=DisplayP3, 3=Custom
     };
 
     [[nodiscard]] ExportOptions options() const;
@@ -54,6 +55,7 @@ private:
     QComboBox* bgCombo_ = nullptr;
     QLineEdit* pathEdit_ = nullptr;
     QPushButton* browseBtn_ = nullptr;
+    QComboBox* profileCombo_ = nullptr;
     QDialogButtonBox* buttonBox_ = nullptr;
 };
 

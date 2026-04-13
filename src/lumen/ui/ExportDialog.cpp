@@ -85,6 +85,13 @@ ExportDialog::ExportDialog(QWidget* parent)
     bgCombo_->addItem(tr("Transparent"), true);
     layout->addRow(tr("Background:"), bgCombo_);
 
+    // --- Color profile (Phase 9 ICC) ---
+    profileCombo_ = new QComboBox(this);
+    profileCombo_->addItem(tr("sRGB (screen default)"), 0);
+    profileCombo_->addItem(tr("Adobe RGB (1998)"), 1);
+    profileCombo_->addItem(tr("Display P3"), 2);
+    layout->addRow(tr("Color profile:"), profileCombo_);
+
     // --- Output path ---
     pathEdit_ = new QLineEdit(this);
     pathEdit_->setPlaceholderText(tr("Choose output file..."));
@@ -114,6 +121,7 @@ ExportDialog::ExportOptions ExportDialog::options() const {
     opts.dpi = dpiCombo_->currentData().toInt();
     opts.transparentBackground = bgCombo_->currentData().toBool();
     opts.outputPath = pathEdit_->text();
+    opts.colorProfileIndex = profileCombo_->currentData().toInt();
 
     int presetData = sizePreset_->currentData().toInt();
     switch (presetData) {
