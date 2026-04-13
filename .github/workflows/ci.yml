@@ -45,11 +45,12 @@ jobs:
             libnetcdf-dev \
             libtiff-dev \
             libmatio-dev \
-            qt6-svg-dev
+            qt6-svg-dev \
+            liblcms2-dev
 
       - name: Install macOS deps
         if: runner.os == 'macOS'
-        run: brew install ninja ccache
+        run: brew install ninja ccache little-cms2
 
       - name: Configure
         env:
