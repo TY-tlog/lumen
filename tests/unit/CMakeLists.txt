@@ -99,6 +99,10 @@ add_executable(lumen_unit_tests
     test_color_conversion.cpp
     test_png_iccp_chunk.cpp
     test_pdf_iccbased_colorspace.cpp
+    test_annotation_layer.cpp
+    test_arrow_annotation.cpp
+    test_text_annotation.cpp
+    test_annotation_workspace.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.h
