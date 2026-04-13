@@ -404,3 +404,26 @@ SAME commit as this STATUS entry.
 ### Phase 3b/4/5/6/7 lesson applied
 This review (docs/reviews/phase-8-review.md) is committed in the
 SAME commit as this STATUS entry.
+
+## 2026-04-13 — Phase 9 opening (Architect session 11)
+- Wrote `docs/plans/phase-9-plan.md`: 26 tasks + T-final in 6 sub-phases.
+  - 9.1: ICC color management (lcms2, ColorProfile, ColorPipeline)
+  - 9.2: Font system (HarfBuzz subset, 4 academic fonts, FontPicker)
+  - 9.3: Cross-viewer vector consistency CI (Playwright, Inkscape, PSNR)
+  - 9.4: MicroTeX LaTeX math (MathRenderer, dialog toggles)
+  - 9.5: Annotation layer (6 types, toolbar, property dialog, workspace)
+  - 9.6: Async export (ExportTask QThread, progress, cancel)
+- Three load-bearing decisions:
+  1. lcms2+MicroTeX via FetchContent (no package manager, MIT licensed)
+  2. AnnotationLayer on PlotScene (not PlotCanvas) — preserves layering,
+     enables workspace serialization, ADR-026 single-code-path
+  3. Vector consistency CI: Ubuntu-only, PSNR >40 dB, warn-then-block
+- Drafted ADRs 049-054: ICC, fonts, vector CI, MicroTeX, annotations, async.
+- Updated architecture.md with Phase 9 section.
+- 700-test regression gate at every M-point. CI green on 4 platforms.
+- New vector-consistency CI job from M9.3.
+- **Phase 8 lesson hardened**: phase-9-review.md must include per-deliverable
+  verification notes (not just checkbox "[x] done" — actual confirmation
+  that each item works). Committed in same commit as closing STATUS entry.
+- Stray branch prevention: `git branch --show-current` before every commit.
+- Awaiting human review and approval.

@@ -867,3 +867,141 @@ Phong default + PBR opt-in per PlotItem3D.
 - `ui/` depends on `plot3d/` for 3D dialogs
 - `plot/` unchanged — 2D code untouched
 - `core/reactive/` unchanged — ReactiveBinding works for both
+
+## Phase 9 additions — Publication-Grade Export
+
+### New export/ submodule
+
+```
+src/lumen/export/
+  CMakeLists.txt
+  ColorProfile.{h,cpp}     — ICC profile wrapper (lcms2)
+  ColorPipeline.{h,cpp}    — profile-aware rendering bridge
+  FontEmbedder.{h,cpp}     — TTF/OTF subset + embedding
+  MathRenderer.{h,cpp}     — LaTeX → QImage/QPainterPath (MicroTeX)
+  ExportTask.{h,cpp}       — QThread async export with cancel
+```
+
+Layering: export/ depends on plot/, data/, core/. ui/ depends
+on export/. Bundled third-party: lcms2 (static, MIT), MicroTeX
+(static, MIT), HarfBuzz (static, MIT, for font subsetting).
+
+### Annotation layer in plot/
+
+```
+plot/
+  AnnotationLayer.{h,cpp}
+  Annotation.{h,cpp}          — abstract base
+  annotations/
+    ArrowAnnotation.{h,cpp}
+    BoxAnnotation.{h,cpp}
+    CalloutAnnotation.{h,cpp}
+    TextAnnotation.{h,cpp}
+    ScaleBar.{h,cpp}
+    ColorBar.{h,cpp}
+```
+
+Owned by PlotScene. Rendered by PlotRenderer after PlotItems.
+Three anchor modes: Data (CoordinateMapper), Pixel (absolute),
+AxisFraction (0..1 of plot area).
+
+### Color pipeline data flow
+
+```
+Dataset values
+  → Colormap (Phase 7, ADR-040 perceptual uniformity)
+    → QColor (sRGB working space)
+      → ColorPipeline (Phase 9)
+        → ColorProfile::convert(sRGB → target)
+          → Export device
+            PNG: iCCP chunk embeds target profile
+            PDF: /ICCBased ColorSpace declaration
+            SVG: sRGB (no conversion; SVG viewers assume sRGB)
+```
+
+### Font embedding in export paths
+
+```
+PlotRenderer renders text
+  → FontEmbedder collects used glyphs
+    → HarfBuzz hb_subset() produces minimal font
+      PNG: not needed (text rasterized into pixels)
+      PDF: /FontFile2 stream with subset TTF
+      SVG: @font-face with base64-encoded subset
+```
+
+### Export dialog extensions (Phase 4 → Phase 9)
+
+ExportDialog gains:
+- Color profile combo (built-in + custom ICC)
+- Font picker combo (4 academic fonts + system)
+- "Export" now starts ExportTask (async)
+- ExportProgressDialog: progress bar, step label, cancel
+
+### Async export thread model
+
+```
+Main thread                    Worker thread
+──────────                     ──────────────
+ExportDialog → ExportTask::start()
+                               Copy PlotScene snapshot
+ExportProgressDialog shown     PlotRenderer::render(snapshot)
+  progress(%) ←─────────────── emit progress(%)
+  Cancel → m_cancelRequested   check cancel flag between items
+  [success]                    atomic rename temp → final
+  finished(ok, path) ←──────── emit finished(true, path)
+```
+
+### Workspace format v2 extensions
+
+```json
+{
+  "version": 2,
+  "plot": {
+    "annotations": [
+      { "type": "arrow", "anchor": "data",
+        "from": [1.5, 3.0], "to": [2.0, 5.0],
+        "color": "#ff0000", "lineWidth": 1.5 },
+      { "type": "scale_bar", "anchor": "pixel",
+        "position": [50, 450], "lengthData": 100,
+        "unit": "μm" }
+    ],
+    "exportOptions": {
+      "colorProfile": "sRGB",
+      "font": "Liberation Serif",
+      "latexMode": { "xLabel": true, "title": false }
+    }
+  }
+}
+```
+
+Schema version bumped to 2. Version 1 files load without
+annotations (empty array default).
+
+### CI: vector-consistency job
+
+New GitHub Actions workflow: .github/workflows/vector-consistency.yml.
+Ubuntu-only. Renders canonical plots via Playwright (Chrome+Firefox),
+Inkscape, pdftocairo. PSNR > 40 dB threshold. Warn-only until M9.4,
+then merge-blocking.
+
+### Bundled libraries
+
+| Library | Version | License | Size | Purpose |
+|---------|---------|---------|------|---------|
+| lcms2 | 2.16 | MIT | ~200KB | ICC color management |
+| MicroTeX | latest | MIT | ~500KB | LaTeX math rendering |
+| HarfBuzz | 8.x | MIT | ~1MB | Font subsetting |
+| Computer Modern | — | Public domain | ~2MB | LaTeX default font |
+| Liberation Serif | — | SIL OFL | ~1.5MB | Times substitute |
+| Liberation Sans | — | SIL OFL | ~1.5MB | Helvetica substitute |
+| Source Serif Pro | — | SIL OFL | ~1.5MB | Adobe academic serif |
+
+### Layering (updated)
+
+1. UI may import from core, plot, style, data, export.
+2. Export may import from plot, data, core.
+3. Plot may import from core, style, data.
+4. Core imports nothing from above layers.
+5. Data imports from core only.
+6. Util is leaf.
