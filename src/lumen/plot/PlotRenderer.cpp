@@ -1,5 +1,6 @@
 #include "plot/PlotRenderer.h"
 
+#include "plot/AnnotationLayer.h"
 #include "plot/Axis.h"
 #include "plot/CoordinateMapper.h"
 #include "plot/Legend.h"
@@ -217,6 +218,14 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
         }
 
         painter.restore();
+    }
+
+    // 9.5. Annotations — paint on top of data items (Phase 9, ADR-053).
+    {
+        const auto* annLayer = scene.annotationLayer();
+        if (annLayer != nullptr && annLayer->count() > 0) {
+            annLayer->paint(&painter, mapper, plotArea);
+        }
     }
 
     // 10. Title — use PlotScene font properties instead of hardcoded title3.
