@@ -94,6 +94,11 @@ add_executable(lumen_unit_tests
     test_camera_mode_switch.cpp
     test_plotcanvas3d_dock.cpp
     test_3d_edge_cases.cpp
+    test_color_profile_builtin.cpp
+    test_color_profile_from_file.cpp
+    test_color_conversion.cpp
+    test_png_iccp_chunk.cpp
+    test_pdf_iccbased_colorspace.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.h
@@ -144,6 +149,7 @@ target_link_libraries(lumen_unit_tests
         lumen::compile_options
         lumen_style
         lumen_plot
+        lumen_export
 )
 
 # Link lumen_plot3d when OpenGL widgets are available.
