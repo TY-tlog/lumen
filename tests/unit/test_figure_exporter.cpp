@@ -7,6 +7,7 @@
 #include <core/io/FigureExporter.h>
 #include <data/Rank1Dataset.h>
 #include <data/Unit.h>
+#include <atomic>
 #include <memory>
 #include <plot/LineSeries.h>
 #include <plot/PlotScene.h>
@@ -46,9 +47,14 @@ void populateScene(PlotScene& scene, std::shared_ptr<Rank1Dataset> xDs, std::sha
     scene.setTitle("Test Plot");
 }
 
-/// Return a temporary file path for the given extension.
+/// Return a unique temporary file path for the given extension.
+/// Uses QTemporaryFile to avoid races when ctest runs tests in parallel.
 QString tempPath(const QString& ext) {
-    return QDir::tempPath() + "/lumen_test_export." + ext;
+    static std::atomic<int> counter{0};
+    return QDir::tempPath() + QStringLiteral("/lumen_test_export_%1_%2.%3")
+        .arg(QCoreApplication::applicationPid())
+        .arg(counter.fetch_add(1))
+        .arg(ext);
 }
 
 /// Remove a file if it exists (cleanup helper).
