@@ -13,12 +13,12 @@ endif()
 
 # ---------- Sub-modules ----------
 add_subdirectory(data)
-add_subdirectory(core)
 add_subdirectory(style)
 add_subdirectory(plot)
 if(LUMEN_HAS_OPENGL_WIDGETS)
     add_subdirectory(plot3d)
 endif()
+add_subdirectory(core)
 
 # ---------- Embedded resources: fonts (conditional) ----------
 set(_font_dir "${CMAKE_SOURCE_DIR}/resources/fonts")
@@ -76,6 +76,8 @@ qt_add_executable(lumen
     ui/ViolinPropertyDialog.h
     ui/PlotCanvas.cpp
     ui/PlotCanvas.h
+    ui/PlotCanvas3D.cpp
+    ui/PlotCanvas3D.h
     ui/PlotCanvasDock.cpp
     ui/PlotCanvasDock.h
     ui/ReactivityModeWidget.cpp
@@ -109,7 +111,7 @@ target_link_libraries(lumen
 
 # GPU layer (ADR-039): link Qt6::OpenGLWidgets when available.
 if(LUMEN_HAS_OPENGL_WIDGETS)
-    target_link_libraries(lumen PRIVATE Qt6::OpenGLWidgets)
+    target_link_libraries(lumen PRIVATE Qt6::OpenGLWidgets lumen_plot3d)
     target_compile_definitions(lumen PRIVATE LUMEN_HAS_OPENGL_WIDGETS=1)
 endif()
 
