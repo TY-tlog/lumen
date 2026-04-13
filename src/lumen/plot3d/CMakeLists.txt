@@ -36,3 +36,10 @@ target_link_libraries(lumen_plot3d
         lumen_plot
         lumen::compile_options
 )
+
+# Suppress -Wdouble-promotion for plot3d: OpenGL math uses float extensively,
+# and std::sin/cos/sqrt overload resolution differs between GCC and Clang.
+# GCC returns float for float args; Clang promotes to double.
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+    target_compile_options(lumen_plot3d PRIVATE -Wno-double-promotion)
+endif()
