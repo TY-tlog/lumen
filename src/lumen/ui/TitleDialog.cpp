@@ -1,5 +1,6 @@
 #include "TitleDialog.h"
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -27,6 +28,9 @@ TitleDialog::TitleDialog(QWidget* parent)
     weightCombo_->addItem(tr("Bold"), static_cast<int>(QFont::Bold));
     layout->addRow(tr("Weight:"), weightCombo_);
 
+    latexCheck_ = new QCheckBox(tr("LaTeX math mode"), this);
+    layout->addRow(QString(), latexCheck_);
+
     // OK / Cancel.
     buttonBox_ = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
@@ -50,6 +54,10 @@ int TitleDialog::resultFontPx() const {
 
 QFont::Weight TitleDialog::resultWeight() const {
     return static_cast<QFont::Weight>(weightCombo_->currentData().toInt());
+}
+
+bool TitleDialog::resultLatexMode() const {
+    return latexCheck_->isChecked();
 }
 
 }  // namespace lumen::ui

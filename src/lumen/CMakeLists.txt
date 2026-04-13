@@ -81,6 +81,14 @@ qt_add_executable(lumen
     ui/PlotCanvas3D.h
     ui/PlotCanvas3DDock.cpp
     ui/PlotCanvas3DDock.h
+    ui/FontPicker.cpp
+    ui/FontPicker.h
+    ui/AnnotationToolbar.cpp
+    ui/AnnotationToolbar.h
+    ui/AnnotationPropertyDialog.cpp
+    ui/AnnotationPropertyDialog.h
+    ui/ExportProgressDialog.cpp
+    ui/ExportProgressDialog.h
     ui/PlotCanvasDock.cpp
     ui/PlotCanvasDock.h
     ui/ReactivityModeWidget.cpp
@@ -107,6 +115,7 @@ target_link_libraries(lumen
         lumen_core
         lumen_io
         lumen_reactive
+        lumen_export
         lumen::compile_options
         lumen_style
         lumen_plot

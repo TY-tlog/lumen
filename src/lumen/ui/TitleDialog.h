@@ -3,6 +3,7 @@
 #include <QDialog>
 #include <QFont>
 
+class QCheckBox;
 class QComboBox;
 class QDialogButtonBox;
 class QSpinBox;
@@ -24,10 +25,12 @@ public:
 
     [[nodiscard]] int resultFontPx() const;
     [[nodiscard]] QFont::Weight resultWeight() const;
+    [[nodiscard]] bool resultLatexMode() const;
 
 private:
     QSpinBox* fontPxSpin_ = nullptr;
     QComboBox* weightCombo_ = nullptr;
+    QCheckBox* latexCheck_ = nullptr;
     QDialogButtonBox* buttonBox_ = nullptr;
 };
 

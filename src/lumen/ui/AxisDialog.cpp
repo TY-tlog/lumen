@@ -64,6 +64,9 @@ AxisDialog::AxisDialog(QWidget* parent)
     gridVisibleCheck_ = new QCheckBox(tr("Show grid lines"), this);
     layout->addRow(QString(), gridVisibleCheck_);
 
+    latexCheck_ = new QCheckBox(tr("LaTeX math mode"), this);
+    layout->addRow(QString(), latexCheck_);
+
     // OK / Cancel.
     buttonBox_ = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
@@ -133,6 +136,10 @@ int AxisDialog::resultTickFormatDecimals() const {
 
 bool AxisDialog::resultGridVisible() const {
     return gridVisibleCheck_->isChecked();
+}
+
+bool AxisDialog::resultLatexMode() const {
+    return latexCheck_->isChecked();
 }
 
 void AxisDialog::updateRangeModeVisibility() {

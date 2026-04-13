@@ -39,6 +39,7 @@ public:
     [[nodiscard]] plot::TickFormat resultTickFormat() const;
     [[nodiscard]] int resultTickFormatDecimals() const;
     [[nodiscard]] bool resultGridVisible() const;
+    [[nodiscard]] bool resultLatexMode() const;
 
 private:
     void updateRangeModeVisibility();
@@ -52,6 +53,7 @@ private:
     QComboBox* tickFormatCombo_ = nullptr;
     QSpinBox* tickFormatDecimalsSpin_ = nullptr;
     QCheckBox* gridVisibleCheck_ = nullptr;
+    QCheckBox* latexCheck_ = nullptr;
     QDialogButtonBox* buttonBox_ = nullptr;
 };
 
