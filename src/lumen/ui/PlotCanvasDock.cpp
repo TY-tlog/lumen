@@ -635,12 +635,15 @@ void PlotCanvasDock::addYSeries() {
     }
     combo->blockSignals(false);
 
-    // Per-entry type combo (Line/Scatter/Bar).
+    // Per-entry type combo (all plot types).
     auto* typeCombo = new QComboBox(yContainer_);
     typeCombo->addItem(QStringLiteral("Line"));
     typeCombo->addItem(QStringLiteral("Scatter"));
     typeCombo->addItem(QStringLiteral("Bar"));
-    typeCombo->setFixedWidth(80);
+    typeCombo->addItem(QStringLiteral("Histogram"));
+    typeCombo->addItem(QStringLiteral("BoxPlot"));
+    typeCombo->addItem(QStringLiteral("Violin"));
+    typeCombo->setFixedWidth(90);
 
     QPushButton* removeBtn = nullptr;
     // Only show remove button for non-first entries.
@@ -757,6 +760,21 @@ void PlotCanvasDock::rebuildPlot() {
             auto bar = std::make_unique<plot::BarSeries>(
                 xDs, yDs, plot::PlotStyle::fromPalette(seriesIdx).color, yName);
             scene_->addItem(std::move(bar));
+        } else if (plotType == QStringLiteral("Histogram")) {
+            auto hist = std::make_unique<plot::HistogramSeries>(yDs);
+            hist->setFillColor(plot::PlotStyle::fromPalette(seriesIdx).color);
+            hist->setName(yName);
+            scene_->addItem(std::move(hist));
+        } else if (plotType == QStringLiteral("BoxPlot")) {
+            auto box = std::make_unique<plot::BoxPlotSeries>(yDs);
+            box->setFillColor(plot::PlotStyle::fromPalette(seriesIdx).color);
+            box->setName(yName);
+            scene_->addItem(std::move(box));
+        } else if (plotType == QStringLiteral("Violin")) {
+            auto violin = std::make_unique<plot::ViolinSeries>(yDs);
+            violin->setFillColor(plot::PlotStyle::fromPalette(seriesIdx).color);
+            violin->setName(yName);
+            scene_->addItem(std::move(violin));
         } else {
             scene_->addSeries(plot::LineSeries(
                 xDs, yDs, plot::PlotStyle::fromPalette(seriesIdx), yName));
