@@ -386,3 +386,21 @@ SAME commit as this STATUS entry.
 - Updated architecture.md with Phase 8 section.
 - 545-test regression gate. CI green on 4 platforms. Review-in-same-commit.
 - Awaiting human review and approval.
+
+## 2026-04-13 — Phase 8 close
+
+### Delivered
+- 8.1: Camera (Trackball+Orbit), Light, Scene3D, Renderer3D, PlotItem3D, Phong shader, PlotCanvas3D
+- 8.2: Scatter3D + SpatialGrid3D + command
+- 8.3: Surface3D (Grid2D mesh, normals, 3 modes)
+- 8.4: VolumeItem + ray marching + TransferFunction
+- 8.5: Streamlines (RK4) + Isosurface (Marching Cubes)
+- 8.6: PBR shader (Cook-Torrance) + PbrMaterial system
+- ADRs 043-048
+
+### Test results
+- 666/666 tests pass, ASan+UBSan clean
+
+### Phase 3b/4/5/6/7 lesson applied
+This review (docs/reviews/phase-8-review.md) is committed in the
+SAME commit as this STATUS entry.
