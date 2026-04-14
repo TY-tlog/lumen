@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "fixture": true,
+  "plot": {
+    "viewport": {
+      "xmin": -0.5,
+      "xmax": 3.5,
+      "ymin": 0,
+      "ymax": 10
+    },
+    "title": {
+      "text": "Grouped Bar Chart",
+      "fontPx": 17,
+      "weight": 63
+    },
+    "xAxis": {
+      "label": "Category"
+    },
+    "yAxis": {
+      "label": "Value"
+    },
+    "legend": {
+      "position": "top_right",
+      "visible": true
+    },
+    "series": [
+      {
+        "type": "bar",
+        "name": "Group A",
+        "color": "#0a84ff",
+        "xColumn": "x",
+        "yColumn": "a",
+        "visible": true
+      },
+      {
+        "type": "bar",
+        "name": "Group B",
+        "color": "#30d158",
+        "xColumn": "x",
+        "yColumn": "b",
+        "visible": true
+      },
+      {
+        "type": "bar",
+        "name": "Group C",
+        "color": "#ff453a",
+        "xColumn": "x",
+        "yColumn": "c",
+        "visible": true
+      }
+    ],
+    "_data": {
+      "x": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "a": [
+        3,
+        7,
+        5,
+        2
+      ],
+      "b": [
+        4,
+        6,
+        8,
+        3
+      ],
+      "c": [
+        5,
+        4,
+        3,
+        6
+      ]
+    }
+  }
+}
