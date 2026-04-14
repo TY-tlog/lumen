@@ -61,6 +61,46 @@ const QHash<QString, QString>& greekMap()
         {QStringLiteral("\\nabla"), QStringLiteral("\u2207")},
         {QStringLiteral("\\rightarrow"), QStringLiteral("\u2192")},
         {QStringLiteral("\\leftarrow"), QStringLiteral("\u2190")},
+        // Tier 1 additions (Phase 9.5.3)
+        {QStringLiteral("\\mp"), QStringLiteral("\u2213")},
+        {QStringLiteral("\\div"), QStringLiteral("\u00F7")},
+        {QStringLiteral("\\equiv"), QStringLiteral("\u2261")},
+        {QStringLiteral("\\sim"), QStringLiteral("\u223C")},
+        {QStringLiteral("\\propto"), QStringLiteral("\u221D")},
+        {QStringLiteral("\\oint"), QStringLiteral("\u222E")},
+        // Accents — best-effort Unicode combining
+        {QStringLiteral("\\hat"), QStringLiteral("\u0302")},   // combining circumflex
+        {QStringLiteral("\\bar"), QStringLiteral("\u0304")},   // combining macron
+        {QStringLiteral("\\vec"), QStringLiteral("\u20D7")},   // combining right arrow above
+        {QStringLiteral("\\tilde"), QStringLiteral("\u0303")}, // combining tilde
+        {QStringLiteral("\\dot"), QStringLiteral("\u0307")},   // combining dot above
+        {QStringLiteral("\\ddot"), QStringLiteral("\u0308")},  // combining diaeresis
+        // Delimiters — render as plain characters
+        {QStringLiteral("\\left("), QStringLiteral("(")},
+        {QStringLiteral("\\right)"), QStringLiteral(")")},
+        {QStringLiteral("\\left["), QStringLiteral("[")},
+        {QStringLiteral("\\right]"), QStringLiteral("]")},
+        {QStringLiteral("\\left\\{"), QStringLiteral("{")},
+        {QStringLiteral("\\right\\}"), QStringLiteral("}")},
+        {QStringLiteral("\\left|"), QStringLiteral("|")},
+        {QStringLiteral("\\right|"), QStringLiteral("|")},
+        {QStringLiteral("\\left."), QString()},
+        {QStringLiteral("\\right."), QString()},
+        // Tier 2 additions
+        {QStringLiteral("\\Rightarrow"), QStringLiteral("\u21D2")},
+        {QStringLiteral("\\Leftarrow"), QStringLiteral("\u21D0")},
+        {QStringLiteral("\\mapsto"), QStringLiteral("\u21A6")},
+        {QStringLiteral("\\to"), QStringLiteral("\u2192")},
+        {QStringLiteral("\\overline"), QStringLiteral("\u0305")},
+        {QStringLiteral("\\underline"), QStringLiteral("\u0332")},
+        {QStringLiteral("\\lim"), QStringLiteral("lim")},
+        {QStringLiteral("\\sup"), QStringLiteral("sup")},
+        {QStringLiteral("\\inf"), QStringLiteral("inf")},
+        {QStringLiteral("\\max"), QStringLiteral("max")},
+        {QStringLiteral("\\min"), QStringLiteral("min")},
+        {QStringLiteral("\\arg"), QStringLiteral("arg")},
+        {QStringLiteral("\\limsup"), QStringLiteral("lim sup")},
+        {QStringLiteral("\\liminf"), QStringLiteral("lim inf")},
     };
     return map;
 }
@@ -104,13 +144,54 @@ QString MathRenderer::latexToUnicode(const QString& latex)
     if (result.endsWith(u'$'))
         result.chop(1);
 
-    // Replace \\mathrm{...} and \\text{...} with content.
-    static const QRegularExpression rmRx(QStringLiteral("\\\\(?:mathrm|text)\\{([^}]*)\\}"));
+    // Replace \\mathrm{...}, \\text{...}, \\mathit{...} with content (plain text).
+    static const QRegularExpression rmRx(QStringLiteral("\\\\(?:mathrm|text|mathit)\\{([^}]*)\\}"));
     result.replace(rmRx, QStringLiteral("\\1"));
+
+    // Replace \\mathbf{...} with content (bold indicated by convention).
+    static const QRegularExpression bfRx(QStringLiteral("\\\\mathbf\\{([^}]*)\\}"));
+    result.replace(bfRx, QStringLiteral("\\1"));
+
+    // Replace \\mathcal{...} → script Unicode range if single letter.
+    static const QRegularExpression calRx(QStringLiteral("\\\\mathcal\\{([^}]*)\\}"));
+    result.replace(calRx, QStringLiteral("\\1"));
+
+    // Replace \\mathbb{...} → double-struck Unicode range if single letter.
+    static const QRegularExpression bbRx(QStringLiteral("\\\\mathbb\\{([A-Z])\\}"));
+    auto bbIt = bbRx.globalMatch(result);
+    while (bbIt.hasNext()) {
+        auto match = bbIt.next();
+        QChar letter = match.captured(1).at(0);
+        // Unicode double-struck capitals start at U+1D538 (A=0x1D538).
+        // Common ones: N=U+2115, Z=U+2124, Q=U+211A, R=U+211D, C=U+2102
+        static const QHash<QChar, QString> bbMap = {
+            {u'C', QStringLiteral("\u2102")}, {u'H', QStringLiteral("\u210D")},
+            {u'N', QStringLiteral("\u2115")}, {u'P', QStringLiteral("\u2119")},
+            {u'Q', QStringLiteral("\u211A")}, {u'R', QStringLiteral("\u211D")},
+            {u'Z', QStringLiteral("\u2124")},
+        };
+        auto mapped = bbMap.find(letter);
+        result.replace(match.captured(0),
+                       mapped != bbMap.end() ? mapped.value() : match.captured(1));
+    }
+
+    // Replace \\sqrt{...} with √(...) and \\sqrt[n]{...} with ⁿ√(...).
+    static const QRegularExpression sqrtNRx(QStringLiteral("\\\\sqrt\\[([^\\]]*)\\]\\{([^}]*)\\}"));
+    result.replace(sqrtNRx, QStringLiteral("\\1\u221A(\\2)"));
+    static const QRegularExpression sqrtRx(QStringLiteral("\\\\sqrt\\{([^}]*)\\}"));
+    result.replace(sqrtRx, QStringLiteral("\u221A(\\1)"));
 
     // Replace \\frac{a}{b} with a/b.
     static const QRegularExpression fracRx(QStringLiteral("\\\\frac\\{([^}]*)\\}\\{([^}]*)\\}"));
     result.replace(fracRx, QStringLiteral("\\1/\\2"));
+
+    // Replace \\binom{n}{k} with (n choose k).
+    static const QRegularExpression binomRx(QStringLiteral("\\\\binom\\{([^}]*)\\}\\{([^}]*)\\}"));
+    result.replace(binomRx, QStringLiteral("(\\1 choose \\2)"));
+
+    // Replace \\stackrel{top}{bottom} with top/bottom.
+    static const QRegularExpression stackRx(QStringLiteral("\\\\stackrel\\{([^}]*)\\}\\{([^}]*)\\}"));
+    result.replace(stackRx, QStringLiteral("\\1\\2"));
 
     // Replace Greek letters and symbols.
     for (auto it = greekMap().begin(); it != greekMap().end(); ++it) {
