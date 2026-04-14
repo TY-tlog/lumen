@@ -494,3 +494,18 @@ verification notes (Phase 8 lesson hardened).
 This review (docs/reviews/phase-9.5.1-review.md) is committed in the
 SAME commit as this STATUS entry. Review includes per-deliverable
 verification notes.
+
+## 2026-04-14 — Phase 9.5.2 close
+
+### Delivered
+- SVG 1.1 compliance tests (test_svg_compliance.py)
+- PDF/A structural compliance tests (test_pdfa_compliance.py)
+- ADR-058: PDF/A /OutputIntents gap documented
+- CI workflow extended with compliance test steps
+
+### Test results
+- 765/765 C++ tests pass, ASan+UBSan clean
+
+### Phase lesson applied
+This review (docs/reviews/phase-9.5.2-review.md) is committed in the
+SAME commit as this STATUS entry.
