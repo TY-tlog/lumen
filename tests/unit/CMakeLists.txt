@@ -109,6 +109,7 @@ add_executable(lumen_unit_tests
     test_microtex_complex.cpp
     test_microtex_invalid.cpp
     test_export_task_cancel.cpp
+    test_text_as_path.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.h

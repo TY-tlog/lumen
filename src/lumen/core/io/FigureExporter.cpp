@@ -120,6 +120,7 @@ QString FigureExporter::exportSvg(const plot::PlotScene* scene,
     }
 
     plot::PlotRenderer renderer;
+    renderer.setTextAsPath(true);  // ADR-055: cross-viewer consistency
     renderer.render(painter, *scene, QSizeF(opts.widthPx, opts.heightPx));
     painter.end();
 
@@ -139,6 +140,7 @@ QString FigureExporter::exportPdf(const plot::PlotScene* scene,
     }
 
     plot::PlotRenderer renderer;
+    renderer.setTextAsPath(true);  // ADR-055: cross-viewer consistency
     // QPdfWriter coordinates are in device pixels at the writer's DPI.
     // Scale the painter so PlotRenderer draws at the logical (point) size,
     // which keeps text and margins proportional to the output page.

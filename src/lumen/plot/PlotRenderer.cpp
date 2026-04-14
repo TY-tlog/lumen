@@ -9,7 +9,9 @@
 #include "plot/PlotScene.h"
 #include "style/DesignTokens.h"
 
+#include <QFontMetricsF>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPen>
 #include <QRectF>
 
@@ -158,7 +160,7 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
             painter.setPen(tokens::color::text::secondary);
             QRectF labelRect(px.x() - 40, plotArea.bottom() + kTickLength + kTickLabelPadding,
                              80, 20);
-            painter.drawText(labelRect, Qt::AlignHCenter | Qt::AlignTop, tick.label);
+            drawTextOrPath(painter, labelRect, Qt::AlignHCenter | Qt::AlignTop, tick.label);
             painter.setPen(tickPen);
         }
 
@@ -175,7 +177,7 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
             painter.setPen(tokens::color::text::secondary);
             QRectF labelRect(plotArea.left() - kTickLength - kTickLabelPadding - 45, px.y() - 10,
                              45, 20);
-            painter.drawText(labelRect, Qt::AlignRight | Qt::AlignVCenter, tick.label);
+            drawTextOrPath(painter, labelRect, Qt::AlignRight | Qt::AlignVCenter, tick.label);
             painter.setPen(tickPen);
         }
     }
@@ -189,8 +191,8 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
         if (!scene.xAxis().label().isEmpty()) {
             QRectF xLabelRect(plotArea.left(), plotArea.bottom() + 30,
                               plotArea.width(), 20);
-            painter.drawText(xLabelRect, Qt::AlignHCenter | Qt::AlignTop,
-                             scene.xAxis().label());
+            drawTextOrPath(painter, xLabelRect, Qt::AlignHCenter | Qt::AlignTop,
+                           scene.xAxis().label());
         }
 
         // Y axis label — rotated, centered left of ticks.
@@ -199,8 +201,8 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
             painter.translate(15, plotArea.center().y());
             painter.rotate(-90);
             QRectF yLabelRect(-plotArea.height() / 2, -10, plotArea.height(), 20);
-            painter.drawText(yLabelRect, Qt::AlignHCenter | Qt::AlignVCenter,
-                             scene.yAxis().label());
+            drawTextOrPath(painter, yLabelRect, Qt::AlignHCenter | Qt::AlignVCenter,
+                           scene.yAxis().label());
             painter.restore();
         }
     }
@@ -233,8 +235,8 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
         painter.setPen(tokens::color::text::primary);
         painter.setFont(titleFontFromScene(scene));
         QRectF titleRect(plotArea.left(), 4, plotArea.width(), 24);
-        painter.drawText(titleRect, Qt::AlignHCenter | Qt::AlignVCenter,
-                         scene.title());
+        drawTextOrPath(painter, titleRect, Qt::AlignHCenter | Qt::AlignVCenter,
+                       scene.title());
     }
 
     // 11. Legend — uses Legend state for position and visibility.
@@ -310,12 +312,44 @@ void PlotRenderer::render(QPainter& painter, const PlotScene& scene, QSizeF widg
             textColor.setAlphaF(opacity);
             painter.setPen(textColor);
             QString label = item->name().isEmpty() ? QStringLiteral("Series") : item->name();
-            painter.drawText(QPointF(x + kLegendLineLength + kLegendSpacing, y + fm.ascent()),
-                             label);
+            drawTextOrPath(painter, QPointF(x + kLegendLineLength + kLegendSpacing, y + fm.ascent()),
+                           label);
 
             y += kRowHeight;
         }
     }
+}
+
+void PlotRenderer::drawTextOrPath(QPainter& painter, const QRectF& rect,
+                                   int flags, const QString& text) const
+{
+    if (!textAsPath_) {
+        painter.drawText(rect, flags, text);
+        return;
+    }
+
+    // Text-as-path mode (ADR-055): convert to QPainterPath outlines.
+    QFontMetricsF fm(painter.font());
+    QRectF textBounds = fm.boundingRect(rect, flags, text);
+
+    QPainterPath path;
+    path.addText(textBounds.left(), textBounds.top() + fm.ascent(),
+                 painter.font(), text);
+    painter.drawPath(path);
+}
+
+void PlotRenderer::drawTextOrPath(QPainter& painter, const QPointF& pos,
+                                   const QString& text) const
+{
+    if (!textAsPath_) {
+        painter.drawText(pos, text);
+        return;
+    }
+
+    QPainterPath path;
+    QFontMetricsF fm(painter.font());
+    path.addText(pos.x(), pos.y(), painter.font(), text);
+    painter.drawPath(path);
 }
 
 }  // namespace lumen::plot
