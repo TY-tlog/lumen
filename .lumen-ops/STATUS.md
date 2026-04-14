@@ -475,3 +475,22 @@ verification notes (Phase 8 lesson hardened).
 - Decisions D1-D6 from spec §7 locked; out-of-scope items §8 respected.
 - 762-test regression gate. Target 800+.
 - Awaiting human review and approval.
+
+## 2026-04-14 — Phase 9.5.1 close
+
+### Delivered
+- T1: Text-as-path in PlotRenderer/FigureExporter (ADR-055)
+- T2: 12 deterministic source fixtures (.lumen.json)
+- T3-T5: Playwright, pdftocairo, Inkscape render runners
+- T6: compare.py 3-tier metric gate (MS-SSIM + PSNR + CIEDE2000)
+- T7: test_vector_consistency.py (36 parameterized tests)
+- T8: vector-consistency.yml CI workflow
+- ADRs 055-057
+
+### Test results
+- 765/765 C++ tests pass, ASan+UBSan clean
+
+### Phase 3b/4/5/6/7/8/9 lesson applied
+This review (docs/reviews/phase-9.5.1-review.md) is committed in the
+SAME commit as this STATUS entry. Review includes per-deliverable
+verification notes.
