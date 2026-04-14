@@ -455,3 +455,23 @@ SAME commit as this STATUS entry.
 This review (docs/reviews/phase-9-review.md) is committed in the
 SAME commit as this STATUS entry. Review includes per-deliverable
 verification notes (Phase 8 lesson hardened).
+
+## 2026-04-14 — Phase 9.5.1 opening (Architect session 12)
+- Wrote `docs/plans/phase-9.5.1-plan.md`: 11 tasks (T1-T10 + T-final)
+  for Vector Consistency CI Infrastructure.
+  - T1: Text-as-path in FigureExporter (QPainterPath outlines)
+  - T2: 12 source fixture .lumen.json files
+  - T3-T5: Playwright, pdftocairo, Inkscape render runners
+  - T6: compare.py 3-tier metric computation
+  - T7: test_vector_consistency.py (36 parametric tests)
+  - T8: vector-consistency.yml CI workflow (Ubuntu 22.04)
+  - T9: Reference PNG generation + Git LFS
+  - T10: macOS/Windows smoke tests
+- Resolved open questions:
+  - Playwright pin: 1.49.0, Chromium r1148
+  - pdftocairo: poppler-utils from Ubuntu 22.04 apt (22.02.0)
+  - 12 fixture contents specified with deterministic data
+- Drafted ADRs 055-057: text-as-path, 3-tier metric, 3-layer fixture.
+- Decisions D1-D6 from spec §7 locked; out-of-scope items §8 respected.
+- 762-test regression gate. Target 800+.
+- Awaiting human review and approval.
