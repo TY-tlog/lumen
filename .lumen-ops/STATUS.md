@@ -509,3 +509,19 @@ verification notes.
 ### Phase lesson applied
 This review (docs/reviews/phase-9.5.2-review.md) is committed in the
 SAME commit as this STATUS entry.
+
+## 2026-04-14 — Phase 9.5.3 close
+
+### Delivered
+- MathRenderer Tier 1/2 macro expansion (40+ new macros)
+- 60-equation golden corpus (20 Tier 1 + 30 Tier 2 + 10 Tier 3)
+- 15 new Tier 1 unit tests (all 20 corpus equations pass)
+- docs/microtex-coverage.md (user-facing coverage + known gaps)
+- ADR-059 (coverage tiers) + ADR-060 (SSIM 0.85 threshold)
+
+### Test results
+- 780/780 tests pass, ASan+UBSan clean
+
+### Phase lesson applied
+This review (docs/reviews/phase-9.5.3-review.md) is committed in the
+SAME commit as this STATUS entry.
