@@ -14,6 +14,10 @@ add_library(lumen_style STATIC
     theme_registry.h
     theme_fork.cpp
     theme_fork.h
+    extends_resolver.cpp
+    extends_resolver.h
+    clipboard.cpp
+    clipboard.h
 )
 
 target_include_directories(lumen_style
