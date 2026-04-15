@@ -1,0 +1,26 @@
+{
+  "lumen_style_version": "1.0",
+  "name": "colorblind-safe",
+  "tokens": {
+    "color.primary": "#0072B2",
+    "color.secondary": "#E69F00",
+    "color.tertiary": "#009E73",
+    "color.quaternary": "#CC79A7",
+    "color.quinary": "#56B4E9",
+    "color.senary": "#D55E00",
+    "color.septenary": "#F0E442",
+    "color.octonary": "#000000",
+    "color.background": "#ffffff",
+    "color.text.primary": "#000000",
+    "font.family": "Inter",
+    "font.size.default": 11,
+    "line.width.default": 1.5,
+    "marker.size.default": 6,
+    "grid.color.major": "#dddddd"
+  },
+  "elements": {
+    "axis.spine": { "stroke.color": "#333333", "stroke.width": 0.8 },
+    "grid.major": { "stroke.color": "#dddddd", "stroke.width": 0.5 },
+    "title": { "font.size": 16, "font.weight": "demibold" }
+  }
+}

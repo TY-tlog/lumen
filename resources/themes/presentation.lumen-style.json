@@ -1,0 +1,28 @@
+{
+  "lumen_style_version": "1.0",
+  "name": "presentation",
+  "tokens": {
+    "color.primary": "#0a84ff",
+    "color.secondary": "#30d158",
+    "color.tertiary": "#ff453a",
+    "color.background": "#ffffff",
+    "color.text.primary": "#000000",
+    "font.family": "Inter",
+    "font.size.default": 18,
+    "font.size.title": 28,
+    "font.size.label": 20,
+    "font.size.tick": 16,
+    "line.width.default": 3.0,
+    "line.width.axis": 1.5,
+    "line.width.grid": 0.8,
+    "marker.size.default": 10,
+    "grid.color.major": "#dddddd"
+  },
+  "elements": {
+    "axis.spine": { "stroke.color": "#333333", "stroke.width": 1.5 },
+    "axis.tick.label": { "font.size": 16 },
+    "axis.title": { "font.size": 20 },
+    "grid.major": { "stroke.color": "#dddddd", "stroke.width": 0.8 },
+    "title": { "font.size": 28, "font.weight": "bold" }
+  }
+}

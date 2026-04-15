@@ -1,0 +1,31 @@
+{
+  "lumen_style_version": "1.0",
+  "name": "publication",
+  "tokens": {
+    "color.primary": "#000000",
+    "color.secondary": "#555555",
+    "color.tertiary": "#999999",
+    "color.background": "#ffffff",
+    "color.text.primary": "#000000",
+    "color.text.secondary": "#333333",
+    "color.border": "#000000",
+    "font.family": "Source Serif Pro",
+    "font.size.default": 10,
+    "font.size.title": 14,
+    "font.size.label": 10,
+    "font.size.tick": 9,
+    "line.width.default": 1.0,
+    "line.width.axis": 0.5,
+    "line.width.grid": 0.3,
+    "marker.size.default": 4,
+    "grid.color.major": "#cccccc"
+  },
+  "elements": {
+    "axis.spine": { "stroke.color": "#000000", "stroke.width": 0.5 },
+    "axis.tick.label": { "font.size": 9, "color": "#000000" },
+    "axis.title": { "font.size": 10, "color": "#000000" },
+    "grid.major": { "stroke.color": "#cccccc", "stroke.width": 0.3 },
+    "legend.frame": { "stroke.color": "#000000", "stroke.width": 0.3 },
+    "title": { "font.size": 14, "font.weight": "bold" }
+  }
+}

@@ -10,6 +10,8 @@ add_library(lumen_style STATIC
     cascade.h
     json_io.cpp
     json_io.h
+    theme_registry.cpp
+    theme_registry.h
 )
 
 target_include_directories(lumen_style

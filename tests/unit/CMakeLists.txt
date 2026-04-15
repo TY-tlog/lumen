@@ -114,6 +114,7 @@ add_executable(lumen_unit_tests
     test_cascade.cpp
     test_schema_validation.cpp
     test_json_roundtrip.cpp
+    test_theme_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.h
