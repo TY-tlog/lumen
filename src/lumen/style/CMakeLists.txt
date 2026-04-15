@@ -12,6 +12,8 @@ add_library(lumen_style STATIC
     json_io.h
     theme_registry.cpp
     theme_registry.h
+    theme_fork.cpp
+    theme_fork.h
 )
 
 target_include_directories(lumen_style

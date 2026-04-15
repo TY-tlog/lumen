@@ -34,6 +34,8 @@ add_library(lumen_core STATIC
     commands/ChangeViolinPropertiesCommand.h
     commands/ChangeAnnotationCommand.cpp
     commands/ChangeAnnotationCommand.h
+    commands/StyleEditCommand.cpp
+    commands/StyleEditCommand.h
 )
 
 target_include_directories(lumen_core
