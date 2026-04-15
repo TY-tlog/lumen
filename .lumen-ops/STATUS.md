@@ -525,3 +525,25 @@ SAME commit as this STATUS entry.
 ### Phase lesson applied
 This review (docs/reviews/phase-9.5.3-review.md) is committed in the
 SAME commit as this STATUS entry.
+
+## 2026-04-15 — Phase 10.1 opening (Architect session 13)
+- Wrote `docs/plans/phase-10.1-plan.md`: 8 tasks + T-final for
+  Cascade Engine + Schema.
+  - T1: Style data types (StrokeStyle, FillStyle, TextStyle, etc.)
+  - T2: Cascade resolver (4-level, last-write-wins, CascadeTrace)
+  - T3: JSON Schema v1.0 (schemas/style-v1.json)
+  - T4: JSON I/O (load/save with validation + token resolution)
+  - T5: Style inspector (QDockWidget side-panel, not modal)
+  - T6-T8: Cascade, schema, roundtrip tests (~23 new)
+- Resolved open questions:
+  - v1.0 property set: 33 properties (5 StrokeStyle + 3 FillStyle +
+    5 TextStyle + 4 MarkerStyle + 4 GridStyle + 9 Style top-level +
+    3 plot-type additions: colormapName, contourLevels, barWidth)
+  - Token namespace: 6 reserved roots (color, font, line, marker,
+    grid, spacing) with dot-separated convention
+  - Style inspector: side-panel QDockWidget (not modal) — persistent
+    visibility needed for compare-by-clicking workflow
+- Drafted ADRs 061-062: cascade architecture, JSON Schema v1.0.
+- 780-test regression gate. Target 810+.
+- Umbrella tag convention: vphase-10.1 at close, vphase-10 at 10.4.
+- Awaiting human review and approval.
