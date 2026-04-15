@@ -547,3 +547,20 @@ SAME commit as this STATUS entry.
 - 780-test regression gate. Target 810+.
 - Umbrella tag convention: vphase-10.1 at close, vphase-10 at 10.4.
 - Awaiting human review and approval.
+
+## 2026-04-15 — Phase 10.1 close
+
+### Delivered
+- Style types (33 properties, 5 sub-structs)
+- 4-level cascade resolver with CascadeTrace
+- JSON Schema v1.0 (schemas/style-v1.json)
+- JSON I/O with validation and roundtrip
+- StyleInspector QDockWidget side-panel
+- ADRs 061-062
+
+### Test results
+- 804/804 tests pass (780 prior + 24 new), ASan+UBSan clean
+
+### Phase lesson applied
+This review (docs/reviews/phase-10.1-review.md) is committed in the
+SAME commit as this STATUS entry.
