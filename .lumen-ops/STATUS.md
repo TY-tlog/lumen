@@ -579,3 +579,19 @@ SAME commit as this STATUS entry.
 ### Phase lesson applied
 This review (docs/reviews/phase-10.2-review.md) is committed in the
 SAME commit as this STATUS entry.
+
+## 2026-04-15 — Phase 10 close (all 4 sub-phases)
+
+### Delivered
+- 10.1: Cascade engine (4-level, CascadeTrace), JSON Schema v1.0, StyleInspector
+- 10.2: 6 bundled themes, ThemeRegistry, ADR-066
+- 10.3: PromotionDialog, ThemeFork, StyleEditCommand
+- 10.4: ExtendsResolver, StyleClipboard
+- ADRs 061, 062, 066
+
+### Test results
+- 832/832 tests pass (780 prior + 52 new), ASan+UBSan clean
+
+### Phase lesson applied
+This review (docs/reviews/phase-10-review.md) is committed in the
+SAME commit as this STATUS entry.
