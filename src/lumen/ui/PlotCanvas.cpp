@@ -93,22 +93,32 @@ void PlotCanvas::drawCrosshair(QPainter& painter) {
     const auto& vt = scene_->viewTransform();
     plot::CoordinateMapper mapper(vt.xMin(), vt.xMax(), vt.yMin(), vt.yMax(), plotArea);
 
-    // Snap to nearest data sample; hide entirely if too far from data.
-    auto hit = plot::HitTester::hitTestPoint(*scene_, mapper, mousePos, 20.0);
-    if (!hit.has_value()) {
-        return;
-    }
-
-    // Compute the snapped pixel position from the actual data point.
-    QPointF snappedPixel = mapper.dataToPixel(hit->dataPoint.x(), hit->dataPoint.y());
-
-    // Crosshair lines at the snapped position.
+    // Always draw basic crosshair lines at cursor position.
     QPen crossPen(lumen::tokens::color::text::tertiary, 1, Qt::DotLine);
     painter.setPen(crossPen);
-    painter.drawLine(QPointF(snappedPixel.x(), plotArea.top()),
-                     QPointF(snappedPixel.x(), plotArea.bottom()));
-    painter.drawLine(QPointF(plotArea.left(), snappedPixel.y()),
-                     QPointF(plotArea.right(), snappedPixel.y()));
+    painter.drawLine(QPointF(mousePos.x(), plotArea.top()),
+                     QPointF(mousePos.x(), plotArea.bottom()));
+    painter.drawLine(QPointF(plotArea.left(), mousePos.y()),
+                     QPointF(plotArea.right(), mousePos.y()));
+
+    // Try to snap to nearest data sample for enhanced display.
+    auto hit = plot::HitTester::hitTestPoint(*scene_, mapper, mousePos, 50.0);
+    QPointF snappedPixel = mousePos;
+    if (hit.has_value()) {
+        snappedPixel = mapper.dataToPixel(hit->dataPoint.x(), hit->dataPoint.y());
+    }
+
+    if (!hit.has_value()) {
+        // Show cursor data coordinates without snap.
+        auto [cx, cy] = mapper.pixelToData(mousePos);
+        QString coords = QStringLiteral("(%1, %2)").arg(cx, 0, 'g', 6).arg(cy, 0, 'g', 6);
+        QFont f;
+        f.setPixelSize(lumen::tokens::typography::footnote.sizePx);
+        painter.setFont(f);
+        painter.setPen(lumen::tokens::color::text::secondary);
+        painter.drawText(QPointF(mousePos.x() + 10, mousePos.y() - 6), coords);
+        return;
+    }
 
     // Small marker circle at the snapped point in the series color.
     const auto& allItems = scene_->items();
