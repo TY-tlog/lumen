@@ -5,6 +5,11 @@ add_library(lumen_style STATIC
     DesignTokens.h
     StyleManager.cpp
     StyleManager.h
+    types.h
+    cascade.cpp
+    cascade.h
+    json_io.cpp
+    json_io.h
 )
 
 target_include_directories(lumen_style

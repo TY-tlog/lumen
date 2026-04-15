@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lumen.dev/schemas/style/v1.json",
+  "title": "Lumen Style v1.0",
+  "description": "Style definition for Lumen scientific plot viewer.",
+  "type": "object",
+  "required": ["lumen_style_version"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "lumen_style_version": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+$",
+      "description": "Must be 1.x for this schema version."
+    },
+    "name": { "type": "string" },
+    "extends": {
+      "type": "string",
+      "description": "Parent theme name for inheritance."
+    },
+    "tokens": {
+      "type": "object",
+      "description": "Token definitions. Keys are dot-separated names.",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "number" },
+          { "type": "boolean" }
+        ]
+      }
+    },
+    "elements": {
+      "type": "object",
+      "description": "Per-element style overrides.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

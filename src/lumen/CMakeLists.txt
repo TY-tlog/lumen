@@ -89,6 +89,8 @@ qt_add_executable(lumen
     ui/AnnotationPropertyDialog.h
     ui/ExportProgressDialog.cpp
     ui/ExportProgressDialog.h
+    ui/StyleInspector.cpp
+    ui/StyleInspector.h
     ui/PlotCanvasDock.cpp
     ui/PlotCanvasDock.h
     ui/ReactivityModeWidget.cpp
