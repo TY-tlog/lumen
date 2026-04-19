@@ -1,5 +1,6 @@
 add_executable(lumen_smoke_tests
     smoke_test_app.cpp
+    smoke_test_dashboard.cpp
 )
 
 target_include_directories(lumen_smoke_tests PRIVATE

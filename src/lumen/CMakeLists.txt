@@ -19,6 +19,7 @@ if(LUMEN_HAS_OPENGL_WIDGETS)
     add_subdirectory(plot3d)
 endif()
 add_subdirectory(core)
+add_subdirectory(dashboard)
 add_subdirectory(export)
 
 # ---------- Embedded resources: fonts (conditional) ----------
@@ -98,6 +99,12 @@ add_library(lumen_app STATIC
     ui/ReactivityModeWidget.h
     ui/TitleDialog.cpp
     ui/TitleDialog.h
+    dashboard/DashboardWidget.cpp
+    dashboard/DashboardWidget.h
+    ui/DashboardToolbar.cpp
+    ui/DashboardToolbar.h
+    ui/AddPanelDialog.cpp
+    ui/AddPanelDialog.h
     "${CMAKE_SOURCE_DIR}/resources/styles/styles.qrc"
     ${LUMEN_FONT_QRC}
 )
@@ -118,6 +125,7 @@ target_link_libraries(lumen_app
         lumen_core
         lumen_io
         lumen_reactive
+        lumen_dashboard
         lumen_export
         lumen::compile_options
         lumen_style

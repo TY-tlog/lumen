@@ -118,6 +118,12 @@ add_executable(lumen_unit_tests
     test_theme_fork.cpp
     test_extends_resolver.cpp
     test_clipboard.cpp
+    test_dashboard_model.cpp
+    test_grid_layout.cpp
+    test_link_group.cpp
+    test_dashboard_cascade.cpp
+    test_dashboard_persistence.cpp
+    test_dashboard_commands.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.h
@@ -168,6 +174,7 @@ target_link_libraries(lumen_unit_tests
         lumen::compile_options
         lumen_style
         lumen_plot
+        lumen_dashboard
         lumen_export
 )
 

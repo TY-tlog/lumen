@@ -36,6 +36,8 @@ add_library(lumen_core STATIC
     commands/ChangeAnnotationCommand.h
     commands/StyleEditCommand.cpp
     commands/StyleEditCommand.h
+    commands/DashboardCommands.cpp
+    commands/DashboardCommands.h
 )
 
 target_include_directories(lumen_core
@@ -47,6 +49,7 @@ target_link_libraries(lumen_core
     PUBLIC
         Qt6::Core
         lumen_data
+        lumen_dashboard
         lumen_plot
     PRIVATE
         lumen::compile_options
