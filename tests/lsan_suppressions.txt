@@ -1,0 +1,9 @@
+# Known leaks in fontconfig — system library, not a Lumen defect.
+# Qt's QFontconfigDatabase calls fontconfig functions that allocate
+# internal structures never freed. Affects every test using QFont.
+leak:FcInit
+leak:FcConfigParseAndLoad
+leak:FcFontRenderPrepare
+leak:FcFontMatch
+leak:QFontconfigDatabase
+leak:QFontEngineMultiFontConfig

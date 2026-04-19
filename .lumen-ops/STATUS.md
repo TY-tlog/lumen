@@ -595,3 +595,42 @@ SAME commit as this STATUS entry.
 ### Phase lesson applied
 This review (docs/reviews/phase-10-review.md) is committed in the
 SAME commit as this STATUS entry.
+
+## Standing policy — zero-regression definition (2026-04-18)
+
+Zero regression = zero UNEXPECTED failures. Allowed exit states:
+
+- **PASS**: assertion succeeds, exit code 0
+- **SKIP**: dependency missing, test not run (cmake guard)
+- **EXPECTED_FAIL**: documented in ADR, referenced in cmake comment
+
+EXPECTED_FAIL and SKIP counts must not increase without ADR reference.
+Fontconfig ASan leak is suppressed via `tests/lsan_suppressions.txt` —
+not counted as a failure. See `.lumen-ops/test-failure-audit.md`.
+
+## 2026-04-18 — Test failure audit (QA)
+
+### Problem
+79 tests were silently failing since Phase 9.5+. Every phase review
+claimed "zero regression" while ASan's LeakSanitizer flagged fontconfig
+leaks in every font-touching test.
+
+### Root cause
+All 79 tests passed their Catch2 assertions. The "failures" were
+fontconfig system library leaks (FcInit: 320 bytes, FcFontRenderPrepare:
+61 KB) detected by ASan's LeakSanitizer. Not Lumen defects.
+
+### Categorization
+- ENV: 79 (fontconfig ASan leak)
+- KNOWN_GAP: 0
+- REAL_BUG: 0
+
+### Fix
+- `tests/lsan_suppressions.txt` — fontconfig leak suppressions
+- CMake `DISCOVERY_MODE PRE_TEST` + `TEST_INCLUDE_FILES` for headless
+  `QT_QPA_PLATFORM=offscreen` + `LSAN_OPTIONS`
+
+### Result
+- Before: 753/832 pass (79 false failures)
+- After: 832/832 pass (0 failures)
+- No tests dropped or disabled

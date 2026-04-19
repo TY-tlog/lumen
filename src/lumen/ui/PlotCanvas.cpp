@@ -280,6 +280,12 @@ void PlotCanvas::mouseDoubleClickEvent(QMouseEvent* event) {
     controller_->handleDoubleClick(event);
 }
 
+void PlotCanvas::leaveEvent(QEvent* event) {
+    QWidget::leaveEvent(event);
+    controller_->setMouseInWidget(false);
+    update();  // Clear crosshair.
+}
+
 // ---------------------------------------------------------------------------
 // GPU layer (ADR-039)
 // ---------------------------------------------------------------------------

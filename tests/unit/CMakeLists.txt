@@ -177,4 +177,7 @@ if(TARGET lumen_plot3d)
     target_compile_definitions(lumen_unit_tests PRIVATE LUMEN_HAS_OPENGL_WIDGETS=1)
 endif()
 
-catch_discover_tests(lumen_unit_tests)
+catch_discover_tests(lumen_unit_tests
+    DISCOVERY_MODE PRE_TEST
+    PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;LSAN_OPTIONS=suppressions=${CMAKE_CURRENT_SOURCE_DIR}/../lsan_suppressions.txt"
+)

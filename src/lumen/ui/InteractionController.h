@@ -70,6 +70,9 @@ private:
     // Crosshair tracking.
     QPointF lastMousePos_;
     bool mouseInWidget_ = false;
+
+public:
+    void setMouseInWidget(bool in) { mouseInWidget_ = in; }
 };
 
 }  // namespace lumen::ui

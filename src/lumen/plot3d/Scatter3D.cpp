@@ -5,6 +5,8 @@
 #include "data/Rank1Dataset.h"
 
 #include <QMatrix4x4>
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
 
 #include <algorithm>
 #include <cmath>
@@ -54,16 +56,11 @@ BoundingBox3D Scatter3D::dataBounds() const
 
 void Scatter3D::render(ShaderProgram& shader, const RenderContext& ctx)
 {
-    // Phase 8.1: simple GL_POINTS rendering.
-    // Upload positions as vertex data with uniform color.
-    // Full instanced sphere rendering is deferred to a later optimization pass.
-
     const auto& pts = pointPositions();
     if (pts.empty())
         return;
 
-    // Set per-item uniforms: MVP with identity model matrix.
-    QMatrix4x4 model;  // identity
+    QMatrix4x4 model;
     QMatrix4x4 mvp = ctx.vpMatrix * model;
     shader.setUniform(QStringLiteral("uMVP"), mvp);
     shader.setUniform(QStringLiteral("uModel"), model);
@@ -71,34 +68,57 @@ void Scatter3D::render(ShaderProgram& shader, const RenderContext& ctx)
     QMatrix3x3 normalMat = model.normalMatrix();
     shader.setUniformMat3(QStringLiteral("uNormalMatrix"), normalMat);
 
-    // Build interleaved vertex data: position + normal + color per vertex.
-    // For GL_POINTS, normal = normalized position direction (simple shading).
-    float r = color_.redF();
-    float g = color_.greenF();
-    float b = color_.blueF();
+    auto* f = QOpenGLContext::currentContext()->functions();
 
-    std::vector<float> vertexData;
-    vertexData.reserve(pts.size() * 9);  // 3 pos + 3 normal + 3 color
+    if (gpuDirty_ || !vao_.isCreated()) {
+        float r = color_.redF();
+        float g = color_.greenF();
+        float b = color_.blueF();
 
-    for (const auto& p : pts) {
-        // Position
-        vertexData.push_back(p.x());
-        vertexData.push_back(p.y());
-        vertexData.push_back(p.z());
-        // Normal: use (0,1,0) up-facing for consistent lighting on points
-        vertexData.push_back(0.0f);
-        vertexData.push_back(1.0f);
-        vertexData.push_back(0.0f);
-        // Color
-        vertexData.push_back(r);
-        vertexData.push_back(g);
-        vertexData.push_back(b);
+        std::vector<float> vertexData;
+        vertexData.reserve(pts.size() * 9);
+        for (const auto& p : pts) {
+            vertexData.push_back(p.x());
+            vertexData.push_back(p.y());
+            vertexData.push_back(p.z());
+            vertexData.push_back(0.0f);
+            vertexData.push_back(1.0f);
+            vertexData.push_back(0.0f);
+            vertexData.push_back(r);
+            vertexData.push_back(g);
+            vertexData.push_back(b);
+        }
+
+        if (!vao_.isCreated()) {
+            vao_.create();
+            vbo_.create();
+        }
+
+        vao_.bind();
+        vbo_.bind();
+        vbo_.allocate(vertexData.data(),
+                      static_cast<int>(vertexData.size() * sizeof(float)));
+
+        constexpr int kStride = 9 * static_cast<int>(sizeof(float));
+        f->glEnableVertexAttribArray(0);
+        f->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, kStride, nullptr);
+        f->glEnableVertexAttribArray(1);
+        f->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, kStride,
+                                 reinterpret_cast<const void*>(3 * sizeof(float)));
+        f->glEnableVertexAttribArray(2);
+        f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, kStride,
+                                 reinterpret_cast<const void*>(6 * sizeof(float)));
+
+        vbo_.release();
+        vao_.release();
+
+        gpuVertexCount_ = static_cast<int>(pts.size());
+        gpuDirty_ = false;
     }
 
-    // Note: In a real GL context these calls require an active OpenGL context.
-    // Phase 8.1 sets up the infrastructure; actual GL calls happen when
-    // the widget's paintGL invokes render.
-    Q_UNUSED(vertexData);
+    vao_.bind();
+    f->glDrawArrays(GL_POINTS, 0, gpuVertexCount_);
+    vao_.release();
 }
 
 std::optional<HitResult3D> Scatter3D::hitTestRay(const Ray& ray,
@@ -161,6 +181,7 @@ std::optional<HitResult3D> Scatter3D::hitTestRay(const Ray& ray,
 void Scatter3D::invalidate()
 {
     positionsDirty_ = true;
+    gpuDirty_ = true;
     spatialGrid_.reset();
 }
 
@@ -179,6 +200,7 @@ void Scatter3D::setMarkerSize(float worldUnits)
 void Scatter3D::setColor(QColor color)
 {
     color_ = std::move(color);
+    gpuDirty_ = true;
 }
 
 void Scatter3D::setName(QString name)

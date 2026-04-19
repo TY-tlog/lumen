@@ -8,6 +8,7 @@
 
 class QLabel;
 class QMenu;
+class QSplitter;
 class QTimer;
 
 namespace lumen::core {
@@ -31,6 +32,7 @@ class TabularBundle;
 
 namespace lumen::ui {
 class DataTableDock;
+class PlotCanvas3D;
 class PlotCanvas3DDock;
 class PlotCanvasDock;
 }  // namespace lumen::ui
@@ -60,6 +62,7 @@ public:
     [[nodiscard]] ui::DataTableDock* dataTableDock() const { return dataTableDock_; }
     [[nodiscard]] ui::PlotCanvasDock* plotCanvasDock() const { return plotCanvasDock_; }
     [[nodiscard]] ui::PlotCanvas3DDock* plotCanvas3DDock() const { return plotCanvas3DDock_; }
+    [[nodiscard]] ui::PlotCanvas3D* plotCanvas3D() const { return plotCanvas3D_; }
 
 protected:
     void closeEvent(QCloseEvent* event) override;
@@ -123,8 +126,12 @@ private:
     ui::DataTableDock* dataTableDock_ = nullptr;
     ui::PlotCanvasDock* plotCanvasDock_ = nullptr;
     ui::PlotCanvas3DDock* plotCanvas3DDock_ = nullptr;
+    ui::PlotCanvas3D* plotCanvas3D_ = nullptr;
     QMenu* recentFilesMenu_ = nullptr;
     QString currentDocPath_;
+    QSplitter* hSplitter_ = nullptr;
+    QSplitter* vSplitter_ = nullptr;
+    QLabel* placeholder_ = nullptr;
     QLabel* memoryLabel_ = nullptr;
     QTimer* memoryTimer_ = nullptr;
 

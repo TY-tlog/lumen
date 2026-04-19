@@ -1,0 +1,43 @@
+name: Smoke Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            qt6-base-dev qt6-base-dev-tools \
+            libqt6opengl6-dev qt6-svg-dev \
+            libgl-dev libglu1-mesa-dev \
+            xvfb \
+            libhdf5-dev libnetcdf-dev libtiff-dev libmatio-dev liblcms2-dev
+
+      - name: Download Inter font
+        run: bash scripts/download_inter_font.sh
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DLUMEN_ENABLE_ASAN=ON \
+            -DLUMEN_ENABLE_UBSAN=ON
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run smoke tests (Xvfb)
+        run: xvfb-run -a ctest --test-dir build -R "S[1-5]|hasVisual" --output-on-failure
+
+      - name: Run full test suite
+        run: xvfb-run -a ctest --test-dir build --output-on-failure

@@ -1,6 +1,8 @@
 #include "PlotCanvas3D.h"
 
 #include <QDebug>
+#include <QSurfaceFormat>
+#include <QtMath>
 
 namespace lumen::ui {
 
@@ -25,18 +27,43 @@ void PlotCanvas3D::setCameraMode(plot3d::CameraMode mode)
 void PlotCanvas3D::addItem(std::unique_ptr<plot3d::PlotItem3D> item)
 {
     scene_->addItem(std::move(item));
+    fitCamera();
     update();
+}
+
+void PlotCanvas3D::fitCamera()
+{
+    auto bounds = scene_->sceneBounds();
+    if (!bounds.isValid())
+        return;
+
+    QVector3D center = bounds.center();
+    QVector3D sz = bounds.size();
+    float maxDim = std::max({sz.x(), sz.y(), sz.z(), 0.001f});
+    float radius = maxDim * 0.5f * std::sqrt(3.0f);
+
+    camera_->setTarget(center);
+    float dist = radius / std::tan(qDegreesToRadians(camera_->fov() * 0.5f));
+    camera_->setNearFar(dist * 0.01f, dist * 100.0f);
+
+    float d = dist * 1.5f;
+    QVector3D eye = center + QVector3D(d * 0.5f, d * 0.35f, d * 0.75f);
+    camera_->setPosition(eye);
 }
 
 void PlotCanvas3D::initializeGL()
 {
     initializeOpenGLFunctions();
 
+    qInfo() << "PlotCanvas3D: GL context created, version:"
+            << reinterpret_cast<const char*>(glGetString(GL_VERSION));
+
     if (!renderer_->initialize()) {
         qWarning() << "PlotCanvas3D: renderer initialization failed";
         return;
     }
 
+    qInfo() << "PlotCanvas3D: renderer initialized successfully";
     glInitialized_ = true;
 }
 
@@ -44,6 +71,13 @@ void PlotCanvas3D::paintGL()
 {
     if (!glInitialized_)
         return;
+
+    glClearColor(0.18f, 0.20f, 0.25f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(0x8642);   // GL_PROGRAM_POINT_SIZE
+    glEnable(0x0BE2);   // GL_BLEND
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     renderer_->render(*scene_, *camera_, size());
 }

@@ -36,6 +36,8 @@ public:
 
     void addItem(std::unique_ptr<plot3d::PlotItem3D> item);
 
+    void fitCamera();
+
     [[nodiscard]] bool isGLInitialized() const { return glInitialized_; }
 
 protected:

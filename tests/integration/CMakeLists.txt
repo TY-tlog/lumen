@@ -18,4 +18,7 @@ target_link_libraries(lumen_integration_tests
         lumen::compile_options
 )
 
-catch_discover_tests(lumen_integration_tests)
+catch_discover_tests(lumen_integration_tests
+    DISCOVERY_MODE PRE_TEST
+    PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;LSAN_OPTIONS=suppressions=${CMAKE_CURRENT_SOURCE_DIR}/../lsan_suppressions.txt"
+)

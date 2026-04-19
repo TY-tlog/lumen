@@ -1,10 +1,17 @@
 // Lumen — entry point.
-//
-// Phase 0: opens an empty main window. Future phases add real functionality.
 
 #include "app/Application.h"
 
+#include <QtGlobal>
+
+void initResources()
+{
+    Q_INIT_RESOURCE(styles);
+    Q_INIT_RESOURCE(fonts);
+}
+
 int main(int argc, char* argv[]) {
+    initResources();
     lumen::Application app(argc, argv);
     return app.run();
 }

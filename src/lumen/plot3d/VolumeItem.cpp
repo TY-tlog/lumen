@@ -5,6 +5,8 @@
 #include "data/Volume3D.h"
 
 #include <QMatrix4x4>
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
 
 #include <algorithm>
 #include <cmath>
@@ -48,8 +50,10 @@ void VolumeItem::render(ShaderProgram& shader, const RenderContext& ctx)
     if (!volume_)
         return;
 
-    // Phase 8: proxy cube rendering with texture slicing.
-    // Set up model matrix and uniforms.
+    BoundingBox3D box = dataBounds();
+    if (!box.isValid())
+        return;
+
     QMatrix4x4 model;
     QMatrix4x4 mvp = ctx.vpMatrix * model;
     shader.setUniform(QStringLiteral("uMVP"), mvp);
@@ -57,11 +61,80 @@ void VolumeItem::render(ShaderProgram& shader, const RenderContext& ctx)
     QMatrix3x3 normalMat = model.normalMatrix();
     shader.setUniformMat3(QStringLiteral("uNormalMatrix"), normalMat);
 
-    // Generate the 1D transfer function LUT for upload.
-    QImage lut = transferFunction_.toLUT(256);
-    Q_UNUSED(lut);
+    auto* f = QOpenGLContext::currentContext()->functions();
 
-    // Actual slice rendering deferred to GL context.
+    if (gpuDirty_ || !vao_.isCreated()) {
+        QColor tfColor = transferFunction_.sample(0.5);
+        float r = tfColor.redF();
+        float g = tfColor.greenF();
+        float b = tfColor.blueF();
+
+        float x0 = box.min.x(), y0 = box.min.y(), z0 = box.min.z();
+        float x1 = box.max.x(), y1 = box.max.y(), z1 = box.max.z();
+
+        // 24 vertices (4 per face, 6 faces) with outward normals.
+        // clang-format off
+        float verts[] = {
+            // Front face (z1)
+            x0,y0,z1, 0,0,1, r,g,b,  x1,y0,z1, 0,0,1, r,g,b,
+            x1,y1,z1, 0,0,1, r,g,b,  x0,y1,z1, 0,0,1, r,g,b,
+            // Back face (z0)
+            x1,y0,z0, 0,0,-1, r,g,b,  x0,y0,z0, 0,0,-1, r,g,b,
+            x0,y1,z0, 0,0,-1, r,g,b,  x1,y1,z0, 0,0,-1, r,g,b,
+            // Top face (y1)
+            x0,y1,z0, 0,1,0, r,g,b,  x1,y1,z0, 0,1,0, r,g,b,
+            x1,y1,z1, 0,1,0, r,g,b,  x0,y1,z1, 0,1,0, r,g,b,
+            // Bottom face (y0)
+            x0,y0,z0, 0,-1,0, r,g,b,  x1,y0,z0, 0,-1,0, r,g,b,
+            x1,y0,z1, 0,-1,0, r,g,b,  x0,y0,z1, 0,-1,0, r,g,b,
+            // Right face (x1)
+            x1,y0,z0, 1,0,0, r,g,b,  x1,y1,z0, 1,0,0, r,g,b,
+            x1,y1,z1, 1,0,0, r,g,b,  x1,y0,z1, 1,0,0, r,g,b,
+            // Left face (x0)
+            x0,y0,z0, -1,0,0, r,g,b,  x0,y0,z1, -1,0,0, r,g,b,
+            x0,y1,z1, -1,0,0, r,g,b,  x0,y1,z0, -1,0,0, r,g,b,
+        };
+        uint32_t idx[] = {
+            0,1,2, 0,2,3,       // front
+            4,5,6, 4,6,7,       // back
+            8,9,10, 8,10,11,    // top
+            12,13,14, 12,14,15, // bottom
+            16,17,18, 16,18,19, // right
+            20,21,22, 20,22,23, // left
+        };
+        // clang-format on
+
+        if (!vao_.isCreated()) {
+            vao_.create();
+            vbo_.create();
+            ebo_.create();
+        }
+
+        vao_.bind();
+        vbo_.bind();
+        vbo_.allocate(verts, static_cast<int>(sizeof(verts)));
+
+        constexpr int kStride = 9 * static_cast<int>(sizeof(float));
+        f->glEnableVertexAttribArray(0);
+        f->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, kStride, nullptr);
+        f->glEnableVertexAttribArray(1);
+        f->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, kStride,
+                                 reinterpret_cast<const void*>(3 * sizeof(float)));
+        f->glEnableVertexAttribArray(2);
+        f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, kStride,
+                                 reinterpret_cast<const void*>(6 * sizeof(float)));
+
+        ebo_.bind();
+        ebo_.allocate(idx, static_cast<int>(sizeof(idx)));
+
+        vao_.release();
+        vbo_.release();
+        gpuDirty_ = false;
+    }
+
+    vao_.bind();
+    f->glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
+    vao_.release();
 }
 
 std::optional<HitResult3D> VolumeItem::hitTestRay(const Ray& ray,

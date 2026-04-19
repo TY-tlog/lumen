@@ -35,6 +35,7 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
+#include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFormLayout>
@@ -43,6 +44,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QSettings>
+#include <QSplitter>
 #include <QStatusBar>
 #include <QTimer>
 #include <Qt>
@@ -86,28 +88,56 @@ MainWindow::MainWindow(core::DocumentRegistry* registry,
     setWindowTitle("Lumen");
     resize(kDefaultWidth, kDefaultHeight);
 
-    auto* placeholder = new QLabel(
-        "Lumen — Phase 6\n\nOpen a file via File > Open...",
-        this);
-    placeholder->setAlignment(Qt::AlignCenter);
-    setCentralWidget(placeholder);
+    // Outer: horizontal splitter [2D content | 3D view]
+    hSplitter_ = new QSplitter(Qt::Horizontal, this);
+    hSplitter_->setHandleWidth(6);
+    hSplitter_->setChildrenCollapsible(false);
 
-    // Data table dock — starts hidden, shown when data is loaded
-    dataTableDock_ = new ui::DataTableDock(this);
-    addDockWidget(Qt::BottomDockWidgetArea, dataTableDock_);
-    dataTableDock_->hide();
+    // Inner: vertical splitter [plot (70%) | data table (30%)]
+    vSplitter_ = new QSplitter(Qt::Vertical);
+    vSplitter_->setHandleWidth(6);
+    vSplitter_->setChildrenCollapsible(false);
 
-    // Plot canvas dock — starts hidden, shown when data is loaded
-    plotCanvasDock_ = new ui::PlotCanvasDock(this);
+    // Placeholder shown until data loads.
+    placeholder_ = new QLabel(
+        QStringLiteral("Open a file via File \u203A Open, or choose a sample from the Samples menu."));
+    placeholder_->setAlignment(Qt::AlignCenter);
+    placeholder_->setStyleSheet(QStringLiteral("QLabel { color: #86868b; font-size: 14px; }"));
+
+    plotCanvasDock_ = new ui::PlotCanvasDock(vSplitter_);
     plotCanvasDock_->setPlotRegistry(plotRegistry);
     plotCanvasDock_->setCommandBus(commandBus);
-    addDockWidget(Qt::RightDockWidgetArea, plotCanvasDock_);
+    plotCanvasDock_->setTitleBarWidget(new QWidget());
+    plotCanvasDock_->setFeatures(QDockWidget::NoDockWidgetFeatures);
     plotCanvasDock_->hide();
 
-    // 3D plot canvas dock — starts hidden, shown when 3D data is loaded
-    plotCanvas3DDock_ = new ui::PlotCanvas3DDock(this);
-    addDockWidget(Qt::RightDockWidgetArea, plotCanvas3DDock_);
-    plotCanvas3DDock_->hide();
+    dataTableDock_ = new ui::DataTableDock(vSplitter_);
+    dataTableDock_->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    dataTableDock_->hide();
+
+    vSplitter_->addWidget(placeholder_);
+    vSplitter_->addWidget(plotCanvasDock_);
+    vSplitter_->addWidget(dataTableDock_);
+    vSplitter_->setStretchFactor(0, 1);
+    vSplitter_->setStretchFactor(1, 3);
+    vSplitter_->setStretchFactor(2, 1);
+
+    // 3D canvas directly in the horizontal splitter.
+    plotCanvas3D_ = new ui::PlotCanvas3D(hSplitter_);
+    plotCanvas3D_->setMinimumSize(0, 0);
+    plotCanvas3D_->setMaximumSize(0, 0);
+
+    plotCanvas3DDock_ = nullptr;
+
+    hSplitter_->addWidget(vSplitter_);
+    hSplitter_->addWidget(plotCanvas3D_);
+    hSplitter_->setStretchFactor(0, 1);
+    hSplitter_->setStretchFactor(1, 0);
+    hSplitter_->setCollapsible(1, true);
+    plotCanvas3D_->hide();
+    hSplitter_->setSizes({1, 0});
+
+    setCentralWidget(hSplitter_);
 
     // Connect workspace modification tracking.
     if (workspaceManager_ != nullptr) {
@@ -175,9 +205,48 @@ void MainWindow::buildMenus() {
     connect(prefsAction, &QAction::triggered, this, &MainWindow::showMemoryBudgetDialog);
 
     auto* viewMenu = menuBar()->addMenu(tr("&View"));
-    viewMenu->addAction(dataTableDock_->toggleViewAction());
-    viewMenu->addAction(plotCanvasDock_->toggleViewAction());
-    viewMenu->addAction(plotCanvas3DDock_->toggleViewAction());
+    auto* toggleData = viewMenu->addAction(tr("Data Table"));
+    toggleData->setCheckable(true);
+    toggleData->setChecked(true);
+    connect(toggleData, &QAction::toggled, dataTableDock_, &QWidget::setVisible);
+
+    auto* togglePlot = viewMenu->addAction(tr("Plot"));
+    togglePlot->setCheckable(true);
+    togglePlot->setChecked(true);
+    connect(togglePlot, &QAction::toggled, plotCanvasDock_, &QWidget::setVisible);
+
+    auto* toggle3D = viewMenu->addAction(tr("3D View"));
+    toggle3D->setCheckable(true);
+    connect(toggle3D, &QAction::toggled, this, [this](bool checked) {
+        if (checked) {
+            plotCanvas3D_->setMinimumSize(200, 200);
+            plotCanvas3D_->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+            plotCanvas3D_->setVisible(true);
+            QList<int> sizes = hSplitter_->sizes();
+            int total = sizes[0] + sizes[1];
+            sizes[0] = total * 2 / 3;
+            sizes[1] = total / 3;
+            hSplitter_->setSizes(sizes);
+        } else {
+            plotCanvas3D_->setVisible(false);
+            plotCanvas3D_->setMinimumSize(0, 0);
+            QList<int> sizes = hSplitter_->sizes();
+            sizes[1] = 0;
+            hSplitter_->setSizes(sizes);
+        }
+    });
+
+    viewMenu->addSeparator();
+    auto* darkModeAction = viewMenu->addAction(tr("Dark Mode"));
+    darkModeAction->setCheckable(true);
+    connect(darkModeAction, &QAction::toggled, this, [](bool checked) {
+        QString path = checked ? QStringLiteral(":/styles/dark.qss")
+                               : QStringLiteral(":/styles/light.qss");
+        QFile f(path);
+        if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qApp->setStyleSheet(f.readAll());
+        }
+    });
 
     auto* helpMenu = menuBar()->addMenu(tr("&Help"));
     auto* aboutAction = helpMenu->addAction(tr("&About Lumen"));
@@ -251,6 +320,14 @@ void MainWindow::openFile() {
 }
 
 void MainWindow::loadFile(const QString& filePath) {
+    plotCanvas3D_->setVisible(false);
+    plotCanvas3D_->setMinimumSize(0, 0);
+    {
+        QList<int> sz = hSplitter_->sizes();
+        sz[1] = 0;
+        hSplitter_->setSizes(sz);
+    }
+
     // Check if already loaded in the registry (tabular)
     const auto* existing = registry_->document(filePath);
     if (existing != nullptr) {
@@ -315,11 +392,19 @@ void MainWindow::loadFile(const QString& filePath) {
 }
 
 void MainWindow::showTabular(const data::TabularBundle* bundle, const QString& path) {
+    if (placeholder_ != nullptr) {
+        placeholder_->hide();
+        placeholder_ = nullptr;
+    }
+
     dataTableDock_->showDataFrame(bundle);
     dataTableDock_->show();
 
     plotCanvasDock_->setDataFrame(bundle, path);
     plotCanvasDock_->show();
+
+    vSplitter_->setStretchFactor(1, 3);
+    vSplitter_->setStretchFactor(2, 1);
 
     currentDocPath_ = path;
     if (workspaceManager_ != nullptr) {
@@ -336,6 +421,10 @@ void MainWindow::showTabular(const data::TabularBundle* bundle, const QString& p
 }
 
 void MainWindow::showDataset(const data::Dataset* ds, const QString& label) {
+    if (placeholder_ != nullptr) {
+        placeholder_->hide();
+        placeholder_ = nullptr;
+    }
     dataTableDock_->showDatasetInfo(ds);
     dataTableDock_->show();
 
@@ -368,7 +457,8 @@ void MainWindow::showDataset(const data::Dataset* ds, const QString& label) {
         plotCanvasDock_->hide();
     }
 
-    setWindowTitle(QStringLiteral("Lumen — %1").arg(label));
+    currentDocPath_ = label;
+    updateWindowTitle();
 }
 
 void MainWindow::addRecentFile(const QString& filePath) {
@@ -562,9 +652,18 @@ void MainWindow::openSampleVolumeSphere() {
     // Also show as VolumeItem in PlotCanvas3DDock.
     auto volItem = std::make_unique<plot3d::VolumeItem>(
         volume, QStringLiteral("Volume Sphere"));
-    plotCanvas3DDock_->canvas()->scene()->clearItems();
-    plotCanvas3DDock_->canvas()->addItem(std::move(volItem));
-    plotCanvas3DDock_->show();
+    plotCanvas3D_->scene()->clearItems();
+    plotCanvas3D_->addItem(std::move(volItem));
+    plotCanvas3D_->setMinimumSize(200, 200);
+    plotCanvas3D_->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    plotCanvas3D_->setVisible(true);
+    {
+        QList<int> sz = hSplitter_->sizes();
+        int total = sz[0] + sz[1];
+        sz[0] = total * 2 / 3;
+        sz[1] = total / 3;
+        hSplitter_->setSizes(sz);
+    }
 
     data::MemoryManager::instance().trackAllocation(volume->sizeBytes());
     statusBar()->showMessage(tr("Sample: Volume Sphere (64x64x64)"));
@@ -679,13 +778,31 @@ void MainWindow::openSampleScatter3D() {
     auto yCol = std::make_shared<data::Rank1Dataset>("y", data::Unit::dimensionless(), std::move(yd));
     auto zCol = std::make_shared<data::Rank1Dataset>("z", data::Unit::dimensionless(), std::move(zd));
 
+    // Show in 3D dock.
     auto scatter = std::make_unique<plot3d::Scatter3D>(
         xCol, yCol, zCol, Qt::blue, QStringLiteral("Scatter3D"));
-    plotCanvas3DDock_->canvas()->scene()->clearItems();
-    plotCanvas3DDock_->canvas()->addItem(std::move(scatter));
-    plotCanvas3DDock_->show();
+    plotCanvas3D_->scene()->clearItems();
+    plotCanvas3D_->addItem(std::move(scatter));
+    plotCanvas3D_->setMinimumSize(200, 200);
+    plotCanvas3D_->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    plotCanvas3D_->setVisible(true);
+    {
+        QList<int> sz = hSplitter_->sizes();
+        int total = sz[0] + sz[1];
+        sz[0] = total * 2 / 3;
+        sz[1] = total / 3;
+        hSplitter_->setSizes(sz);
+    }
 
-    setWindowTitle(QStringLiteral("Lumen — Scatter 3D"));
+    // Show x,y,z in data table (A6 fix: was missing TabularBundle).
+    auto bundle = std::make_shared<data::TabularBundle>();
+    bundle->addColumn(xCol);
+    bundle->addColumn(yCol);
+    bundle->addColumn(zCol);
+    const QString key = QStringLiteral("sample://scatter-3d");
+    const auto* rawBundle = registry_->addDocument(key, std::move(bundle));
+    showTabular(rawBundle, key);
+
     statusBar()->showMessage(tr("Sample: Scatter3D (%1 points on sphere shell)").arg(kN));
 }
 
@@ -717,17 +834,37 @@ void MainWindow::openSampleSurface3D() {
 
     auto surface = std::make_unique<plot3d::Surface3D>(
         grid, QColor(100, 149, 237), QStringLiteral("Surface3D"));
-    plotCanvas3DDock_->canvas()->scene()->clearItems();
-    plotCanvas3DDock_->canvas()->addItem(std::move(surface));
-    plotCanvas3DDock_->show();
+    surface->setColormap(std::make_shared<plot::Colormap>(
+        plot::Colormap::builtin(plot::Colormap::Builtin::Viridis)));
+    plotCanvas3D_->scene()->clearItems();
+    plotCanvas3D_->addItem(std::move(surface));
+    plotCanvas3D_->setMinimumSize(200, 200);
+    plotCanvas3D_->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    plotCanvas3D_->setVisible(true);
+    {
+        QList<int> sz = hSplitter_->sizes();
+        int total = sz[0] + sz[1];
+        sz[0] = total * 2 / 3;
+        sz[1] = total / 3;
+        hSplitter_->setSizes(sz);
+    }
 
-    setWindowTitle(QStringLiteral("Lumen — Surface 3D"));
+    showDataset(grid.get(), QStringLiteral("sample://surface-3d"));
     statusBar()->showMessage(tr("Sample: Surface3D (Gaussian 64x64)"));
 }
 
 void MainWindow::openSampleStreamlines() {
     // Streamlines require a vector field; show placeholder message for now.
-    plotCanvas3DDock_->show();
+    plotCanvas3D_->setMinimumSize(200, 200);
+    plotCanvas3D_->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    plotCanvas3D_->setVisible(true);
+    {
+        QList<int> sz = hSplitter_->sizes();
+        int total = sz[0] + sz[1];
+        sz[0] = total * 2 / 3;
+        sz[1] = total / 3;
+        hSplitter_->setSizes(sz);
+    }
     statusBar()->showMessage(tr("Sample: Streamlines — requires 3D vector field data (not yet generated)"));
 }
 
@@ -896,7 +1033,10 @@ void MainWindow::updateWindowTitle() {
     QString title = QStringLiteral("Lumen");
     if (!currentDocPath_.isEmpty()) {
         QFileInfo fi(currentDocPath_);
-        title = QStringLiteral("Lumen — %1").arg(fi.fileName());
+        QString name = fi.fileName();
+        if (currentDocPath_.startsWith(QStringLiteral("sample://")))
+            name = currentDocPath_.mid(9);
+        title = QStringLiteral("%1 — Lumen").arg(name);
         if (workspaceManager_ != nullptr &&
             workspaceManager_->isModified(currentDocPath_)) {
             title += QStringLiteral(" \u25CF");

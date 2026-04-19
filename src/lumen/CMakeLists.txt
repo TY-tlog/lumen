@@ -40,9 +40,8 @@ else()
     set(LUMEN_FONT_QRC "")
 endif()
 
-# ---------- Main executable ----------
-qt_add_executable(lumen
-    main.cpp
+# ---------- App library (all code except main.cpp — for smoke tests) ----------
+add_library(lumen_app STATIC
     app/Application.cpp
     app/Application.h
     ui/DataFrameTableModel.cpp
@@ -103,14 +102,14 @@ qt_add_executable(lumen
     ${LUMEN_FONT_QRC}
 )
 
-target_include_directories(lumen
-    PRIVATE
+target_include_directories(lumen_app
+    PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/include
 )
 
-target_link_libraries(lumen
-    PRIVATE
+target_link_libraries(lumen_app
+    PUBLIC
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
@@ -125,11 +124,14 @@ target_link_libraries(lumen
         lumen_plot
 )
 
-# GPU layer (ADR-039): link Qt6::OpenGLWidgets when available.
 if(LUMEN_HAS_OPENGL_WIDGETS)
-    target_link_libraries(lumen PRIVATE Qt6::OpenGLWidgets lumen_plot3d)
-    target_compile_definitions(lumen PRIVATE LUMEN_HAS_OPENGL_WIDGETS=1)
+    target_link_libraries(lumen_app PUBLIC Qt6::OpenGLWidgets lumen_plot3d)
+    target_compile_definitions(lumen_app PUBLIC LUMEN_HAS_OPENGL_WIDGETS=1)
 endif()
+
+# ---------- Main executable ----------
+qt_add_executable(lumen main.cpp)
+target_link_libraries(lumen PRIVATE lumen_app)
 
 set_target_properties(lumen PROPERTIES
     WIN32_EXECUTABLE ON

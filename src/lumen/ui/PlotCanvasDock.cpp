@@ -46,6 +46,7 @@
 #include <QComboBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QMenu>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QToolBar>
@@ -89,6 +90,32 @@ PlotCanvasDock::PlotCanvasDock(QWidget* parent)
     // Connect inline title editor result.
     connect(canvas_, &PlotCanvas::titleEditFinished,
             this, &PlotCanvasDock::onTitleEditFinished);
+
+    // Right-click context menu for plot management (A9: discoverability).
+    canvas_->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(canvas_, &QWidget::customContextMenuRequested,
+            this, [this](const QPoint& pos) {
+        QMenu menu(canvas_);
+        auto* titleAct = menu.addAction(tr("Edit Title..."));
+        connect(titleAct, &QAction::triggered, this, &PlotCanvasDock::onTitleDoubleClicked);
+        auto* xAxisAct = menu.addAction(tr("Edit X Axis..."));
+        connect(xAxisAct, &QAction::triggered, this, &PlotCanvasDock::onXAxisDoubleClicked);
+        auto* yAxisAct = menu.addAction(tr("Edit Y Axis..."));
+        connect(yAxisAct, &QAction::triggered, this, &PlotCanvasDock::onYAxisDoubleClicked);
+        auto* legendAct = menu.addAction(tr("Edit Legend..."));
+        connect(legendAct, &QAction::triggered, this, &PlotCanvasDock::onLegendDoubleClicked);
+        menu.addSeparator();
+        auto* autoRangeAct = menu.addAction(tr("Auto Range"));
+        connect(autoRangeAct, &QAction::triggered, this, [this]() {
+            if (scene_) {
+                scene_->autoRange();
+                canvas_->update();
+            }
+        });
+        menu.addSeparator();
+        menu.addAction(tr("Tip: Double-click elements to edit"))->setEnabled(false);
+        menu.exec(canvas_->mapToGlobal(pos));
+    });
 
     setWidget(container);
 }
@@ -609,6 +636,12 @@ void PlotCanvasDock::setDataFrame(const data::TabularBundle* bundle, const QStri
         }
     } else if (!numericColumns_.isEmpty()) {
         addYSeries();
+    }
+
+    // 3D data (has z column) defaults to Scatter; 2D stays Line.
+    bool hasZ = numericColumns_.contains(QStringLiteral("z"));
+    if (hasZ && !yEntries_.empty() && yEntries_[0].typeCombo != nullptr) {
+        yEntries_[0].typeCombo->setCurrentText(QStringLiteral("Scatter"));
     }
 
     rebuildPlot();

@@ -4,6 +4,8 @@
 #include "SpatialGrid3D.h"
 
 #include <QColor>
+#include <QOpenGLBuffer>
+#include <QOpenGLVertexArrayObject>
 #include <QString>
 
 #include <memory>
@@ -73,6 +75,12 @@ private:
     mutable bool positionsDirty_ = true;
     mutable std::vector<QVector3D> positions_;
     mutable std::unique_ptr<SpatialGrid3D> spatialGrid_;
+
+    // GPU resources for GL_POINTS rendering.
+    mutable QOpenGLVertexArrayObject vao_;
+    mutable QOpenGLBuffer vbo_{QOpenGLBuffer::VertexBuffer};
+    mutable bool gpuDirty_ = true;
+    mutable int gpuVertexCount_ = 0;
 };
 
 }  // namespace lumen::plot3d

@@ -78,9 +78,16 @@ void StyleManager::loadFonts() {
 }
 
 void StyleManager::applyStyleSheet() {
-    QFile qssFile(QStringLiteral(":/styles/light.qss"));
+    setDarkMode(darkMode_);
+}
+
+void StyleManager::setDarkMode(bool dark) {
+    darkMode_ = dark;
+    QString path = dark ? QStringLiteral(":/styles/dark.qss")
+                        : QStringLiteral(":/styles/light.qss");
+    QFile qssFile(path);
     if (!qssFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "StyleManager: could not load light.qss from resources";
+        qWarning() << "StyleManager: could not load" << path;
         return;
     }
 
@@ -89,8 +96,8 @@ void StyleManager::applyStyleSheet() {
     qssFile.close();
 
     qApp->setStyleSheet(styleSheet);
-    qInfo() << "StyleManager: applied light theme stylesheet"
-            << "(" << styleSheet.size() << "chars)";
+    qInfo() << "StyleManager: applied" << (dark ? "dark" : "light")
+            << "stylesheet (" << styleSheet.size() << "chars)";
 }
 
 }  // namespace lumen

@@ -27,6 +27,7 @@ void main() {
     vNormal = normalize(uNormalMatrix * aNormal);
     vColor = aColor;
     gl_Position = uMVP * vec4(aPos, 1.0);
+    gl_PointSize = 8.0;
 }
 )glsl";
 
@@ -53,6 +54,35 @@ void main() {
 }
 )glsl";
 
+// Point fragment shader: renders GL_POINTS as lit spheres.
+const char* kPointFragmentShader = R"glsl(
+#version 410 core
+in vec3 vWorldPos;
+in vec3 vNormal;
+in vec3 vColor;
+uniform vec3 uLightDir;
+uniform vec3 uLightColor;
+uniform vec3 uAmbient;
+uniform vec3 uCameraPos;
+uniform float uSpecularPower;
+out vec4 fragColor;
+void main() {
+    vec2 pc = gl_PointCoord * 2.0 - 1.0;
+    float r2 = dot(pc, pc);
+    if (r2 > 1.0) discard;
+    float z = sqrt(1.0 - r2);
+    vec3 sphereNormal = vec3(pc, z);
+    vec3 L = normalize(-uLightDir);
+    float diff = max(dot(sphereNormal, L), 0.0);
+    vec3 V = normalize(uCameraPos - vWorldPos);
+    vec3 R = reflect(-L, sphereNormal);
+    float spec = pow(max(dot(V, R), 0.0), uSpecularPower) * 0.4;
+    vec3 color = vColor * (uAmbient + diff * uLightColor) + spec * uLightColor;
+    float edge = smoothstep(0.7, 1.0, sqrt(r2));
+    fragColor = vec4(color * (1.0 - edge * 0.25), 1.0 - edge * 0.3);
+}
+)glsl";
+
 // PBR vertex shader: same as Phong (position, normal, color passthrough).
 const char* kPbrVertexShader = R"glsl(
 #version 410 core
@@ -70,6 +100,7 @@ void main() {
     vNormal = normalize(uNormalMatrix * aNormal);
     vColor = aColor;
     gl_Position = uMVP * vec4(aPos, 1.0);
+    gl_PointSize = 8.0;
 }
 )glsl";
 
@@ -175,6 +206,10 @@ bool Renderer3D::initialize()
         return false;
     }
 
+    // Point shader for Scatter3D (circular lit spheres).
+    pointInitialized_ = pointShader_.compile(QString::fromLatin1(kPhongVertexShader),
+                                              QString::fromLatin1(kPointFragmentShader));
+
     // PBR shader is optional; we can fall back to Phong if it fails.
     pbrInitialized_ = pbrShader_.compile(QString::fromLatin1(kPbrVertexShader),
                                           QString::fromLatin1(kPbrFragmentShader));
@@ -227,9 +262,9 @@ void Renderer3D::render(Scene3D& scene, Camera& camera, QSize viewport)
     ctx.cameraPosition = camera.position();
 
     // Extract light info for shader uniforms.
-    QVector3D lightDir(0.5f, -1.0f, -0.5f);
-    QVector3D lightColor(1.0f, 1.0f, 1.0f);
-    QVector3D ambient(0.2f, 0.2f, 0.2f);
+    QVector3D lightDir(0.3f, -0.8f, -0.5f);
+    QVector3D lightColor(1.0f, 0.98f, 0.95f);
+    QVector3D ambient(0.35f, 0.35f, 0.38f);
 
     for (const auto& light : scene.lights()) {
         if (light.type == LightType::Directional) {
@@ -248,6 +283,16 @@ void Renderer3D::render(Scene3D& scene, Camera& camera, QSize viewport)
     phongShader_.setUniform(QStringLiteral("uCameraPos"), camera.position());
     phongShader_.setUniform(QStringLiteral("uSpecularPower"), 32.0f);
     phongShader_.release();
+
+    if (pointInitialized_) {
+        pointShader_.bind();
+        pointShader_.setUniform(QStringLiteral("uLightDir"), lightDir);
+        pointShader_.setUniform(QStringLiteral("uLightColor"), lightColor);
+        pointShader_.setUniform(QStringLiteral("uAmbient"), ambient);
+        pointShader_.setUniform(QStringLiteral("uCameraPos"), camera.position());
+        pointShader_.setUniform(QStringLiteral("uSpecularPower"), 64.0f);
+        pointShader_.release();
+    }
 
     // Set up PBR shader uniforms (scene-level).
     if (pbrInitialized_) {
@@ -272,7 +317,6 @@ void Renderer3D::renderItem(PlotItem3D& item, const RenderContext& ctx)
     ShaderProgram& shader = shaderForItem(item);
     shader.bind();
 
-    // If the item has a PBR material, set its uniforms.
     if (item.hasPbrMaterial() && pbrInitialized_) {
         setupPbrUniforms(*item.pbrMaterial(), ctx);
     }

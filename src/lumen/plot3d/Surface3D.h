@@ -3,6 +3,8 @@
 #include "PlotItem3D.h"
 
 #include <QColor>
+#include <QOpenGLBuffer>
+#include <QOpenGLVertexArrayObject>
 #include <QString>
 #include <QVector3D>
 
@@ -90,6 +92,12 @@ private:
     mutable bool meshDirty_ = true;
     mutable std::vector<Vertex> vertices_;
     mutable std::vector<uint32_t> indices_;
+
+    mutable QOpenGLVertexArrayObject vao_;
+    mutable QOpenGLBuffer vbo_{QOpenGLBuffer::VertexBuffer};
+    mutable QOpenGLBuffer ebo_{QOpenGLBuffer::IndexBuffer};
+    mutable bool gpuDirty_ = true;
+    mutable int gpuIndexCount_ = 0;
 };
 
 }  // namespace lumen::plot3d

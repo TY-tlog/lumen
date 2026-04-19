@@ -9,6 +9,7 @@ PlotCanvas3DDock::PlotCanvas3DDock(QWidget* parent)
     setObjectName(QStringLiteral("PlotCanvas3DDock"));
 
     canvas_ = new PlotCanvas3D(this);
+    canvas_->setMinimumSize(200, 200);
     setWidget(canvas_);
 }
 

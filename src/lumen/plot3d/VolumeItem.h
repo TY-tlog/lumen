@@ -3,6 +3,8 @@
 #include "PlotItem3D.h"
 #include "TransferFunction.h"
 
+#include <QOpenGLBuffer>
+#include <QOpenGLVertexArrayObject>
 #include <QString>
 
 #include <memory>
@@ -63,6 +65,11 @@ private:
     int maxSamples_ = 256;
     QString name_;
     bool visible_ = true;
+
+    mutable QOpenGLVertexArrayObject vao_;
+    mutable QOpenGLBuffer vbo_{QOpenGLBuffer::VertexBuffer};
+    mutable QOpenGLBuffer ebo_{QOpenGLBuffer::IndexBuffer};
+    mutable bool gpuDirty_ = true;
 };
 
 }  // namespace lumen::plot3d

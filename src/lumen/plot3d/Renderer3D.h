@@ -34,8 +34,10 @@ private:
     void setupPbrUniforms(const PbrMaterial& mat, const RenderContext& ctx);
 
     ShaderProgram phongShader_;
+    ShaderProgram pointShader_;
     ShaderProgram pbrShader_;
     bool initialized_ = false;
+    bool pointInitialized_ = false;
     bool pbrInitialized_ = false;
 };
 

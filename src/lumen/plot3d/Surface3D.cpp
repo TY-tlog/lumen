@@ -6,6 +6,8 @@
 #include "plot/Colormap.h"
 
 #include <QMatrix4x4>
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
 
 #include <algorithm>
 #include <cmath>
@@ -63,31 +65,77 @@ void Surface3D::render(ShaderProgram& shader, const RenderContext& ctx)
     if (verts.empty() || idxs.empty())
         return;
 
-    QMatrix4x4 model;  // identity
+    BoundingBox3D bounds = dataBounds();
+    QVector3D sz = bounds.size();
+    float xyMax = std::max(sz.x(), sz.y());
+    float zRange = std::max(sz.z(), 0.001f);
+    float zScale = (xyMax > 0.0f && zRange < xyMax * 0.1f)
+                       ? xyMax * 0.3f / zRange
+                       : 1.0f;
+
+    QMatrix4x4 model;
+    model.translate(0, 0, -bounds.center().z() * zScale);
+    model.scale(1.0f, 1.0f, zScale);
+
     QMatrix4x4 mvp = ctx.vpMatrix * model;
     shader.setUniform(QStringLiteral("uMVP"), mvp);
     shader.setUniform(QStringLiteral("uModel"), model);
     QMatrix3x3 normalMat = model.normalMatrix();
     shader.setUniformMat3(QStringLiteral("uNormalMatrix"), normalMat);
 
-    // Build interleaved vertex data for upload.
-    std::vector<float> vertexData;
-    vertexData.reserve(verts.size() * 9);
-    for (const auto& v : verts) {
-        vertexData.push_back(v.position.x());
-        vertexData.push_back(v.position.y());
-        vertexData.push_back(v.position.z());
-        vertexData.push_back(v.normal.x());
-        vertexData.push_back(v.normal.y());
-        vertexData.push_back(v.normal.z());
-        vertexData.push_back(v.color.x());
-        vertexData.push_back(v.color.y());
-        vertexData.push_back(v.color.z());
+    auto* f = QOpenGLContext::currentContext()->functions();
+
+    if (gpuDirty_ || !vao_.isCreated()) {
+        std::vector<float> vertexData;
+        vertexData.reserve(verts.size() * 9);
+        for (const auto& v : verts) {
+            vertexData.push_back(v.position.x());
+            vertexData.push_back(v.position.y());
+            vertexData.push_back(v.position.z());
+            vertexData.push_back(v.normal.x());
+            vertexData.push_back(v.normal.y());
+            vertexData.push_back(v.normal.z());
+            vertexData.push_back(v.color.x());
+            vertexData.push_back(v.color.y());
+            vertexData.push_back(v.color.z());
+        }
+
+        if (!vao_.isCreated()) {
+            vao_.create();
+            vbo_.create();
+            ebo_.create();
+        }
+
+        vao_.bind();
+
+        vbo_.bind();
+        vbo_.allocate(vertexData.data(),
+                      static_cast<int>(vertexData.size() * sizeof(float)));
+
+        constexpr int kStride = 9 * static_cast<int>(sizeof(float));
+        f->glEnableVertexAttribArray(0);
+        f->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, kStride, nullptr);
+        f->glEnableVertexAttribArray(1);
+        f->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, kStride,
+                                 reinterpret_cast<const void*>(3 * sizeof(float)));
+        f->glEnableVertexAttribArray(2);
+        f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, kStride,
+                                 reinterpret_cast<const void*>(6 * sizeof(float)));
+
+        ebo_.bind();
+        ebo_.allocate(idxs.data(),
+                      static_cast<int>(idxs.size() * sizeof(uint32_t)));
+
+        vao_.release();
+        vbo_.release();
+
+        gpuIndexCount_ = static_cast<int>(idxs.size());
+        gpuDirty_ = false;
     }
 
-    // Infrastructure prepared; actual GL draw calls happen via GL context.
-    Q_UNUSED(vertexData);
-    Q_UNUSED(idxs);
+    vao_.bind();
+    f->glDrawElements(GL_TRIANGLES, gpuIndexCount_, GL_UNSIGNED_INT, nullptr);
+    vao_.release();
 }
 
 std::optional<HitResult3D> Surface3D::hitTestRay(const Ray& ray,
@@ -142,6 +190,7 @@ std::optional<HitResult3D> Surface3D::hitTestRay(const Ray& ray,
 void Surface3D::invalidate()
 {
     meshDirty_ = true;
+    gpuDirty_ = true;
 }
 
 void Surface3D::setMode(Mode mode)

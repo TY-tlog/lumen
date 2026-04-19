@@ -6,6 +6,7 @@
 
 #include <QHeaderView>
 #include <QLabel>
+#include <QMenu>
 #include <QSortFilterProxyModel>
 #include <QStackedWidget>
 #include <QTableView>
@@ -31,6 +32,17 @@ DataTableDock::DataTableDock(QWidget* parent)
     tableView_->horizontalHeader()->setSectionsClickable(true);
     tableView_->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
     tableView_->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    tableView_->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(tableView_, &QTableView::customContextMenuRequested,
+            this, [this](const QPoint& pos) {
+        QMenu menu(this);
+        auto* resetSort = menu.addAction(tr("Reset sort order"));
+        connect(resetSort, &QAction::triggered, this, [this]() {
+            proxyModel_->sort(-1);  // Remove sort
+            tableView_->horizontalHeader()->setSortIndicator(-1, Qt::AscendingOrder);
+        });
+        menu.exec(tableView_->viewport()->mapToGlobal(pos));
+    });
 
     placeholderLabel_ = new QLabel(this);
     placeholderLabel_->setAlignment(Qt::AlignCenter);

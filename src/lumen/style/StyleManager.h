@@ -26,6 +26,10 @@ public:
     /// Load fonts, generate stylesheet, and apply it to qApp.
     void apply();
 
+    /// Switch to dark or light QSS at runtime.
+    void setDarkMode(bool dark);
+    [[nodiscard]] bool isDarkMode() const { return darkMode_; }
+
     /// Returns the application default font (Inter or fallback).
     [[nodiscard]] QFont defaultFont() const;
 
@@ -34,6 +38,7 @@ private:
     void applyStyleSheet();
 
     QString fontFamily_;
+    bool darkMode_ = false;
 };
 
 }  // namespace lumen
