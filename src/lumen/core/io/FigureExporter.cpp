@@ -1,5 +1,7 @@
 #include "core/io/FigureExporter.h"
 
+#include "dashboard/Dashboard.h"
+#include "dashboard/GridLayout.h"
 #include "plot/PlotRenderer.h"
 #include "plot/PlotScene.h"
 
@@ -152,6 +154,50 @@ QString FigureExporter::exportPdf(const plot::PlotScene* scene,
     renderer.render(painter, *scene,
                     QSizeF(opts.widthPx, opts.heightPx));
     painter.end();
+
+    return {};
+}
+
+QString FigureExporter::exportDashboard(const dashboard::Dashboard* db,
+                                         const Options& opts)
+{
+    if (!db || db->panelCount() == 0)
+        return QStringLiteral("Dashboard is empty");
+
+    const auto& layout = db->layout();
+    QSizeF totalSize(opts.widthPx, opts.heightPx);
+
+    QImage image(opts.widthPx, opts.heightPx, QImage::Format_ARGB32);
+    image.fill(Qt::white);
+
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    plot::PlotRenderer renderer;
+    for (int i = 0; i < db->panelCount(); ++i) {
+        auto* scene = const_cast<dashboard::Dashboard*>(db)->sceneAt(i);
+        if (!scene)
+            continue;
+
+        QRectF rect = layout.cellRect(db->panelConfigAt(i), totalSize);
+        painter.save();
+        painter.setClipRect(rect);
+        painter.translate(rect.topLeft());
+
+        QSize panelSize(static_cast<int>(rect.width()),
+                        static_cast<int>(rect.height()));
+        renderer.render(painter, *scene, panelSize);
+
+        painter.restore();
+    }
+
+    painter.end();
+
+    image.setDotsPerMeterX(static_cast<int>(opts.dpi * 39.3701));
+    image.setDotsPerMeterY(static_cast<int>(opts.dpi * 39.3701));
+
+    if (!image.save(opts.outputPath))
+        return QStringLiteral("Failed to save dashboard image");
 
     return {};
 }

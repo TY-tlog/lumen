@@ -30,7 +30,13 @@ class Dataset;
 class TabularBundle;
 }  // namespace lumen::data
 
+namespace lumen::dashboard {
+class Dashboard;
+class DashboardWidget;
+}  // namespace lumen::dashboard
+
 namespace lumen::ui {
+class DashboardToolbar;
 class DataTableDock;
 class PlotCanvas3D;
 class PlotCanvas3DDock;
@@ -63,6 +69,9 @@ public:
     [[nodiscard]] ui::PlotCanvasDock* plotCanvasDock() const { return plotCanvasDock_; }
     [[nodiscard]] ui::PlotCanvas3DDock* plotCanvas3DDock() const { return plotCanvas3DDock_; }
     [[nodiscard]] ui::PlotCanvas3D* plotCanvas3D() const { return plotCanvas3D_; }
+    [[nodiscard]] dashboard::Dashboard* dashboard() const { return dashboard_; }
+    [[nodiscard]] dashboard::DashboardWidget* dashboardWidget() const { return dashboardWidget_; }
+    [[nodiscard]] bool isDashboardMode() const { return dashboardMode_; }
 
 protected:
     void closeEvent(QCloseEvent* event) override;
@@ -120,6 +129,12 @@ private:
     /// Show memory budget settings dialog.
     void showMemoryBudgetDialog();
 
+    /// Toggle between single-plot and dashboard modes.
+    void setDashboardMode(bool enabled);
+
+    /// Open multiple files into a dashboard.
+    void openMultipleFiles();
+
     core::DocumentRegistry* registry_ = nullptr;
     core::CommandBus* commandBus_ = nullptr;
     core::io::WorkspaceManager* workspaceManager_ = nullptr;
@@ -131,6 +146,10 @@ private:
     QString currentDocPath_;
     QSplitter* hSplitter_ = nullptr;
     QSplitter* vSplitter_ = nullptr;
+    dashboard::Dashboard* dashboard_ = nullptr;
+    dashboard::DashboardWidget* dashboardWidget_ = nullptr;
+    ui::DashboardToolbar* dashboardToolbar_ = nullptr;
+    bool dashboardMode_ = false;
     QLabel* placeholder_ = nullptr;
     QLabel* memoryLabel_ = nullptr;
     QTimer* memoryTimer_ = nullptr;

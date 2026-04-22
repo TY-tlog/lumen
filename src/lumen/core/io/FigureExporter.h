@@ -3,6 +3,10 @@
 #include <QByteArray>
 #include <QString>
 
+namespace lumen::dashboard {
+class Dashboard;
+}  // namespace lumen::dashboard
+
 namespace lumen::plot {
 class PlotScene;
 }  // namespace lumen::plot
@@ -37,6 +41,10 @@ public:
     /// Returns empty string on success, error message on failure.
     static QString exportFigure(const plot::PlotScene* scene,
                                 const Options& opts);
+
+    /// Renders an entire dashboard (multiple panels) to a single file.
+    static QString exportDashboard(const dashboard::Dashboard* dashboard,
+                                    const Options& opts);
 
 private:
     static QString exportPng(const plot::PlotScene* scene, const Options& opts);

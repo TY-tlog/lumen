@@ -6,8 +6,12 @@
 #include "PlotCanvas3D.h"
 #include "PlotCanvas3DDock.h"
 #include "PlotCanvasDock.h"
+#include "AddPanelDialog.h"
+#include "DashboardToolbar.h"
 
 #include <core/DocumentRegistry.h>
+#include <dashboard/Dashboard.h>
+#include <dashboard/DashboardWidget.h>
 #include <core/io/FigureExporter.h>
 #include <core/io/WorkspaceManager.h>
 #include <data/CoordinateArray.h>
@@ -23,7 +27,9 @@
 #include <data/io/LoaderRegistry.h>
 #include <plot/Colormap.h>
 #include <plot/Heatmap.h>
+#include <plot/LineSeries.h>
 #include <plot/PlotScene.h>
+#include <plot/PlotStyle.h>
 #include <plot3d/Scatter3D.h>
 #include <plot3d/Surface3D.h>
 #include <plot3d/VolumeItem.h>
@@ -171,6 +177,12 @@ void MainWindow::buildMenus() {
     recentFilesMenu_ = fileMenu->addMenu(tr("Recent Files"));
     updateRecentFilesMenu();
 
+    // Open multiple files into dashboard
+    auto* openMultiAction = fileMenu->addAction(tr("Open &Multiple..."));
+    openMultiAction->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_O));
+    connect(openMultiAction, &QAction::triggered,
+            this, &MainWindow::openMultipleFiles);
+
     // Sample data submenu
     buildSampleMenu(fileMenu);
 
@@ -235,6 +247,12 @@ void MainWindow::buildMenus() {
             hSplitter_->setSizes(sizes);
         }
     });
+
+    viewMenu->addSeparator();
+    auto* dashboardAction = viewMenu->addAction(tr("Dashboard Mode"));
+    dashboardAction->setCheckable(true);
+    connect(dashboardAction, &QAction::toggled,
+            this, &MainWindow::setDashboardMode);
 
     viewMenu->addSeparator();
     auto* darkModeAction = viewMenu->addAction(tr("Dark Mode"));
@@ -1043,6 +1061,125 @@ void MainWindow::updateWindowTitle() {
         }
     }
     setWindowTitle(title);
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard mode (Phase 12)
+// ---------------------------------------------------------------------------
+
+void MainWindow::setDashboardMode(bool enabled)
+{
+    if (dashboardMode_ == enabled)
+        return;
+
+    dashboardMode_ = enabled;
+
+    if (enabled) {
+        if (dashboard_ == nullptr) {
+            dashboard_ = new dashboard::Dashboard(this);
+            dashboard_->setGridSize(2, 2);
+        }
+        if (dashboardWidget_ == nullptr) {
+            dashboardWidget_ = new dashboard::DashboardWidget(
+                dashboard_, vSplitter_);
+        }
+        if (dashboardToolbar_ == nullptr) {
+            dashboardToolbar_ = new ui::DashboardToolbar(dashboard_, this);
+            connect(dashboardToolbar_, &ui::DashboardToolbar::addPanelRequested,
+                    this, [this]() {
+                ui::AddPanelDialog dlg(dashboard_->gridRows(),
+                                       dashboard_->gridCols(), this);
+                if (dlg.exec() == QDialog::Accepted) {
+                    dashboard_->addPanel(dlg.result());
+                }
+            });
+        }
+
+        plotCanvasDock_->hide();
+        dashboardWidget_->show();
+        dashboardToolbar_->show();
+
+        vSplitter_->insertWidget(0, dashboardToolbar_);
+        vSplitter_->insertWidget(1, dashboardWidget_);
+        vSplitter_->setStretchFactor(0, 0);
+        vSplitter_->setStretchFactor(1, 3);
+        vSplitter_->setStretchFactor(2, 1);
+
+        if (placeholder_ != nullptr)
+            placeholder_->hide();
+
+        statusBar()->showMessage(tr("Dashboard mode — %1×%2 grid")
+            .arg(dashboard_->gridRows())
+            .arg(dashboard_->gridCols()));
+    } else {
+        if (dashboardWidget_ != nullptr)
+            dashboardWidget_->hide();
+        if (dashboardToolbar_ != nullptr)
+            dashboardToolbar_->hide();
+
+        plotCanvasDock_->show();
+        vSplitter_->setStretchFactor(1, 3);
+        vSplitter_->setStretchFactor(2, 1);
+
+        statusBar()->showMessage(tr("Single plot mode"));
+    }
+}
+
+void MainWindow::openMultipleFiles()
+{
+    QStringList paths = QFileDialog::getOpenFileNames(
+        this, tr("Open Multiple Files"),
+        QString(),
+        tr("All supported (*.csv *.json *.h5 *.hdf5 *.nc *.npy *.mat *.tif *.tiff);;"
+           "CSV (*.csv);;All files (*)"));
+
+    if (paths.isEmpty())
+        return;
+
+    setDashboardMode(true);
+
+    int n = static_cast<int>(paths.size());
+    int cols = static_cast<int>(std::ceil(std::sqrt(static_cast<double>(n))));
+    int rows = (n + cols - 1) / cols;
+    dashboard_->setGridSize(rows, cols);
+
+    for (int i = 0; i < n; ++i) {
+        dashboard::PanelConfig cfg;
+        cfg.row = i / cols;
+        cfg.col = i % cols;
+        cfg.title = QFileInfo(paths[i]).fileName();
+        int idx = dashboard_->addPanel(cfg);
+
+        auto* registryLoader =
+            data::io::LoaderRegistry::instance().loaderForPath(paths[i]);
+        if (registryLoader != nullptr) {
+            auto tabular = registryLoader->loadTabular(paths[i]);
+            if (tabular) {
+                auto* scene = dashboard_->sceneAt(idx);
+                if (scene && tabular->columnCount() >= 2) {
+                    auto xDs = tabular->column(0);
+                    auto yDs = tabular->column(1);
+                    if (xDs && yDs) {
+                        plot::PlotStyle style;
+                        style.color = QColor::fromHsvF(
+                            static_cast<float>(i) / static_cast<float>(n),
+                            0.7F, 0.9F);
+                        auto series = std::make_unique<plot::LineSeries>(
+                            xDs, yDs, style, yDs->name());
+                        scene->addItem(std::move(series));
+                        scene->setTitle(cfg.title);
+                        scene->autoRange();
+                    }
+                }
+                registry_->addDocument(paths[i], std::move(tabular));
+            }
+        }
+    }
+
+    updateWindowTitle();
+    statusBar()->showMessage(
+        tr("Dashboard: %1 files loaded into %2×%3 grid")
+            .arg(n).arg(dashboard_->gridRows()).arg(dashboard_->gridCols()));
 }
 
 }  // namespace lumen

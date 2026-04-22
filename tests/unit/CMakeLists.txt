@@ -124,6 +124,7 @@ add_executable(lumen_unit_tests
     test_dashboard_cascade.cpp
     test_dashboard_persistence.cpp
     test_dashboard_commands.cpp
+    test_dashboard_export.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/DataFrameTableModel.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.cpp
     ${CMAKE_SOURCE_DIR}/src/lumen/ui/PlotCanvas3D.h
